@@ -5,7 +5,7 @@
   "main": "checkmm.js",
   "scripts": {
     "output-cpp": "clang-format cpp/checkmm.cpp > output/checkmm.cpp",
-    "build": "ts-node transpiler/index.ts"
+    "transpile": "ts-node transpiler/index.ts && clang-format output/checkmm_ugly.cpp > output/checkmm.cpp"
   },
   "repository": {
     "type": "git",
@@ -18,7 +18,16 @@
   },
   "dependencies": {
     "@types/node": "^17.0.23",
+    "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.3"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": true,
+    "printWidth": 120,
+    "tabWidth": 4,
+    "trailingComma": "all",
+    "arrowParens": "avoid"
   }
 }
