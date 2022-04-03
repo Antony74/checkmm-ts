@@ -1,5 +1,6 @@
-import ts, { SyntaxKind } from "typescript";
-import { hackBannerComment } from "./hackBannerComment";
+import ts, { SyntaxKind } from 'typescript';
+import { hackBannerComment } from './hackBannerComment';
+import { simpleTreeString } from './simpleTree';
 
 const getComment = (node: ts.Node): string => {
     const fullText = node.getFullText();
@@ -26,11 +27,13 @@ export const processNode = (node: ts.Node) => {
         case SyntaxKind.SourceFile:
         case SyntaxKind.SyntaxList:
         case SyntaxKind.TypeReference:
+        case SyntaxKind.VariableStatement:
+        case SyntaxKind.VariableDeclarationList:
             returnValue = node.getChildren().map(processNode).join('');
             break;
         case SyntaxKind.ImportDeclaration:
-            break;
         case SyntaxKind.EndOfFileToken:
+        case SyntaxKind.ConstKeyword:
             break;
         case SyntaxKind.QualifiedName:
             switch (node.getText()) {
@@ -46,6 +49,9 @@ export const processNode = (node: ts.Node) => {
                 case 'Array':
                     returnValue = 'std::vector';
                     break;
+                case 'Map':
+                    returnValue = 'std::map';
+                    break;
                 default:
                     returnValue = node.getText();
             }
@@ -60,6 +66,7 @@ export const processNode = (node: ts.Node) => {
         case SyntaxKind.LessThanToken:
         case SyntaxKind.GreaterThanToken:
         case SyntaxKind.CommaToken:
+        case SyntaxKind.SemicolonToken:
             returnValue = node.getText();
             break;
         case SyntaxKind.TypeAliasDeclaration:
@@ -80,7 +87,24 @@ export const processNode = (node: ts.Node) => {
                 throw new Error(`Unrecognised TypeAliasDeclaration.  Expected 5 children`);
             }
             break;
+        case SyntaxKind.VariableDeclaration:
+            if (node.getChildCount() === 3) {
+                const [varableName, equalsToken, expression] = node.getChildren();
+
+                if (varableName.kind === SyntaxKind.Identifier && equalsToken.kind === SyntaxKind.EqualsToken) {
+                    if (expression.kind === SyntaxKind.NewExpression) {
+                        const newExpression = expression.getChildren().slice(1, -3);
+                        returnValue = `${newExpression.map(processNode).join('')} ${varableName.getText()}`;
+                    }
+                } else {
+                    throw new Error(`Unrecognised VariableDeclaration.`);
+                }
+            } else {
+                throw new Error(`Unrecognised VariableDeclaration.  Expected 3 children`);
+            }
+            break;
         default:
+            console.log(simpleTreeString(node));
             throw new Error(`node.kind ${node.kind} node yet supported.  ${node.getText()}`);
     }
 

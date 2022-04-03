@@ -41,9 +41,9 @@ type Expression = Array<string>;
 // true iff the hypothesis is floating.
 type Hypothesis = std.Pair<Expression, boolean>;
 
-/*
 const hypotheses = new Map<string, Hypothesis>();
 
+/*
 // An axiom or a theorem.
 interface Assertion {
     // Hypotheses of this axiom or theorem. 
