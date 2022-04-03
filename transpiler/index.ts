@@ -11,12 +11,21 @@ const sourceFile: ts.Node = ts.createSourceFile(
     /*setParentNodes */ true,
 );
 
+const getComment = (node: ts.Node): string => {
+    const fullText = node.getFullText();
+    const comment = fullText.slice(0, fullText.length - node.getText().length);
+    return comment;
+};
+
 const processNode = (node: ts.Node) => {
     let returnValue = '';
     console.log(node.kind);
 
-    const fullText = node.getFullText();
-    const comment = fullText.slice(0, fullText.length - node.getText().length);
+    let comment = '';
+
+    if (!node.parent || node !== node.parent.getChildAt(0)) {
+        comment = getComment(node);
+    }
 
     switch (node.kind) {
         case SyntaxKind.SourceFile:
