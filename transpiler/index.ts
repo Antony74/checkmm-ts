@@ -15,24 +15,50 @@ const processNode = (node: ts.Node) => {
     let returnValue = '';
     console.log(node.kind);
 
+    const fullText = node.getFullText();
+    const comment = fullText.slice(0, fullText.length - node.getText().length);
+
     switch (node.kind) {
         case SyntaxKind.SourceFile:
         case SyntaxKind.SyntaxList:
+        case SyntaxKind.TypeReference:
             returnValue = node.getChildren().map(processNode).join('');
             break;
         case SyntaxKind.ImportDeclaration:
+            break;
         case SyntaxKind.EndOfFileToken:
             break;
+        case SyntaxKind.QualifiedName:
+            switch (node.getText()) {
+                case 'std.Pair':
+                    returnValue = 'std::pair';
+                    break;
+                default:
+                    returnValue = node.getText();
+            }
+            break;
         case SyntaxKind.Identifier:
-            console.log(`Identifier ${node.getText()}`);
-            returnValue = node.getText();
+            switch (node.getText()) {
+                case 'Array':
+                    returnValue = 'std::vector';
+                    break;
+                default:
+                    returnValue = node.getText();
+            }
+            break;
+        case SyntaxKind.StringKeyword:
+            returnValue = 'std::string';
+            break;
+        case SyntaxKind.BooleanKeyword:
+            returnValue = 'bool';
             break;
         case SyntaxKind.EqualsToken:
+        case SyntaxKind.LessThanToken:
+        case SyntaxKind.GreaterThanToken:
+        case SyntaxKind.CommaToken:
             returnValue = node.getText();
             break;
         case SyntaxKind.TypeAliasDeclaration:
-            console.log(`typedef ${node.getChildCount()}`);
-
             if (node.getChildCount() === 5) {
                 const [typeKeyword, identifer, equalsToken, typeReference, semicolonToken] = node.getChildren();
                 if (
@@ -42,7 +68,7 @@ const processNode = (node: ts.Node) => {
                     typeReference.kind === SyntaxKind.TypeReference &&
                     semicolonToken.kind === SyntaxKind.SemicolonToken
                 ) {
-                    returnValue = `typedef ${typeReference.getText()} ${identifer.getText()};`;
+                    returnValue = `typedef ${processNode(typeReference)} ${identifer.getText()};`;
                 } else {
                     throw new Error(`Unrecognised TypeAliasDeclaration`);
                 }
@@ -55,11 +81,9 @@ const processNode = (node: ts.Node) => {
     }
 
     console.log(returnValue);
-    return returnValue;
+    return comment + returnValue;
 };
 
 const code = processNode(sourceFile);
 
 fs.writeFileSync(outputFilename, code);
-
-
