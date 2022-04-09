@@ -5,13 +5,17 @@ import { processNode } from './processNode';
 const inputFilename = `${__dirname}/../ts/checkmm.ts`;
 const outputFilename = `${__dirname}/../output/checkmm_ugly.cpp`;
 
-const sourceFile: ts.Node = ts.createSourceFile(
-    inputFilename,
-    fs.readFileSync(inputFilename).toString(),
-    ts.ScriptTarget.ES2015,
-    /*setParentNodes */ true,
-);
+const options: ts.CompilerOptions = {
+    noEmit: true,
+    noImplicitAny: true,
+    target: ts.ScriptTarget.ES5,
+    module: ts.ModuleKind.CommonJS,
+};
 
-const code = processNode(sourceFile);
+const program = ts.createProgram([inputFilename], options);
+const sourceFile = program.getSourceFile(inputFilename);
 
-fs.writeFileSync(outputFilename, code);
+if (sourceFile) {
+    const code = processNode(sourceFile);
+    fs.writeFileSync(outputFilename, code);
+}
