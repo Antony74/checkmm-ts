@@ -25,5 +25,5 @@ export const hackBannerComment = (lines: string[]): string => {
         'vector',
     ].map(filename => `#include <${filename}>`);
 
-    return [...lines.filter(line => line.length), '', ...includes].join('\n');
+    return [...lines.filter(line => line.length), '', ...includes].join('\n') + '\n';
 };

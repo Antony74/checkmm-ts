@@ -1,6 +1,6 @@
 import ts, { SyntaxKind } from 'typescript';
 import { hackBannerComment } from './hackBannerComment';
-import { simpleTreeString } from './simpleTree';
+import { kindString, simpleTreeString } from './simpleTree';
 
 export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
     const getComment = (node: ts.Node): string => {
@@ -11,11 +11,11 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
 
     const processNode = (node: ts.Node) => {
         let returnValue = '';
-        console.log(node.kind);
+        console.log(kindString(node.kind));
 
         let comment = '';
 
-        if (node.parent && node !== node.parent.getChildAt(0)) {
+        if (node.kind !== SyntaxKind.SourceFile && node.kind !== SyntaxKind.ImportDeclaration) {
             comment = getComment(node);
             const lines = comment.split('\n');
 

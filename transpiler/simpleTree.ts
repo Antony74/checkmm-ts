@@ -37,6 +37,10 @@ const kindToString = (kind: SyntaxKind): string => {
             return 'CloseParenToken';
         case SyntaxKind.StringKeyword:
             return 'StringKeyword';
+        case SyntaxKind.SourceFile:
+            return 'SourceFile';
+        case SyntaxKind.ImportDeclaration:
+            return 'ImportDeclaration';
         default:
             return '';
     }
