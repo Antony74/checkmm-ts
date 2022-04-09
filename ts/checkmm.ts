@@ -35,6 +35,8 @@
 
 import { std } from './std';
 
+const tokens = new std.Queue<string>();
+
 type Expression = Array<string>;
 
 // The first parameter is the statement of the hypothesis, the second is

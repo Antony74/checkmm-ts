@@ -41,6 +41,8 @@ const kindToString = (kind: SyntaxKind): string => {
             return 'SourceFile';
         case SyntaxKind.ImportDeclaration:
             return 'ImportDeclaration';
+        case SyntaxKind.PropertyAccessExpression:
+            return 'PropertyAccessExpression';
         default:
             return '';
     }
@@ -51,8 +53,12 @@ export const kindString = (kind: SyntaxKind): string => {
     return s ? s : `${kind}`;
 };
 
-export const simpleTree = (node: ts.Node): SimpleTree => {
-    return { kind: kindString(node.kind), children: node.getChildren().map(simpleTree) };
-};
+export const simpleTreeCreator = (sourceFile: ts.SourceFile) => {
+    const simpleTree = (node: ts.Node): SimpleTree => {
+        return { kind: kindString(node.kind), children: node.getChildren(sourceFile).map(simpleTree) };
+    };
 
-export const simpleTreeString = (node: ts.Node): string => JSON.stringify(simpleTree(node), null, 2);
+    const simpleTreeString = (node: ts.Node): string => JSON.stringify(simpleTree(node), null, 2);
+
+    return { simpleTree, simpleTreeString };
+};
