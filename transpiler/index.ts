@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import fs from 'fs';
-import { processNode } from './processNode';
+import { createNodeProcessor } from './processNode';
 
 const inputFilename = `${__dirname}/../ts/checkmm.ts`;
 const outputFilename = `${__dirname}/../output/checkmm_ugly.cpp`;
@@ -16,6 +16,7 @@ const program = ts.createProgram([inputFilename], options);
 const sourceFile = program.getSourceFile(inputFilename);
 
 if (sourceFile) {
+    const processNode = createNodeProcessor(sourceFile);
     const code = processNode(sourceFile);
     fs.writeFileSync(outputFilename, code);
 }
