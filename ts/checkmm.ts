@@ -33,7 +33,7 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-js/issues
 
-import { std } from './helpers';
+import { std } from './std';
 
 type Expression = Array<string>;
 
