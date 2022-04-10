@@ -17,7 +17,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
 
         let comment = '';
 
-        if (node.kind !== SyntaxKind.SourceFile && node.kind !== SyntaxKind.ImportDeclaration) {
+        if (node.kind !== SyntaxKind.SourceFile && node.kind !== SyntaxKind.SyntaxList) {
             comment = getComment(node);
             const lines = comment.split('\n');
 
@@ -43,8 +43,11 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                     case 'std.Pair':
                         returnValue = 'std::pair';
                         break;
+                    case 'std.Deque':
+                        returnValue = 'std::deque';
+                        break;
                     default:
-                        returnValue = node.getText();
+                        returnValue = node.getText(sourceFile);
                 }
                 break;
             case SyntaxKind.Identifier:
@@ -131,6 +134,44 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                     }
                 } else {
                     throw new Error(`Unrecognised PropertyAccessExpression.  Expected 3 children`);
+                }
+                break;
+            case SyntaxKind.InterfaceDeclaration:
+                if (node.getChildCount(sourceFile) === 5) {
+                    const [interfaceKeyword, identifer, firstPunctuation, syntaxList, clostBraceToken] =
+                        node.getChildren(sourceFile);
+
+                    if (
+                        interfaceKeyword.kind === SyntaxKind.InterfaceKeyword &&
+                        identifer.kind === SyntaxKind.Identifier &&
+                        firstPunctuation.kind === SyntaxKind.FirstPunctuation &&
+                        syntaxList.kind === SyntaxKind.SyntaxList &&
+                        clostBraceToken.kind === SyntaxKind.CloseBraceToken
+                    ) {
+                        returnValue = `struct ${identifer.getText(sourceFile)} {${processNode(syntaxList)}};`;
+                    } else {
+                        throw new Error(`Unrecognised InterfaceDeclaration.`);
+                    }
+                } else {
+                    throw new Error(`Unrecognised InterfaceDeclaration.  Expected 5 children`);
+                }
+                break;
+            case SyntaxKind.PropertySignature:
+                if (node.getChildCount(sourceFile) === 4) {
+                    const [identifier, colonToken, typeReference, semiColonToken] = node.getChildren(sourceFile);
+
+                    if (
+                        identifier.kind === SyntaxKind.Identifier &&
+                        colonToken.kind === SyntaxKind.ColonToken &&
+                        typeReference.kind === SyntaxKind.TypeReference &&
+                        semiColonToken.kind === SyntaxKind.SemicolonToken
+                    ) {
+                        returnValue = `${processNode(typeReference)} ${identifier.getText(sourceFile)};`;
+                    } else {
+                        throw new Error(`Unrecognised PropertySignature.`);
+                    }
+                } else {
+                    throw new Error(`Unrecognised PropertySignature.  Expected 4 children`);
                 }
                 break;
             default:

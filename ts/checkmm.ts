@@ -49,16 +49,15 @@ const hypotheses = new Map<string, Hypothesis>();
 
 const variables = new Set<string>();
 
-/*
 // An axiom or a theorem.
 interface Assertion {
     // Hypotheses of this axiom or theorem. 
-    hypotheses: std.deque<string>;
+    hypotheses: std.Deque<string>;
     disjvars: Set<std.Pair<string, string>>;
     // Statement of axiom or theorem.
     expression: Expression;
 }
-
+/*
 const assertions = new Map<string, Assertion>();
 
 // Determine if a string is used as a label
