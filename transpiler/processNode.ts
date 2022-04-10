@@ -55,6 +55,9 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                     case 'Map':
                         returnValue = 'std::map';
                         break;
+                    case 'Queue':
+                        returnValue = 'queue';
+                        break;
                     default:
                         returnValue = node.getText(sourceFile);
                 }
@@ -107,6 +110,20 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                     }
                 } else {
                     throw new Error(`Unrecognised VariableDeclaration.  Expected 3 children`);
+                }
+                break;
+            case SyntaxKind.PropertyAccessExpression:
+                if (node.getChildCount(sourceFile) === 3) {
+                    const [identifer1, dotToken, identifer2] = node.getChildren(sourceFile);
+                    if (identifer1.kind === SyntaxKind.Identifier && dotToken.kind === SyntaxKind.DotToken && identifer2.kind === SyntaxKind.Identifier) {
+                        const identiferText = identifer1.getText(sourceFile);
+                        const accessorToken = identiferText === 'std' ? '::' : '.';
+                        returnValue = `${processNode(identifer1)}${accessorToken}${processNode(identifer2)}`;
+                    }else {
+                        throw new Error(`Unrecognised PropertyAccessExpression.`);
+                    }
+                } else {
+                    throw new Error(`Unrecognised PropertyAccessExpression.  Expected 3 children`);
                 }
                 break;
             default:

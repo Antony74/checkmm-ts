@@ -43,6 +43,8 @@ const kindToString = (kind: SyntaxKind): string => {
             return 'ImportDeclaration';
         case SyntaxKind.PropertyAccessExpression:
             return 'PropertyAccessExpression';
+        case SyntaxKind.DotToken:
+            return 'DotToken';
         default:
             return '';
     }
