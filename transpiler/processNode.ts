@@ -157,7 +157,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
 
                                         returnValue = `${processNode(returnType)} ${varableName.getText(
                                             sourceFile,
-                                        )}(${parameters}){${processNode(block)}}`;
+                                        )}(${parameters})${processNode(block)}`;
                                     } else {
                                         throw new Error(`Unrecognised ArrowFunction.`);
                                     }
