@@ -124,7 +124,36 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                 }
                 break;
             case SyntaxKind.VariableDeclaration:
-                if (node.getChildCount(sourceFile) === 3) {
+                if (node.getChildCount(sourceFile) === 5) {
+                    const [varableName, colonToken, variableType, firstAssignment, value] =
+                        node.getChildren(sourceFile);
+
+                    if (
+                        varableName.kind === SyntaxKind.Identifier &&
+                        colonToken.kind === SyntaxKind.ColonToken &&
+                        firstAssignment.kind === SyntaxKind.FirstAssignment
+                    ) {
+                        if (value.kind === SyntaxKind.ArrayLiteralExpression && value.getChildCount(sourceFile) === 3) {
+                            const [openBracketToken, syntaxList, closeBracketToken] = value.getChildren(sourceFile);
+                            if (
+                                openBracketToken.kind === SyntaxKind.OpenBracketToken &&
+                                syntaxList.kind === SyntaxKind.SyntaxList &&
+                                closeBracketToken.kind === SyntaxKind.CloseBracketToken &&
+                                syntaxList.getChildCount() === 0
+                            ) {
+                                returnValue = `${processNode(variableType)} ${varableName.getText(sourceFile)}`;
+                            } else {
+                                throw new Error(
+                                    `Unrecognised ArrayLiteralExperssion in VariableDeclaration with 5 children.`,
+                                );
+                            }
+                        } else {
+                            throw new Error(`Unrecognised VariableDeclaration with 5 children.`);
+                        }
+                    } else {
+                        throw new Error(`Unrecognised VariableDeclaration with 5 children.`);
+                    }
+                } else if (node.getChildCount(sourceFile) === 3) {
                     const [varableName, equalsToken, value] = node.getChildren(sourceFile);
 
                     if (varableName.kind === SyntaxKind.Identifier && equalsToken.kind === SyntaxKind.EqualsToken) {
@@ -180,10 +209,11 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                                 throw new Error(`Unrecognised VariableDeclaration value`);
                         }
                     } else {
-                        throw new Error(`Unrecognised VariableDeclaration.`);
+                        throw new Error(`Unrecognised VariableDeclaration with 3 children.`);
                     }
                 } else {
-                    throw new Error(`Unrecognised VariableDeclaration.  Expected 3 children`);
+                    console.log(simpleTreeString(node));
+                    throw new Error(`Unrecognised VariableDeclaration.  Expected 3 or 5 children`);
                 }
                 break;
             case SyntaxKind.PropertyAccessExpression:

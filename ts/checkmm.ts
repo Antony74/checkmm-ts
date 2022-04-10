@@ -69,6 +69,8 @@ interface Scope {
     floatinghyp: Map<string, string>;
 }
 
+const scopes: Scope[] = [];
+
 // Determine if a string is used as a label
 const labelused = (label: string): boolean => {
     return hypotheses.get(label) !== undefined || assertions.get(label) !== undefined;
