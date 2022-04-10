@@ -81,17 +81,17 @@ struct Scope {
 std::vector<Scope> scopes;
 
 // Determine if a string is used as a label
-inline bool labelused(std::string const label) {
+bool labelused(std::string label) {
   return hypotheses.find(label) != hypotheses.end() ||
          assertions.find(label) != assertions.end();
 }
 
 // Find active floating hypothesis corresponding to variable, or empty string
 // if there isn't one.
-std::string getfloatinghyp(std::string const var) {
+std::string getfloatinghyp(std::string var) {
   for (std::vector<Scope>::const_iterator iter(scopes.begin());
        iter != scopes.end(); ++iter) {
-    std::map<std::string, std::string>::const_iterator const loc(
+    std::map<std::string, std::string>::const_iterator loc(
         iter->floatinghyp.find(var));
     if (loc != iter->floatinghyp.end())
       return loc->second;
@@ -101,7 +101,7 @@ std::string getfloatinghyp(std::string const var) {
 }
 
 // Determine if a string is an active variable.
-bool isactivevariable(std::string const str) {
+bool isactivevariable(std::string str) {
   for (std::vector<Scope>::const_iterator iter(scopes.begin());
        iter != scopes.end(); ++iter) {
     if (iter->activevariables.find(str) != iter->activevariables.end())
@@ -111,7 +111,7 @@ bool isactivevariable(std::string const str) {
 }
 
 // Determine if a string is the label of an active hypothesis.
-bool isactivehyp(std::string const str) {
+bool isactivehyp(std::string str) {
   for (std::vector<Scope>::const_iterator iter(scopes.begin());
        iter != scopes.end(); ++iter) {
     if (std::find(iter->activehyp.begin(), iter->activehyp.end(), str) !=
@@ -140,16 +140,16 @@ bool isdvr(std::string var1, std::string var2) {
 }
 
 // Determine if a character is white space in Metamath.
-inline bool ismmws(char const ch) {
+bool ismmws(char ch) {
   // This doesn't include \v ("vertical tab"), as the spec omits it.
   return ch == ' ' || ch == '\n' || ch == '\t' || ch == '\f' || ch == '\r';
 }
 
 // Determine if a token is a label token.
-bool islabeltoken(std::string const token) {
+bool islabeltoken(std::string token) {
   for (std::string::const_iterator iter(token.begin()); iter != token.end();
        ++iter) {
-    unsigned char const ch(*iter);
+    unsigned char ch(*iter);
     if (!(std::isalnum(ch) || ch == '.' || ch == '-' || ch == '_'))
       return false;
   }
@@ -157,7 +157,7 @@ bool islabeltoken(std::string const token) {
 }
 
 // Determine if a token is a math symbol token.
-inline bool ismathsymboltoken(std::string const token) {
+bool ismathsymboltoken(std::string token) {
   return token.find('$') == std::string::npos;
 }
 
@@ -198,10 +198,10 @@ std::string nexttoken(std::istream &input) {
   return token;
 }
 
-bool readtokens(std::string const filename) {
+bool readtokens(std::string filename) {
   static std::set<std::string> names;
 
-  bool const alreadyencountered(!names.insert(filename).second);
+  bool alreadyencountered(!names.insert(filename).second);
   if (alreadyencountered)
     return true;
 
@@ -254,7 +254,7 @@ bool readtokens(std::string const filename) {
           return false;
         }
 
-        bool const okay(readtokens(newfilename));
+        bool okay(readtokens(newfilename));
         if (!okay)
           return false;
         infileinclusion = false;
@@ -294,7 +294,7 @@ bool readtokens(std::string const filename) {
 // mandatory hypotheses and disjoint variable restrictions.
 // The Assertion is inserted into the assertions collection,
 // and is returned by reference.
-Assertion &constructassertion(std::string const label, Expression const &exp) {
+Assertion &constructassertion(std::string label, Expression &exp) {
   Assertion &assertion(
       assertions.insert(std::make_pair(label, Assertion())).first->second);
 
@@ -312,11 +312,11 @@ Assertion &constructassertion(std::string const label, Expression const &exp) {
 
   for (std::vector<Scope>::const_reverse_iterator iter(scopes.rbegin());
        iter != scopes.rend(); ++iter) {
-    std::vector<std::string> const &hypvec(iter->activehyp);
+    std::vector<std::string> &hypvec(iter->activehyp);
     for (std::vector<std::string>::const_reverse_iterator iter2(
              hypvec.rbegin());
          iter2 != hypvec.rend(); ++iter2) {
-      Hypothesis const &hyp(hypotheses.find(*iter2)->second);
+      Hypothesis &hyp(hypotheses.find(*iter2)->second);
       if (hyp.second && varsused.find(hyp.first[1]) != varsused.end()) {
         // Mandatory floating hypothesis
         assertion.hypotheses.push_front(*iter2);
@@ -335,7 +335,7 @@ Assertion &constructassertion(std::string const label, Expression const &exp) {
   // Determine mandatory disjoint variable restrictions
   for (std::vector<Scope>::const_iterator iter(scopes.begin());
        iter != scopes.end(); ++iter) {
-    std::vector<std::set<std::string>> const &disjvars(iter->disjvars);
+    std::vector<std::set<std::string>> &disjvars(iter->disjvars);
     for (std::vector<std::set<std::string>>::const_iterator iter2(
              disjvars.begin());
          iter2 != disjvars.end(); ++iter2) {
@@ -408,12 +408,12 @@ bool readexpression(char stattype, std::string label, std::string terminator,
 
 // Make a substitution of variables. The result is put in "destination",
 // which should be empty.
-void makesubstitution(Expression const &original,
+void makesubstitution(Expression &original,
                       std::map<std::string, Expression> substmap,
                       Expression *destination) {
   for (Expression::const_iterator iter(original.begin());
        iter != original.end(); ++iter) {
-    std::map<std::string, Expression>::const_iterator const iter2(
+    std::map<std::string, Expression>::const_iterator iter2(
         substmap.find(*iter));
     if (iter2 == substmap.end()) {
       // Constant
@@ -430,14 +430,14 @@ void makesubstitution(Expression const &original,
 // The letter Z is translated as 0.
 bool getproofnumbers(std::string label, std::string proof,
                      std::vector<std::size_t> *proofnumbers) {
-  std::size_t const size_max(std::numeric_limits<std::size_t>::max());
+  std::size_t size_max(std::numeric_limits<std::size_t>::max());
 
   std::size_t num(0u);
   bool justgotnum(false);
   for (std::string::const_iterator iter(proof.begin()); iter != proof.end();
        ++iter) {
     if (*iter <= 'T') {
-      std::size_t const addval(*iter - ('A' - 1));
+      std::size_t addval(*iter - ('A' - 1));
 
       if (num > size_max / 20 || 20 * num > size_max - addval) {
         std::cerr << "Overflow computing numbers in compressed proof "
@@ -450,7 +450,7 @@ bool getproofnumbers(std::string label, std::string proof,
       num = 0;
       justgotnum = true;
     } else if (*iter <= 'Y') {
-      std::size_t const addval(*iter - 'T');
+      std::size_t addval(*iter - 'T');
 
       if (num > size_max / 5 || 5 * num > size_max - addval) {
         std::cerr << "Overflow computing numbers in compressed proof "
@@ -487,23 +487,22 @@ bool getproofnumbers(std::string label, std::string proof,
 // assertion (i.e., not a hypothesis).
 bool verifyassertionref(std::string thlabel, std::string reflabel,
                         std::vector<Expression> *stack) {
-  Assertion const &assertion(assertions.find(reflabel)->second);
+  Assertion &assertion(assertions.find(reflabel)->second);
   if (stack->size() < assertion.hypotheses.size()) {
     std::cerr << "In proof of theorem " << thlabel
               << " not enough items found on stack" << std::endl;
     return false;
   }
 
-  std::vector<Expression>::size_type const base(stack->size() -
-                                                assertion.hypotheses.size());
+  std::vector<Expression>::size_type base(stack->size() -
+                                          assertion.hypotheses.size());
 
   std::map<std::string, Expression> substitutions;
 
   // Determine substitutions and check that we can unify
   for (std::deque<std::string>::size_type i(0); i < assertion.hypotheses.size();
        ++i) {
-    Hypothesis const &hypothesis(
-        hypotheses.find(assertion.hypotheses[i])->second);
+    Hypothesis &hypothesis(hypotheses.find(assertion.hypotheses[i])->second);
     if (hypothesis.second) {
       // Floating hypothesis of the referenced assertion
       if (hypothesis.first[0] != (*stack)[base + i][0]) {
@@ -536,8 +535,8 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
   for (std::set<std::pair<std::string, std::string>>::const_iterator iter(
            assertion.disjvars.begin());
        iter != assertion.disjvars.end(); ++iter) {
-    Expression const &exp1(substitutions.find(iter->first)->second);
-    Expression const &exp2(substitutions.find(iter->second)->second);
+    Expression &exp1(substitutions.find(iter->first)->second);
+    Expression &exp2(substitutions.find(iter->second)->second);
 
     std::set<std::string> exp1vars;
     for (Expression::const_iterator exp1iter(exp1.begin());
@@ -576,8 +575,8 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
 
 // Verify a regular proof. The "proof" argument should be a non-empty sequence
 // of valid labels. Return true iff the proof is correct.
-bool verifyregularproof(std::string label, Assertion const &theorem,
-                        std::vector<std::string> const &proof) {
+bool verifyregularproof(std::string label, Assertion &theorem,
+                        std::vector<std::string> &proof) {
   std::vector<Expression> stack;
   for (std::vector<std::string>::const_iterator proofstep(proof.begin());
        proofstep != proof.end(); ++proofstep) {
@@ -590,7 +589,7 @@ bool verifyregularproof(std::string label, Assertion const &theorem,
     }
 
     // It must be an axiom or theorem
-    bool const okay(verifyassertionref(label, *proofstep, &stack));
+    bool okay(verifyassertionref(label, *proofstep, &stack));
     if (!okay)
       return false;
   }
@@ -610,13 +609,13 @@ bool verifyregularproof(std::string label, Assertion const &theorem,
 }
 
 // Verify a compressed proof
-bool verifycompressedproof(std::string label, Assertion const &theorem,
-                           std::vector<std::string> const &labels,
-                           std::vector<std::size_t> const &proofnumbers) {
+bool verifycompressedproof(std::string label, Assertion &theorem,
+                           std::vector<std::string> &labels,
+                           std::vector<std::size_t> &proofnumbers) {
   std::vector<Expression> stack;
 
-  std::size_t const mandhypt(theorem.hypotheses.size());
-  std::size_t const labelt(mandhypt + labels.size());
+  std::size_t mandhypt(theorem.hypotheses.size());
+  std::size_t labelt(mandhypt + labels.size());
 
   std::vector<Expression> savedsteps;
   for (std::vector<std::size_t>::const_iterator iter(proofnumbers.begin());
@@ -632,7 +631,7 @@ bool verifycompressedproof(std::string label, Assertion const &theorem,
       stack.push_back(
           hypotheses.find(theorem.hypotheses[*iter - 1])->second.first);
     } else if (*iter <= labelt) {
-      std::string const proofstep(labels[*iter - mandhypt - 1]);
+      std::string proofstep(labels[*iter - mandhypt - 1]);
 
       // If step is a (non-mandatory) hypothesis,
       // just push it onto the stack.
@@ -644,7 +643,7 @@ bool verifycompressedproof(std::string label, Assertion const &theorem,
       }
 
       // It must be an axiom or theorem
-      bool const okay(verifyassertionref(label, proofstep, &stack));
+      bool okay(verifyassertionref(label, proofstep, &stack));
       if (!okay)
         return false;
     } else // Must refer to saved step
@@ -676,12 +675,12 @@ bool verifycompressedproof(std::string label, Assertion const &theorem,
 // Parse $p statement. Return true iff okay.
 bool parsep(std::string label) {
   Expression newtheorem;
-  bool const okay(readexpression('p', label, "$=", &newtheorem));
+  bool okay(readexpression('p', label, "$=", &newtheorem));
   if (!okay) {
     return false;
   }
 
-  Assertion const &assertion(constructassertion(label, newtheorem));
+  Assertion &assertion(constructassertion(label, newtheorem));
 
   // Now for the proof
 
@@ -819,7 +818,7 @@ bool parsep(std::string label) {
 // Parse $e statement. Return true iff okay.
 bool parsee(std::string label) {
   Expression newhyp;
-  bool const okay(readexpression('e', label, "$.", &newhyp));
+  bool okay(readexpression('e', label, "$.", &newhyp));
   if (!okay) {
     return false;
   }
@@ -834,7 +833,7 @@ bool parsee(std::string label) {
 // Parse $a statement. Return true iff okay.
 bool parsea(std::string label) {
   Expression newaxiom;
-  bool const okay(readexpression('a', label, "$.", &newaxiom));
+  bool okay(readexpression('a', label, "$.", &newaxiom));
   if (!okay) {
     return false;
   }
@@ -928,7 +927,7 @@ bool parselabel(std::string label) {
     return false;
   }
 
-  std::string const type(tokens.front());
+  std::string type(tokens.front());
   tokens.pop();
 
   bool okay(true);
@@ -963,7 +962,7 @@ bool parsed() {
       return false;
     }
 
-    bool const duplicate(!dvars.insert(token).second);
+    bool duplicate(!dvars.insert(token).second);
     if (duplicate) {
       std::cerr << "$d statement mentions " << token << " twice" << std::endl;
       return false;
@@ -1016,7 +1015,7 @@ bool parsec() {
                 << std::endl;
       return false;
     }
-    bool const alreadydeclared(!constants.insert(token).second);
+    bool alreadydeclared(!constants.insert(token).second);
     if (alreadydeclared) {
       std::cerr << "Attempt to redeclare constant " << token << std::endl;
       return false;
@@ -1061,7 +1060,7 @@ bool parsev() {
                 << std::endl;
       return false;
     }
-    bool const alreadyactive(isactivevariable(token));
+    bool alreadyactive(isactivevariable(token));
     if (alreadyactive) {
       std::cerr << "Attempt to redeclare active variable " << token
                 << std::endl;
@@ -1092,14 +1091,14 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  bool const okay(readtokens(argv[1]));
+  bool okay(readtokens(argv[1]));
   if (!okay)
     return EXIT_FAILURE;
 
   scopes.push_back(Scope());
 
   while (!tokens.empty()) {
-    std::string const token(tokens.front());
+    std::string token(tokens.front());
     tokens.pop();
 
     bool okay(true);
