@@ -1,6 +1,6 @@
 import ts, { SyntaxKind } from 'typescript';
 import { hackBannerComment } from './hackBannerComment';
-import { kindString, simpleTreeCreator } from './simpleTree';
+import { simpleTreeCreator } from './simpleTree';
 
 export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
     const { simpleTreeString } = simpleTreeCreator(sourceFile);
@@ -13,7 +13,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
 
     const processNode = (node: ts.Node) => {
         let returnValue = '';
-        console.log(kindString(node.kind));
+        console.log(SyntaxKind[node.kind]);
 
         let comment = '';
 
@@ -135,7 +135,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                 break;
             default:
                 console.log(simpleTreeString(node));
-                throw new Error(`node.kind ${kindString(node.kind)} node yet supported.  ${node.getText(sourceFile)}`);
+                throw new Error(`node.kind ${SyntaxKind[node.kind]} node yet supported.  ${node.getText(sourceFile)}`);
         }
 
         return comment + returnValue;
