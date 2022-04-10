@@ -70,6 +70,6 @@ interface Scope {
 }
 
 // Determine if a string is used as a label
-// const labelused = (label: string): boolean => {
-//     return hypotheses.get(label) !== undefined || assertions.get(label) != undefined;
-// };
+const labelused = (label: string): boolean => {
+    return hypotheses.get(label) !== undefined || assertions.get(label) !== undefined;
+};
