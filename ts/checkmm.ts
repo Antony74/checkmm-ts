@@ -57,10 +57,19 @@ interface Assertion {
     // Statement of axiom or theorem.
     expression: Expression;
 }
-/*
+
 const assertions = new Map<string, Assertion>();
 
+interface Scope {
+    activevariables: Set<string>;
+    // Labels of active hypotheses
+    activehyp: string[];
+    disjvars: Set<string>[];
+    // Map from variable to label of active floating hypothesis
+    floatinghyp: Map<string, string>;
+}
+
 // Determine if a string is used as a label
-const labelused = (label: string): boolean => {
-    return hypotheses.get(label) !== undefined || assertions.get(label) != undefined;
-};*/
+// const labelused = (label: string): boolean => {
+//     return hypotheses.get(label) !== undefined || assertions.get(label) != undefined;
+// };

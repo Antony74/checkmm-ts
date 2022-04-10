@@ -163,15 +163,32 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                     if (
                         identifier.kind === SyntaxKind.Identifier &&
                         colonToken.kind === SyntaxKind.ColonToken &&
-                        typeReference.kind === SyntaxKind.TypeReference &&
+                        (typeReference.kind === SyntaxKind.TypeReference ||
+                            typeReference.kind === SyntaxKind.ArrayType) &&
                         semiColonToken.kind === SyntaxKind.SemicolonToken
                     ) {
                         returnValue = `${processNode(typeReference)} ${identifier.getText(sourceFile)};`;
                     } else {
+                        console.log(simpleTreeString(node));
                         throw new Error(`Unrecognised PropertySignature.`);
                     }
                 } else {
                     throw new Error(`Unrecognised PropertySignature.  Expected 4 children`);
+                }
+                break;
+            case SyntaxKind.ArrayType:
+                if (node.getChildCount(sourceFile) === 3) {
+                    const [keyword, openBracketToken, closeBracketToken] = node.getChildren(sourceFile);
+                    if (
+                        openBracketToken.kind === SyntaxKind.OpenBracketToken &&
+                        closeBracketToken.kind === SyntaxKind.CloseBracketToken
+                    ) {
+                        returnValue = `std::vector<${processNode(keyword)}>`;
+                    } else {
+                        throw new Error(`Unrecognised ArrayType.`);
+                    }
+                } else {
+                    throw new Error(`Unrecognised ArrayType.  Expected 3 children`);
                 }
                 break;
             default:
