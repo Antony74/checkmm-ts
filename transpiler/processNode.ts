@@ -7,7 +7,12 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
 
     const getComment = (node: ts.Node): string => {
         const fullText = node.getFullText(sourceFile);
-        const comment = fullText.slice(0, fullText.length - node.getText(sourceFile).length);
+        let comment = fullText.slice(0, fullText.length - node.getText(sourceFile).length);
+
+        // if (comment.trim().length) {
+        //     comment += `// ${SyntaxKind[node.kind]}` + '\n';
+        // }
+
         return comment;
     };
 
@@ -17,7 +22,12 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
 
         let comment = '';
 
-        if (node.kind !== SyntaxKind.SourceFile && node.kind !== SyntaxKind.SyntaxList) {
+        if (
+            node.kind !== SyntaxKind.SourceFile &&
+            node.kind !== SyntaxKind.SyntaxList &&
+            node.kind !== SyntaxKind.FirstStatement &&
+            node.kind !== SyntaxKind.VariableDeclarationList
+        ) {
             comment = getComment(node);
             const lines = comment.split('\n');
 
