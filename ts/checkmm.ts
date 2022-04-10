@@ -37,6 +37,8 @@ import { std } from './std';
 
 const tokens = new std.Queue<string>();
 
+const constants = new Set<string>();
+
 type Expression = Array<string>;
 
 // The first parameter is the statement of the hypothesis, the second is
@@ -44,6 +46,8 @@ type Expression = Array<string>;
 type Hypothesis = std.Pair<Expression, boolean>;
 
 const hypotheses = new Map<string, Hypothesis>();
+
+const variables = new Set<string>();
 
 /*
 // An axiom or a theorem.
