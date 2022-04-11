@@ -13,10 +13,11 @@ const options: ts.CompilerOptions = {
 };
 
 const program = ts.createProgram([inputFilename], options);
+const typechecker = program.getTypeChecker();
 const sourceFile = program.getSourceFile(inputFilename);
 
 if (sourceFile) {
-    const processNode = createNodeProcessor(sourceFile);
+    const processNode = createNodeProcessor(sourceFile, typechecker);
     const code = processNode(sourceFile);
     fs.writeFileSync(outputFilename, code);
 }

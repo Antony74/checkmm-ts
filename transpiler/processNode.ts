@@ -2,7 +2,7 @@ import ts, { SyntaxKind } from 'typescript';
 import { hackBannerComment } from './hackBannerComment';
 import { simpleTreeCreator } from './simpleTree';
 
-export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
+export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.TypeChecker) => {
     const { simpleTreeString } = simpleTreeCreator(sourceFile);
 
     const getComment = (node: ts.Node): string => {
@@ -44,7 +44,6 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
             case SyntaxKind.VariableDeclarationList:
             case SyntaxKind.Block:
             case SyntaxKind.ReturnStatement:
-            case SyntaxKind.BinaryExpression:
             case SyntaxKind.CallExpression:
                 returnValue = node.getChildren(sourceFile).map(processNode).join('');
                 break;
@@ -299,6 +298,46 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile) => {
                     }
                 } else {
                     throw new Error(`Unrecognised Parameter.  Expected 3 children`);
+                }
+                break;
+            case SyntaxKind.BinaryExpression:
+                let specialCase = false;
+                if (node.getChildCount(sourceFile) === 3) {
+                    const [left, operator, right] = node.getChildren(sourceFile);
+                    if (
+                        operator.kind === SyntaxKind.EqualsEqualsEqualsToken ||
+                        operator.kind === SyntaxKind.ExclamationEqualsEqualsToken
+                    ) {
+                        if (left.kind === SyntaxKind.CallExpression && left.getChildCount(sourceFile) === 4) {
+                            const [propertyAccessExpression, _openParenToken, syntaxList, _closeParenToken] =
+                                left.getChildren();
+                            if (
+                                propertyAccessExpression.kind === SyntaxKind.PropertyAccessExpression &&
+                                propertyAccessExpression.getChildCount(sourceFile) === 3
+                            ) {
+                                specialCase = true;
+                                let rightText = processNode(right);
+                                const [object, _dotToken, method] = propertyAccessExpression.getChildren();
+                                const containerType = typechecker.getTypeAtLocation(object);
+                                const objectTypeName = containerType.symbol.escapedName;
+                                let methodName = method.getText(sourceFile);
+                                if (objectTypeName === 'Map' && methodName === 'get') {
+                                    methodName = 'find';
+
+                                    if (rightText.trim() === 'undefined') {
+                                        rightText = `${processNode(object)}.end()`;
+                                    }
+                                }
+
+                                returnValue = `${processNode(object)}.${methodName} (${processNode(
+                                    syntaxList,
+                                )}) ${processNode(operator)} ${rightText}`;
+                            }
+                        }
+                    }
+                }
+                if (!specialCase) {
+                    returnValue = node.getChildren(sourceFile).map(processNode).join('');
                 }
                 break;
             default:
