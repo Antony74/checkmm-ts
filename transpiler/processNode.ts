@@ -16,6 +16,8 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         return comment;
     };
 
+    let lastItemWasBlock = false;
+
     const processNode = (node: ts.Node) => {
         let returnValue = '';
         console.log(SyntaxKind[node.kind]);
@@ -36,13 +38,20 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             }
         }
 
+        if (node.kind !== SyntaxKind.SemicolonToken) {
+            lastItemWasBlock = false;
+        }
+
         switch (node.kind) {
+            case SyntaxKind.Block:
+                returnValue = node.getChildren(sourceFile).map(processNode).join('');
+                lastItemWasBlock = true;
+                break;
             case SyntaxKind.SourceFile:
             case SyntaxKind.SyntaxList:
             case SyntaxKind.TypeReference:
             case SyntaxKind.VariableStatement:
             case SyntaxKind.VariableDeclarationList:
-            case SyntaxKind.Block:
             case SyntaxKind.ReturnStatement:
             case SyntaxKind.CallExpression:
                 returnValue = node.getChildren(sourceFile).map(processNode).join('');
@@ -55,7 +64,6 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.LessThanToken:
             case SyntaxKind.GreaterThanToken:
             case SyntaxKind.CommaToken:
-            case SyntaxKind.SemicolonToken:
             case SyntaxKind.FirstPunctuation:
             case SyntaxKind.ReturnKeyword:
             case SyntaxKind.OpenParenToken:
@@ -63,6 +71,11 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.BarBarToken:
             case SyntaxKind.CloseBraceToken:
                 returnValue = node.getText(sourceFile);
+                break;
+            case SyntaxKind.SemicolonToken:
+                if (!lastItemWasBlock) {
+                    returnValue = node.getText(sourceFile);
+                }
                 break;
             case SyntaxKind.QualifiedName:
                 switch (node.getText(sourceFile)) {
