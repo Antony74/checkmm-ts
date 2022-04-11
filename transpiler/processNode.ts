@@ -28,7 +28,8 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             node.kind !== SyntaxKind.SourceFile &&
             node.kind !== SyntaxKind.SyntaxList &&
             node.kind !== SyntaxKind.FirstStatement &&
-            node.kind !== SyntaxKind.VariableDeclarationList
+            node.kind !== SyntaxKind.VariableDeclarationList &&
+            node.kind !== SyntaxKind.ReturnStatement
         ) {
             comment = getComment(node);
             const lines = comment.split('\n');
