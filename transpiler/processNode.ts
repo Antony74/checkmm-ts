@@ -13,6 +13,31 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         return comment;
     };
 
+    const getAndValidateKinds = (node: ts.Node, kinds: SyntaxKind[]): { [key: string]: ts.Node } => {
+        const returnValue: { [key: string]: ts.Node } = {};
+
+        if (node.getChildCount(sourceFile) !== kinds.length) {
+            throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children`);
+        }
+
+        node.getChildren().forEach((child, index) => {
+            if (child.kind !== kinds[index]) {
+                throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.`);
+            }
+
+            for (let n = 0; true; ++n) {
+                const kind = SyntaxKind[child.kind];
+                const key = kind[0].toLowerCase() + kind.slice(1) + (n ? `${n + 1}` : ``);
+                if (!returnValue[key]) {
+                    returnValue[key] = child;
+                    break;
+                }
+            }
+        });
+
+        return returnValue;
+    };
+
     let lastItemWasBlock = false;
 
     const processNode = (node: ts.Node): string => {
@@ -115,23 +140,15 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 returnValue = '!=';
                 break;
             case SyntaxKind.TypeAliasDeclaration:
-                if (node.getChildCount(sourceFile) === 5) {
-                    const [typeKeyword, identifer, equalsToken, typeReference, semicolonToken] =
-                        node.getChildren(sourceFile);
-                    if (
-                        typeKeyword.kind === SyntaxKind.TypeKeyword &&
-                        identifer.kind === SyntaxKind.Identifier &&
-                        equalsToken.kind === SyntaxKind.EqualsToken &&
-                        typeReference.kind === SyntaxKind.TypeReference &&
-                        semicolonToken.kind === SyntaxKind.SemicolonToken
-                    ) {
-                        returnValue = `typedef ${processNode(typeReference)} ${identifer.getText(sourceFile)};`;
-                    } else {
-                        throw new Error(`Unrecognised TypeAliasDeclaration`);
-                    }
-                } else {
-                    throw new Error(`Unrecognised TypeAliasDeclaration.  Expected 5 children`);
-                }
+                const { identifier, typeReference } = getAndValidateKinds(node, [
+                    SyntaxKind.TypeKeyword,
+                    SyntaxKind.Identifier,
+                    SyntaxKind.EqualsToken,
+                    SyntaxKind.TypeReference,
+                    SyntaxKind.SemicolonToken,
+                ]);
+
+                returnValue = `typedef ${processNode(typeReference)} ${identifier.getText(sourceFile)};`;
                 break;
             case SyntaxKind.VariableDeclaration:
                 if (node.getChildCount(sourceFile) === 5) {
@@ -348,7 +365,21 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 returnValue = processChildren(node);
                 break;
             // case SyntaxKind.ForOfStatement:
-            //     throw new Error(node.getChildCount())
+            //     if (node.getChildCount(sourceFile) === 7) {
+            //         const [
+            //             forKeyword,
+            //             openParenToken,
+            //             variableDeclarationList,
+            //             lastContextualKeyword,
+            //             identifier,
+            //             closeParenToken,
+            //             code,
+            //         ] = node.getChildren(sourceFile);
+
+            //         //                    if (forKeyword.kind === )
+            //     } else {
+            //         throw new Error(`Unrecognised ForOfStatement.  Expected 7 children`);
+            //     }
             default:
                 console.log(simpleFlatTreeString(node));
                 throw new Error(`node.kind ${SyntaxKind[node.kind]} node yet supported.  ${node.getText(sourceFile)}`);
