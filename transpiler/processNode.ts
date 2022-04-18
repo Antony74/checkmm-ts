@@ -5,20 +5,17 @@ import { simpleTreeCreator } from './simpleTree';
 export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.TypeChecker) => {
     const { simpleTreeString } = simpleTreeCreator(sourceFile);
 
+    const processChildren = (node: ts.Node): string => node.getChildren(sourceFile).map(processNode).join('');
+
     const getComment = (node: ts.Node): string => {
         const fullText = node.getFullText(sourceFile);
         let comment = fullText.slice(0, fullText.length - node.getText(sourceFile).length);
-
-        // if (comment.trim().length) {
-        //     comment += `// ${SyntaxKind[node.kind]}` + '\n';
-        // }
-
         return comment;
     };
 
     let lastItemWasBlock = false;
 
-    const processNode = (node: ts.Node) => {
+    const processNode = (node: ts.Node): string => {
         let returnValue = '';
         console.log(SyntaxKind[node.kind]);
 
@@ -45,7 +42,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
 
         switch (node.kind) {
             case SyntaxKind.Block:
-                returnValue = node.getChildren(sourceFile).map(processNode).join('');
+                returnValue = processChildren(node);
                 lastItemWasBlock = true;
                 break;
             case SyntaxKind.SourceFile:
@@ -55,7 +52,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.VariableDeclarationList:
             case SyntaxKind.ReturnStatement:
             case SyntaxKind.CallExpression:
-                returnValue = node.getChildren(sourceFile).map(processNode).join('');
+                returnValue = processChildren(node);
                 break;
             case SyntaxKind.ImportDeclaration:
             case SyntaxKind.EndOfFileToken:
@@ -315,7 +312,6 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 }
                 break;
             case SyntaxKind.BinaryExpression:
-                let specialCase = false;
                 if (node.getChildCount(sourceFile) === 3) {
                     const [left, operator, right] = node.getChildren(sourceFile);
                     if (
@@ -329,7 +325,6 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                                 propertyAccessExpression.kind === SyntaxKind.PropertyAccessExpression &&
                                 propertyAccessExpression.getChildCount(sourceFile) === 3
                             ) {
-                                specialCase = true;
                                 let rightText = processNode(right);
                                 const [object, _dotToken, method] = propertyAccessExpression.getChildren();
                                 const containerType = typechecker.getTypeAtLocation(object);
@@ -343,16 +338,14 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                                     }
                                 }
 
-                                returnValue = `${processNode(object)}.${methodName} (${processNode(
-                                    syntaxList,
-                                )}) ${processNode(operator)} ${rightText}`;
+                                return `${processNode(object)}.${methodName} (${processNode(syntaxList)}) ${processNode(
+                                    operator,
+                                )} ${rightText}`;
                             }
                         }
                     }
                 }
-                if (!specialCase) {
-                    returnValue = node.getChildren(sourceFile).map(processNode).join('');
-                }
+                returnValue = processChildren(node);
                 break;
             default:
                 console.log(simpleTreeString(node));
