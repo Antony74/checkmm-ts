@@ -51,7 +51,7 @@ const variables = new Set<string>();
 
 // An axiom or a theorem.
 interface Assertion {
-    // Hypotheses of this axiom or theorem. 
+    // Hypotheses of this axiom or theorem.
     hypotheses: std.Deque<string>;
     disjvars: Set<std.Pair<string, string>>;
     // Statement of axiom or theorem.
@@ -74,4 +74,15 @@ const scopes: Scope[] = [];
 // Determine if a string is used as a label
 const labelused = (label: string): boolean => {
     return hypotheses.get(label) !== undefined || assertions.get(label) !== undefined;
+};
+
+// Find active floating hypothesis corresponding to variable, or empty string
+// if there isn't one.
+const getfloatinghyp = (vari: string): string => {
+    for (const scope of scopes) {
+        const floatinghyp = scope.floatinghyp.get(vari);
+        if (floatinghyp !== undefined) return floatinghyp;
+    }
+
+    return '';
 };

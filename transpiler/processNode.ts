@@ -3,7 +3,7 @@ import { hackBannerComment } from './hackBannerComment';
 import { simpleTreeCreator } from './simpleTree';
 
 export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.TypeChecker) => {
-    const { simpleTreeString } = simpleTreeCreator(sourceFile);
+    const { simpleTreeString, simpleFlatTreeString } = simpleTreeCreator(sourceFile);
 
     const processChildren = (node: ts.Node): string => node.getChildren(sourceFile).map(processNode).join('');
 
@@ -347,8 +347,10 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 }
                 returnValue = processChildren(node);
                 break;
+            // case SyntaxKind.ForOfStatement:
+            //     throw new Error(node.getChildCount())
             default:
-                console.log(simpleTreeString(node));
+                console.log(simpleFlatTreeString(node));
                 throw new Error(`node.kind ${SyntaxKind[node.kind]} node yet supported.  ${node.getText(sourceFile)}`);
         }
 
