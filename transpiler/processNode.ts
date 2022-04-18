@@ -164,81 +164,65 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                     ]);
 
                     if (value.kind === SyntaxKind.ArrayLiteralExpression && value.getChildCount(sourceFile) === 3) {
-                        const [openBracketToken, syntaxList, closeBracketToken] = value.getChildren(sourceFile);
-                        if (
-                            openBracketToken.kind === SyntaxKind.OpenBracketToken &&
-                            syntaxList.kind === SyntaxKind.SyntaxList &&
-                            closeBracketToken.kind === SyntaxKind.CloseBracketToken &&
-                            syntaxList.getChildCount() === 0
-                        ) {
+                        const { syntaxList } = getAndValidateKinds(value, [
+                            SyntaxKind.OpenBracketToken,
+                            SyntaxKind.SyntaxList,
+                            SyntaxKind.CloseBracketToken,
+                        ]);
+
+                        if (syntaxList.getChildCount() === 0) {
                             returnValue = `${processNode(variableType)} ${identifier.getText(sourceFile)}`;
                         } else {
                             throw new Error(
-                                `Unrecognised ArrayLiteralExperssion in VariableDeclaration with 5 children.`,
+                                `Unrecognised ArrayLiteralExperssion in VariableDeclaration, expected empty SyntaxList.`,
                             );
                         }
                     }
                 } else if (node.getChildCount(sourceFile) === 3) {
-                    const [varableName, equalsToken, value] = node.getChildren(sourceFile);
+                    const { identifier, value } = getAndValidateKinds(node, [
+                        SyntaxKind.Identifier,
+                        SyntaxKind.EqualsToken,
+                        'value',
+                    ]);
 
-                    if (varableName.kind === SyntaxKind.Identifier && equalsToken.kind === SyntaxKind.EqualsToken) {
-                        switch (value.kind) {
-                            case SyntaxKind.NewExpression:
-                                const newExpression = value.getChildren(sourceFile).slice(1, -3);
-                                returnValue = `${newExpression.map(processNode).join('')} ${varableName.getText(
+                    switch (value.kind) {
+                        case SyntaxKind.NewExpression:
+                            const newExpression = value.getChildren(sourceFile).slice(1, -3);
+                            returnValue = `${newExpression.map(processNode).join('')} ${identifier.getText(
+                                sourceFile,
+                            )}`;
+                            break;
+                        case SyntaxKind.ArrowFunction:
+                            if (value.getChildCount(sourceFile) === 7) {
+                                const { syntaxList, returnType, block } = getAndValidateKinds(value, [
+                                    SyntaxKind.OpenParenToken,
+                                    SyntaxKind.SyntaxList,
+                                    SyntaxKind.CloseParenToken,
+                                    SyntaxKind.ColonToken,
+                                    'returnType',
+                                    SyntaxKind.EqualsGreaterThanToken,
+                                    SyntaxKind.Block,
+                                ]);
+
+                                const parameters = syntaxList
+                                    .getChildren(sourceFile)
+                                    .map(parameter => {
+                                        if (parameter.kind !== SyntaxKind.Parameter) {
+                                            throw new Error(`Expected parameter`);
+                                        }
+                                        return processNode(parameter);
+                                    })
+                                    .join(',');
+
+                                returnValue = `${processNode(returnType)} ${identifier.getText(
                                     sourceFile,
-                                )}`;
-                                break;
-                            case SyntaxKind.ArrowFunction:
-                                if (value.getChildCount(sourceFile) === 7) {
-                                    const [
-                                        openParenToken,
-                                        syntaxList,
-                                        closeParenToken,
-                                        colonToken,
-                                        returnType,
-                                        equalsGreaterThanToken,
-                                        block,
-                                    ] = value.getChildren(sourceFile);
-
-                                    if (
-                                        openParenToken.kind === SyntaxKind.OpenParenToken &&
-                                        syntaxList.kind === SyntaxKind.SyntaxList &&
-                                        closeParenToken.kind === SyntaxKind.CloseParenToken &&
-                                        colonToken.kind === SyntaxKind.ColonToken &&
-                                        equalsGreaterThanToken.kind === SyntaxKind.EqualsGreaterThanToken &&
-                                        block.kind === SyntaxKind.Block
-                                    ) {
-                                        const parameters = syntaxList
-                                            .getChildren(sourceFile)
-                                            .map(parameter => {
-                                                if (parameter.kind !== SyntaxKind.Parameter) {
-                                                    throw new Error(`Expected parameter`);
-                                                }
-                                                return processNode(parameter);
-                                            })
-                                            .join(',');
-
-                                        returnValue = `${processNode(returnType)} ${varableName.getText(
-                                            sourceFile,
-                                        )}(${parameters})${processNode(block)}`;
-                                    } else {
-                                        throw new Error(`Unrecognised ArrowFunction.`);
-                                    }
-                                } else {
-                                    throw new Error(`Unrecognised ArrowFunction.  Expected 7 children`);
-                                }
-                                break;
-                            default:
-                                console.log(simpleTreeString(node));
-                                throw new Error(`Unrecognised VariableDeclaration value`);
-                        }
-                    } else {
-                        throw new Error(`Unrecognised VariableDeclaration with 3 children.`);
+                                )}(${parameters})${processNode(block)}`;
+                            }
+                            break;
+                        default:
+                            console.log(simpleTreeString(node));
+                            throw new Error(`Unrecognised VariableDeclaration value`);
                     }
-                } else {
-                    console.log(simpleTreeString(node));
-                    throw new Error(`Unrecognised VariableDeclaration.  Expected 3 or 5 children`);
                 }
                 break;
             case SyntaxKind.PropertyAccessExpression:
