@@ -294,7 +294,7 @@ bool readtokens(std::string filename) {
 // mandatory hypotheses and disjoint variable restrictions.
 // The Assertion is inserted into the assertions collection,
 // and is returned by reference.
-Assertion &constructassertion(std::string label, Expression &exp) {
+Assertion &constructassertion(std::string label, Expression const &exp) {
   Assertion &assertion(
       assertions.insert(std::make_pair(label, Assertion())).first->second);
 
@@ -312,11 +312,11 @@ Assertion &constructassertion(std::string label, Expression &exp) {
 
   for (std::vector<Scope>::const_reverse_iterator iter(scopes.rbegin());
        iter != scopes.rend(); ++iter) {
-    std::vector<std::string> &hypvec(iter->activehyp);
+    std::vector<std::string> const &hypvec(iter->activehyp);
     for (std::vector<std::string>::const_reverse_iterator iter2(
              hypvec.rbegin());
          iter2 != hypvec.rend(); ++iter2) {
-      Hypothesis &hyp(hypotheses.find(*iter2)->second);
+      Hypothesis const &hyp(hypotheses.find(*iter2)->second);
       if (hyp.second && varsused.find(hyp.first[1]) != varsused.end()) {
         // Mandatory floating hypothesis
         assertion.hypotheses.push_front(*iter2);
@@ -335,7 +335,7 @@ Assertion &constructassertion(std::string label, Expression &exp) {
   // Determine mandatory disjoint variable restrictions
   for (std::vector<Scope>::const_iterator iter(scopes.begin());
        iter != scopes.end(); ++iter) {
-    std::vector<std::set<std::string>> &disjvars(iter->disjvars);
+    std::vector<std::set<std::string>> const &disjvars(iter->disjvars);
     for (std::vector<std::set<std::string>>::const_iterator iter2(
              disjvars.begin());
          iter2 != disjvars.end(); ++iter2) {
@@ -408,7 +408,7 @@ bool readexpression(char stattype, std::string label, std::string terminator,
 
 // Make a substitution of variables. The result is put in "destination",
 // which should be empty.
-void makesubstitution(Expression &original,
+void makesubstitution(Expression const &original,
                       std::map<std::string, Expression> substmap,
                       Expression *destination) {
   for (Expression::const_iterator iter(original.begin());
@@ -487,7 +487,7 @@ bool getproofnumbers(std::string label, std::string proof,
 // assertion (i.e., not a hypothesis).
 bool verifyassertionref(std::string thlabel, std::string reflabel,
                         std::vector<Expression> *stack) {
-  Assertion &assertion(assertions.find(reflabel)->second);
+  Assertion const &assertion(assertions.find(reflabel)->second);
   if (stack->size() < assertion.hypotheses.size()) {
     std::cerr << "In proof of theorem " << thlabel
               << " not enough items found on stack" << std::endl;
@@ -502,7 +502,8 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
   // Determine substitutions and check that we can unify
   for (std::deque<std::string>::size_type i(0); i < assertion.hypotheses.size();
        ++i) {
-    Hypothesis &hypothesis(hypotheses.find(assertion.hypotheses[i])->second);
+    Hypothesis const &hypothesis(
+        hypotheses.find(assertion.hypotheses[i])->second);
     if (hypothesis.second) {
       // Floating hypothesis of the referenced assertion
       if (hypothesis.first[0] != (*stack)[base + i][0]) {
@@ -535,8 +536,8 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
   for (std::set<std::pair<std::string, std::string>>::const_iterator iter(
            assertion.disjvars.begin());
        iter != assertion.disjvars.end(); ++iter) {
-    Expression &exp1(substitutions.find(iter->first)->second);
-    Expression &exp2(substitutions.find(iter->second)->second);
+    Expression const &exp1(substitutions.find(iter->first)->second);
+    Expression const &exp2(substitutions.find(iter->second)->second);
 
     std::set<std::string> exp1vars;
     for (Expression::const_iterator exp1iter(exp1.begin());
@@ -575,8 +576,8 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
 
 // Verify a regular proof. The "proof" argument should be a non-empty sequence
 // of valid labels. Return true iff the proof is correct.
-bool verifyregularproof(std::string label, Assertion &theorem,
-                        std::vector<std::string> &proof) {
+bool verifyregularproof(std::string label, Assertion const &theorem,
+                        std::vector<std::string> const &proof) {
   std::vector<Expression> stack;
   for (std::vector<std::string>::const_iterator proofstep(proof.begin());
        proofstep != proof.end(); ++proofstep) {
@@ -609,9 +610,9 @@ bool verifyregularproof(std::string label, Assertion &theorem,
 }
 
 // Verify a compressed proof
-bool verifycompressedproof(std::string label, Assertion &theorem,
-                           std::vector<std::string> &labels,
-                           std::vector<std::size_t> &proofnumbers) {
+bool verifycompressedproof(std::string label, Assertion const &theorem,
+                           std::vector<std::string> const &labels,
+                           std::vector<std::size_t> const &proofnumbers) {
   std::vector<Expression> stack;
 
   std::size_t mandhypt(theorem.hypotheses.size());
@@ -680,7 +681,7 @@ bool parsep(std::string label) {
     return false;
   }
 
-  Assertion &assertion(constructassertion(label, newtheorem));
+  Assertion const &assertion(constructassertion(label, newtheorem));
 
   // Now for the proof
 

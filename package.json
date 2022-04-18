@@ -4,8 +4,9 @@
   "description": "",
   "main": "checkmm.js",
   "scripts": {
-    "output-cpp": "sed 's/[[:<:]]const[[:>:]]//g' cpp/checkmm.cpp | sed 's/[[:<:]]inline[[:>:]]//g' | clang-format > output/checkmm.cpp",
-    "transpile": "ts-node transpiler/index.ts && clang-format output/checkmm_ugly.cpp > output/checkmm.cpp"
+    "clang-format": "clang-format output/checkmm_ugly.cpp > output/checkmm.cpp",
+    "output-cpp": "ts-node output-cpp.ts && npm run clang-format",
+    "transpile": "ts-node transpiler/index.ts && npm run clang-format"
   },
   "repository": {
     "type": "git",
