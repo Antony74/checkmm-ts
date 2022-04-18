@@ -78,11 +78,11 @@ const labelused = (label: string): boolean => {
 
 // Find active floating hypothesis corresponding to variable, or empty string
 // if there isn't one.
-const getfloatinghyp = (vari: string): string => {
-    for (const scope of scopes) {
-        const floatinghyp = scope.floatinghyp.get(vari);
-        if (floatinghyp !== undefined) return floatinghyp;
-    }
+// const getfloatinghyp = (vari: string): string => {
+//     for (const scope of scopes) {
+//         const floatinghyp = scope.floatinghyp.get(vari);
+//         if (floatinghyp !== undefined) return floatinghyp;
+//     }
 
-    return '';
-};
+//     return '';
+// };

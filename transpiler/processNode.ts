@@ -13,7 +13,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         return comment;
     };
 
-    const getAndValidateKinds = (node: ts.Node, kinds: SyntaxKind[]): { [key: string]: ts.Node } => {
+    const getAndValidateKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } => {
         const returnValue: { [key: string]: ts.Node } = {};
 
         if (node.getChildCount(sourceFile) !== kinds.length) {
@@ -21,16 +21,19 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         }
 
         node.getChildren().forEach((child, index) => {
-            if (child.kind !== kinds[index]) {
+            if (typeof kinds[index] === 'string') {
+                const key = kinds[index];
+                returnValue[key] = child;
+            } else if (child.kind !== kinds[index]) {
                 throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.`);
-            }
-
-            for (let n = 0; true; ++n) {
-                const kind = SyntaxKind[child.kind];
-                const key = kind[0].toLowerCase() + kind.slice(1) + (n ? `${n + 1}` : ``);
-                if (!returnValue[key]) {
-                    returnValue[key] = child;
-                    break;
+            } else {
+                for (let n = 0; true; ++n) {
+                    const kind = SyntaxKind[child.kind];
+                    const key = kind[0].toLowerCase() + kind.slice(1) + (n ? `${n + 1}` : ``);
+                    if (!returnValue[key]) {
+                        returnValue[key] = child;
+                        break;
+                    }
                 }
             }
         });
@@ -152,33 +155,28 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 break;
             case SyntaxKind.VariableDeclaration:
                 if (node.getChildCount(sourceFile) === 5) {
-                    const [varableName, colonToken, variableType, firstAssignment, value] =
-                        node.getChildren(sourceFile);
+                    const { identifier, variableType, value } = getAndValidateKinds(node, [
+                        SyntaxKind.Identifier,
+                        SyntaxKind.ColonToken,
+                        'variableType',
+                        SyntaxKind.FirstAssignment,
+                        'value',
+                    ]);
 
-                    if (
-                        varableName.kind === SyntaxKind.Identifier &&
-                        colonToken.kind === SyntaxKind.ColonToken &&
-                        firstAssignment.kind === SyntaxKind.FirstAssignment
-                    ) {
-                        if (value.kind === SyntaxKind.ArrayLiteralExpression && value.getChildCount(sourceFile) === 3) {
-                            const [openBracketToken, syntaxList, closeBracketToken] = value.getChildren(sourceFile);
-                            if (
-                                openBracketToken.kind === SyntaxKind.OpenBracketToken &&
-                                syntaxList.kind === SyntaxKind.SyntaxList &&
-                                closeBracketToken.kind === SyntaxKind.CloseBracketToken &&
-                                syntaxList.getChildCount() === 0
-                            ) {
-                                returnValue = `${processNode(variableType)} ${varableName.getText(sourceFile)}`;
-                            } else {
-                                throw new Error(
-                                    `Unrecognised ArrayLiteralExperssion in VariableDeclaration with 5 children.`,
-                                );
-                            }
+                    if (value.kind === SyntaxKind.ArrayLiteralExpression && value.getChildCount(sourceFile) === 3) {
+                        const [openBracketToken, syntaxList, closeBracketToken] = value.getChildren(sourceFile);
+                        if (
+                            openBracketToken.kind === SyntaxKind.OpenBracketToken &&
+                            syntaxList.kind === SyntaxKind.SyntaxList &&
+                            closeBracketToken.kind === SyntaxKind.CloseBracketToken &&
+                            syntaxList.getChildCount() === 0
+                        ) {
+                            returnValue = `${processNode(variableType)} ${identifier.getText(sourceFile)}`;
                         } else {
-                            throw new Error(`Unrecognised VariableDeclaration with 5 children.`);
+                            throw new Error(
+                                `Unrecognised ArrayLiteralExperssion in VariableDeclaration with 5 children.`,
+                            );
                         }
-                    } else {
-                        throw new Error(`Unrecognised VariableDeclaration with 5 children.`);
                     }
                 } else if (node.getChildCount(sourceFile) === 3) {
                     const [varableName, equalsToken, value] = node.getChildren(sourceFile);
