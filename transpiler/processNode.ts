@@ -193,31 +193,29 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                             )}`;
                             break;
                         case SyntaxKind.ArrowFunction:
-                            if (value.getChildCount(sourceFile) === 7) {
-                                const { syntaxList, returnType, block } = getAndValidateKinds(value, [
-                                    SyntaxKind.OpenParenToken,
-                                    SyntaxKind.SyntaxList,
-                                    SyntaxKind.CloseParenToken,
-                                    SyntaxKind.ColonToken,
-                                    'returnType',
-                                    SyntaxKind.EqualsGreaterThanToken,
-                                    SyntaxKind.Block,
-                                ]);
+                            const { syntaxList, returnType, block } = getAndValidateKinds(value, [
+                                SyntaxKind.OpenParenToken,
+                                SyntaxKind.SyntaxList,
+                                SyntaxKind.CloseParenToken,
+                                SyntaxKind.ColonToken,
+                                'returnType',
+                                SyntaxKind.EqualsGreaterThanToken,
+                                SyntaxKind.Block,
+                            ]);
 
-                                const parameters = syntaxList
-                                    .getChildren(sourceFile)
-                                    .map(parameter => {
-                                        if (parameter.kind !== SyntaxKind.Parameter) {
-                                            throw new Error(`Expected parameter`);
-                                        }
-                                        return processNode(parameter);
-                                    })
-                                    .join(',');
+                            const parameters = syntaxList
+                                .getChildren(sourceFile)
+                                .map(parameter => {
+                                    if (parameter.kind !== SyntaxKind.Parameter) {
+                                        throw new Error(`Expected parameter`);
+                                    }
+                                    return processNode(parameter);
+                                })
+                                .join(',');
 
-                                returnValue = `${processNode(returnType)} ${identifier.getText(
-                                    sourceFile,
-                                )}(${parameters})${processNode(block)}`;
-                            }
+                            returnValue = `${processNode(returnType)} ${identifier.getText(
+                                sourceFile,
+                            )}(${parameters})${processNode(block)}`;
                             break;
                         default:
                             console.log(simpleTreeString(node));
@@ -226,77 +224,58 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 }
                 break;
             case SyntaxKind.PropertyAccessExpression:
-                if (node.getChildCount(sourceFile) === 3) {
-                    const [identifer1, dotToken, identifer2] = node.getChildren(sourceFile);
-                    if (
-                        identifer1.kind === SyntaxKind.Identifier &&
-                        dotToken.kind === SyntaxKind.DotToken &&
-                        identifer2.kind === SyntaxKind.Identifier
-                    ) {
-                        const identiferText = identifer1.getText(sourceFile);
-                        const accessorToken = identiferText === 'std' ? '::' : '.';
-                        returnValue = `${processNode(identifer1)}${accessorToken}${processNode(identifer2)}`;
-                    } else {
-                        throw new Error(`Unrecognised PropertyAccessExpression.`);
-                    }
-                } else {
-                    throw new Error(`Unrecognised PropertyAccessExpression.  Expected 3 children`);
+                {
+                    const { identifier, identifier2 } = getAndValidateKinds(node, [
+                        SyntaxKind.Identifier,
+                        SyntaxKind.DotToken,
+                        SyntaxKind.Identifier,
+                    ]);
+
+                    const identiferText = identifier.getText(sourceFile);
+                    const accessorToken = identiferText === 'std' ? '::' : '.';
+                    returnValue = `${processNode(identifier)}${accessorToken}${processNode(identifier2)}`;
                 }
                 break;
             case SyntaxKind.InterfaceDeclaration:
-                if (node.getChildCount(sourceFile) === 5) {
-                    const [interfaceKeyword, identifer, firstPunctuation, syntaxList, clostBraceToken] =
-                        node.getChildren(sourceFile);
+                {
+                    const { identifier, syntaxList } = getAndValidateKinds(node, [
+                        SyntaxKind.InterfaceKeyword,
+                        SyntaxKind.Identifier,
+                        SyntaxKind.FirstPunctuation,
+                        SyntaxKind.SyntaxList,
+                        SyntaxKind.CloseBraceToken,
+                    ]);
 
-                    if (
-                        interfaceKeyword.kind === SyntaxKind.InterfaceKeyword &&
-                        identifer.kind === SyntaxKind.Identifier &&
-                        firstPunctuation.kind === SyntaxKind.FirstPunctuation &&
-                        syntaxList.kind === SyntaxKind.SyntaxList &&
-                        clostBraceToken.kind === SyntaxKind.CloseBraceToken
-                    ) {
-                        returnValue = `struct ${identifer.getText(sourceFile)} {${processNode(syntaxList)}};`;
-                    } else {
-                        throw new Error(`Unrecognised InterfaceDeclaration.`);
-                    }
-                } else {
-                    throw new Error(`Unrecognised InterfaceDeclaration.  Expected 5 children`);
+                    returnValue = `struct ${identifier.getText(sourceFile)} {${processNode(syntaxList)}};`;
                 }
                 break;
             case SyntaxKind.PropertySignature:
-                if (node.getChildCount(sourceFile) === 4) {
-                    const [identifier, colonToken, typeReference, semiColonToken] = node.getChildren(sourceFile);
+                {
+                    const { identifier, typeReference } = getAndValidateKinds(node, [
+                        SyntaxKind.Identifier,
+                        SyntaxKind.ColonToken,
+                        'typeReference',
+                        SyntaxKind.SemicolonToken,
+                    ]);
 
                     if (
-                        identifier.kind === SyntaxKind.Identifier &&
-                        colonToken.kind === SyntaxKind.ColonToken &&
-                        (typeReference.kind === SyntaxKind.TypeReference ||
-                            typeReference.kind === SyntaxKind.ArrayType) &&
-                        semiColonToken.kind === SyntaxKind.SemicolonToken
+                        typeReference.kind === SyntaxKind.TypeReference ||
+                        typeReference.kind === SyntaxKind.ArrayType
                     ) {
                         returnValue = `${processNode(typeReference)} ${identifier.getText(sourceFile)};`;
                     } else {
                         console.log(simpleTreeString(node));
                         throw new Error(`Unrecognised PropertySignature.`);
                     }
-                } else {
-                    throw new Error(`Unrecognised PropertySignature.  Expected 4 children`);
                 }
                 break;
             case SyntaxKind.ArrayType:
-                if (node.getChildCount(sourceFile) === 3) {
-                    const [keyword, openBracketToken, closeBracketToken] = node.getChildren(sourceFile);
-                    if (
-                        openBracketToken.kind === SyntaxKind.OpenBracketToken &&
-                        closeBracketToken.kind === SyntaxKind.CloseBracketToken
-                    ) {
-                        returnValue = `std::vector<${processNode(keyword)}>`;
-                    } else {
-                        throw new Error(`Unrecognised ArrayType.`);
-                    }
-                } else {
-                    throw new Error(`Unrecognised ArrayType.  Expected 3 children`);
-                }
+                const { keyword } = getAndValidateKinds(node, [
+                    'keyword',
+                    SyntaxKind.OpenBracketToken,
+                    SyntaxKind.CloseBracketToken,
+                ]);
+                returnValue = `std::vector<${processNode(keyword)}>`;
                 break;
             case SyntaxKind.Parameter:
                 if (node.getChildCount(sourceFile) === 3) {
