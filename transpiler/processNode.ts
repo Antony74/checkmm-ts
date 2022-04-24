@@ -17,6 +17,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         const returnValue: { [key: string]: ts.Node } = {};
 
         if (node.getChildCount(sourceFile) !== kinds.length) {
+            console.log(simpleFlatTreeString(node));
             throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children`);
         }
 
@@ -25,6 +26,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 const key = kinds[index];
                 returnValue[key] = child;
             } else if (child.kind !== kinds[index]) {
+                console.log(simpleFlatTreeString(node));
                 throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.`);
             } else {
                 for (let n = 0; true; ++n) {
@@ -323,22 +325,28 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 }
                 returnValue = processChildren(node);
                 break;
-            // case SyntaxKind.ForOfStatement:
-            //     if (node.getChildCount(sourceFile) === 7) {
-            //         const [
-            //             forKeyword,
-            //             openParenToken,
-            //             variableDeclarationList,
-            //             lastContextualKeyword,
-            //             identifier,
-            //             closeParenToken,
-            //             code,
-            //         ] = node.getChildren(sourceFile);
-
-            //         //                    if (forKeyword.kind === )
-            //     } else {
-            //         throw new Error(`Unrecognised ForOfStatement.  Expected 7 children`);
-            //     }
+            case SyntaxKind.ForOfStatement:
+                {
+                    const { variableDeclarationList, identifier, code } = getAndValidateKinds(node, [
+                        SyntaxKind.ForKeyword,
+                        SyntaxKind.OpenParenToken,
+                        SyntaxKind.VariableDeclarationList,
+                        SyntaxKind.OfKeyword,
+                        SyntaxKind.Identifier,
+                        SyntaxKind.CloseParenToken,
+                        'code',
+                    ]);
+                    console.log(simpleFlatTreeString(variableDeclarationList));
+                }
+                break;
+            case SyntaxKind.StringLiteral:
+                const string = node.getText(sourceFile).slice(1, -1);
+                if (string.length) {
+                    returnValue = `"${string}"`;
+                } else {
+                    returnValue = 'std::string()'; // Just a quirk I intend to support
+                }
+                break;
             default:
                 console.log(simpleFlatTreeString(node));
                 throw new Error(`node.kind ${SyntaxKind[node.kind]} node yet supported.  ${node.getText(sourceFile)}`);
