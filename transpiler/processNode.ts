@@ -3,7 +3,7 @@ import { hackBannerComment } from './hackBannerComment';
 import { simpleTreeCreator } from './simpleTree';
 
 export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.TypeChecker) => {
-    const { simpleTreeString, simpleFlatTreeString } = simpleTreeCreator(sourceFile);
+    const { simpleFlatTreeString } = simpleTreeCreator(sourceFile);
 
     const processChildren = (node: ts.Node): string => node.getChildren(sourceFile).map(processNode).join('');
 
@@ -82,6 +82,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.VariableDeclarationList:
             case SyntaxKind.ReturnStatement:
             case SyntaxKind.CallExpression:
+            case SyntaxKind.IfStatement:
                 returnValue = processChildren(node);
                 break;
             case SyntaxKind.ImportDeclaration:
@@ -98,6 +99,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.CloseParenToken:
             case SyntaxKind.BarBarToken:
             case SyntaxKind.CloseBraceToken:
+            case SyntaxKind.IfKeyword:
                 returnValue = node.getText(sourceFile);
                 break;
             case SyntaxKind.SemicolonToken:
@@ -219,23 +221,36 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                                 sourceFile,
                             )}(${parameters})${processNode(block)}`;
                             break;
+                        case SyntaxKind.CallExpression:
+                            returnValue = processNode(value);
+                            break;
                         default:
-                            console.log(simpleTreeString(node));
+                            console.log(simpleFlatTreeString(value));
                             throw new Error(`Unrecognised VariableDeclaration value`);
                     }
                 }
                 break;
             case SyntaxKind.PropertyAccessExpression:
                 {
-                    const { identifier, identifier2 } = getAndValidateKinds(node, [
-                        SyntaxKind.Identifier,
+                    const { object, identifier } = getAndValidateKinds(node, [
+                        'object',
                         SyntaxKind.DotToken,
                         SyntaxKind.Identifier,
                     ]);
 
-                    const identiferText = identifier.getText(sourceFile);
-                    const accessorToken = identiferText === 'std' ? '::' : '.';
-                    returnValue = `${processNode(identifier)}${accessorToken}${processNode(identifier2)}`;
+                    switch (object.kind) {
+                        case SyntaxKind.Identifier:
+                            const identiferText = object.getText(sourceFile);
+                            const accessorToken = identiferText === 'std' ? '::' : '.';
+                            returnValue = `${processNode(object)}${accessorToken}${processNode(identifier)}`;
+                            break;
+                        case SyntaxKind.PropertyAccessExpression:
+                            returnValue = `${processNode(object)}.${processNode(identifier)}`;
+                            break;
+                        default:
+                            console.log(simpleFlatTreeString(node));
+                            throw new Error(`Unrecognised PropertyAccessExpression`);
+                    }
                 }
                 break;
             case SyntaxKind.InterfaceDeclaration:
@@ -266,7 +281,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                     ) {
                         returnValue = `${processNode(typeReference)} ${identifier.getText(sourceFile)};`;
                     } else {
-                        console.log(simpleTreeString(node));
+                        console.log(simpleFlatTreeString(node));
                         throw new Error(`Unrecognised PropertySignature.`);
                     }
                 }
@@ -337,6 +352,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                         'code',
                     ]);
                     console.log(simpleFlatTreeString(variableDeclarationList));
+                    returnValue = `for () ${processNode(code)}`;
                 }
                 break;
             case SyntaxKind.StringLiteral:
