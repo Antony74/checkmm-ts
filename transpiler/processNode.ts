@@ -47,7 +47,6 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
 
     const processNode = (node: ts.Node): string => {
         let returnValue = '';
-        console.log(SyntaxKind[node.kind]);
 
         let comment = '';
 
@@ -240,8 +239,8 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
 
                     switch (object.kind) {
                         case SyntaxKind.Identifier:
-                            const identiferText = object.getText(sourceFile);
-                            const accessorToken = identiferText === 'std' ? '::' : '.';
+                            const identifierText = object.getText(sourceFile);
+                            const accessorToken = identifierText === 'std' ? '::' : '.';
                             returnValue = `${processNode(object)}${accessorToken}${processNode(identifier)}`;
                             break;
                         case SyntaxKind.PropertyAccessExpression:
@@ -351,8 +350,28 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                         SyntaxKind.CloseParenToken,
                         'code',
                     ]);
-                    console.log(simpleFlatTreeString(variableDeclarationList));
-                    returnValue = `for () ${processNode(code)}`;
+
+                    const containerType = typechecker.getTypeAtLocation(identifier);
+                    const containerTypeName = containerType.symbol.escapedName;
+                    const identifierText = identifier.getText(sourceFile);
+
+                    const { syntaxList } = getAndValidateKinds(variableDeclarationList, [
+                        SyntaxKind.ConstKeyword,
+                        SyntaxKind.SyntaxList,
+                    ]);
+
+                    const { variableDeclaration } = getAndValidateKinds(syntaxList, [SyntaxKind.VariableDeclaration]);
+
+                    const itemType = typechecker.getTypeAtLocation(variableDeclaration);
+                    const itemTypeName = itemType.symbol.escapedName;
+
+                    if (containerTypeName === 'Array') {
+                        returnValue = `for (std::vector<${itemTypeName}>::const_iterator iter(${identifierText}.begin()); iter != ${identifierText}.end(); ++iter) ${processNode(
+                            code,
+                        )}`;
+                    } else {
+                        throw new Error(`Unrecognised container in ForOfStatement`);
+                    }
                 }
                 break;
             case SyntaxKind.StringLiteral:
