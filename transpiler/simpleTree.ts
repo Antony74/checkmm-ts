@@ -6,7 +6,7 @@ interface SimpleTree {
 }
 
 export const simpleTreeCreator = (sourceFile: ts.SourceFile) => {
-    const simpleTree = (node: ts.Node, recursionLimit: number = 10): SimpleTree => {
+    const simpleTree = (node: ts.Node, recursionLimit: number): SimpleTree => {
         return {
             kind: SyntaxKind[node.kind],
             children:
@@ -16,8 +16,8 @@ export const simpleTreeCreator = (sourceFile: ts.SourceFile) => {
         };
     };
 
-    const simpleTreeString = (node: ts.Node): string => JSON.stringify(simpleTree(node), null, 2);
-    const simpleFlatTreeString = (node: ts.Node): string => JSON.stringify(simpleTree(node, 1), null, 2);
+    const simpleTreeString = (node: ts.Node, recursionLimit: number = 1): string =>
+        JSON.stringify(simpleTree(node, recursionLimit), null, 2);
 
-    return { simpleTreeString, simpleFlatTreeString };
+    return { simpleTreeString };
 };

@@ -3,7 +3,7 @@ import { hackBannerComment } from './hackBannerComment';
 import { simpleTreeCreator } from './simpleTree';
 
 export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.TypeChecker) => {
-    const { simpleFlatTreeString } = simpleTreeCreator(sourceFile);
+    const { simpleTreeString } = simpleTreeCreator(sourceFile);
 
     const processChildren = (node: ts.Node): string => node.getChildren(sourceFile).map(processNode).join('');
 
@@ -17,7 +17,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         const returnValue: { [key: string]: ts.Node } = {};
 
         if (node.getChildCount(sourceFile) !== kinds.length) {
-            console.log(simpleFlatTreeString(node));
+            console.log(simpleTreeString(node));
             throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children`);
         }
 
@@ -26,7 +26,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 const key = kinds[index];
                 returnValue[key] = child;
             } else if (child.kind !== kinds[index]) {
-                console.log(simpleFlatTreeString(node));
+                console.log(simpleTreeString(node));
                 throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.`);
             } else {
                 for (let n = 0; true; ++n) {
@@ -221,10 +221,11 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                             )}(${parameters})${processNode(block)}`;
                             break;
                         case SyntaxKind.CallExpression:
+                            console.log(simpleTreeString(node, 2));
                             returnValue = processNode(value);
                             break;
                         default:
-                            console.log(simpleFlatTreeString(value));
+                            console.log(simpleTreeString(value));
                             throw new Error(`Unrecognised VariableDeclaration value`);
                     }
                 }
@@ -247,7 +248,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                             returnValue = `${processNode(object)}.${processNode(identifier)}`;
                             break;
                         default:
-                            console.log(simpleFlatTreeString(node));
+                            console.log(simpleTreeString(node));
                             throw new Error(`Unrecognised PropertyAccessExpression`);
                     }
                 }
@@ -280,7 +281,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                     ) {
                         returnValue = `${processNode(typeReference)} ${identifier.getText(sourceFile)};`;
                     } else {
-                        console.log(simpleFlatTreeString(node));
+                        console.log(simpleTreeString(node));
                         throw new Error(`Unrecognised PropertySignature.`);
                     }
                 }
@@ -390,7 +391,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 }
                 break;
             default:
-                console.log(simpleFlatTreeString(node));
+                console.log(simpleTreeString(node));
                 throw new Error(`node.kind ${SyntaxKind[node.kind]} node yet supported.  ${node.getText(sourceFile)}`);
         }
 
