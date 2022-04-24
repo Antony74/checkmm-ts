@@ -300,7 +300,14 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                         SyntaxKind.ColonToken,
                         'paramType',
                     ]);
-                    returnValue = `${processNode(paramType)} ${identifier.getText(sourceFile)}`;
+
+                    let identifierText = identifier.getText(sourceFile);
+
+                    if (identifierText === 'vari') {
+                        identifierText = 'var';
+                    }
+
+                    returnValue = `${processNode(paramType)} ${identifierText}`;
                 }
                 break;
             case SyntaxKind.BinaryExpression:
