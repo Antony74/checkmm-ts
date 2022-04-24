@@ -278,15 +278,13 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 returnValue = `std::vector<${processNode(keyword)}>`;
                 break;
             case SyntaxKind.Parameter:
-                if (node.getChildCount(sourceFile) === 3) {
-                    const [identifer, colonToken, paramType] = node.getChildren(sourceFile);
-                    if (identifer.kind === SyntaxKind.Identifier && colonToken.kind === SyntaxKind.ColonToken) {
-                        returnValue = `${processNode(paramType)} ${identifer.getText(sourceFile)}`;
-                    } else {
-                        throw new Error(`Unrecognised Parameter`);
-                    }
-                } else {
-                    throw new Error(`Unrecognised Parameter.  Expected 3 children`);
+                {
+                    const { identifier, paramType } = getAndValidateKinds(node, [
+                        SyntaxKind.Identifier,
+                        SyntaxKind.ColonToken,
+                        'paramType',
+                    ]);
+                    returnValue = `${processNode(paramType)} ${identifier.getText(sourceFile)}`;
                 }
                 break;
             case SyntaxKind.BinaryExpression:
