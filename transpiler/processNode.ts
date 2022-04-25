@@ -13,11 +13,11 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         return comment;
     };
 
-    const getKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } | string => {
+    const getKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): any => {
         const returnValue: { [key: string]: ts.Node } = {};
 
         if (node.getChildCount(sourceFile) !== kinds.length) {
-            return `Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children`;
+            return { error: `Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children` };
         }
 
         node.getChildren().forEach((child, index) => {
@@ -25,7 +25,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 const key = kinds[index];
                 returnValue[key] = child;
             } else if (child.kind !== kinds[index]) {
-                return `Unrecognised ${SyntaxKind[node.kind]}.`;
+                return { error: `Unrecognised ${SyntaxKind[node.kind]}.` };
             } else {
                 for (let n = 0; true; ++n) {
                     const kind = SyntaxKind[child.kind];
@@ -44,9 +44,9 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
     const getAndValidateKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } => {
         const returnValue = getKinds(node, kinds);
 
-        if (typeof(returnValue) === 'string') {
+        if (returnValue.error) {
             console.log(simpleTreeString(node));
-            throw new Error(returnValue);
+            throw new Error(returnValue.error);
         } else {
             return returnValue;
         }
@@ -327,15 +327,29 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                         operator.kind === SyntaxKind.EqualsEqualsEqualsToken ||
                         operator.kind === SyntaxKind.ExclamationEqualsEqualsToken
                     ) {
-                        if (left.kind === SyntaxKind.CallExpression && left.getChildCount(sourceFile) === 4) {
-                            const [propertyAccessExpression, _openParenToken, syntaxList, _closeParenToken] =
-                                left.getChildren();
+                        if (left.kind === SyntaxKind.CallExpression) {
+                            const { error, propertyAccessExpression, syntaxList } = getKinds(left, [
+                                SyntaxKind.PropertyAccessExpression,
+                                SyntaxKind.OpenParenToken,
+                                SyntaxKind.SyntaxList,
+                                SyntaxKind.CloseParenToken,
+                            ]);
                             if (
+                                !error &&
                                 propertyAccessExpression.kind === SyntaxKind.PropertyAccessExpression &&
                                 propertyAccessExpression.getChildCount(sourceFile) === 3
                             ) {
                                 let rightText = processNode(right);
-                                const [object, _dotToken, method] = propertyAccessExpression.getChildren();
+
+                                const { identifier, identifier2 } = getAndValidateKinds(propertyAccessExpression, [
+                                    SyntaxKind.Identifier,
+                                    SyntaxKind.DotToken,
+                                    SyntaxKind.Identifier,
+                                ]);
+
+                                const object = identifier;
+                                const method = identifier2;
+
                                 const containerType = typechecker.getTypeAtLocation(object);
                                 const objectTypeName = containerType.symbol.escapedName;
                                 let methodName = method.getText(sourceFile);
