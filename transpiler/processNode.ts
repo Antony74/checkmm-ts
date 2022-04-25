@@ -230,7 +230,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                             )}(${parameters})${processNode(block)}`;
                             break;
                         case SyntaxKind.CallExpression:
-                            console.log(simpleTreeString(node, 2));
+                            console.log(simpleTreeString(node, 2, true));
                             returnValue = processNode(value);
                             break;
                         default:
