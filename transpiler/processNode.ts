@@ -13,11 +13,12 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         return comment;
     };
 
-    const getKindsOrError = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } | string => {
+    const getAndValidateKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } => {
         const returnValue: { [key: string]: ts.Node } = {};
 
         if (node.getChildCount(sourceFile) !== kinds.length) {
-            return `Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children`;
+            console.log(simpleTreeString(node));
+            throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children`);
         }
 
         node.getChildren().forEach((child, index) => {
@@ -25,7 +26,8 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 const key = kinds[index];
                 returnValue[key] = child;
             } else if (child.kind !== kinds[index]) {
-                return `Unrecognised ${SyntaxKind[node.kind]}.`;
+                console.log(simpleTreeString(node));
+                throw new Error(`Unrecognised ${SyntaxKind[node.kind]}.`);
             } else {
                 for (let n = 0; true; ++n) {
                     const kind = SyntaxKind[child.kind];
@@ -42,19 +44,55 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
     };
 
     const getKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } => {
-        const returnValue = getKindsOrError(node, kinds);
-        return typeof returnValue === 'string' ? {} : returnValue;
-    }
-
-    const getAndValidateKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } => {
-        const returnValue = getKindsOrError(node, kinds);
-
-        if (typeof returnValue === 'string') {
-            console.log(simpleTreeString(node));
-            throw new Error(returnValue);
-        } else {
-            return returnValue;
+        try {
+            return getAndValidateKinds(node, kinds);
+        } catch (e) {
+            return {};
         }
+    };
+
+    const processCallExpression = (callExpression: ts.Node): { text: string; objectTypeName: string } => {
+        if (callExpression.kind !== SyntaxKind.CallExpression) {
+            throw new Error('Expected CallExpression');
+        }
+
+        const { propertyAccessExpression, syntaxList } = getKinds(callExpression, [
+            SyntaxKind.PropertyAccessExpression,
+            SyntaxKind.OpenParenToken,
+            SyntaxKind.SyntaxList,
+            SyntaxKind.CloseParenToken,
+        ]);
+
+        if (propertyAccessExpression && propertyAccessExpression.getChildCount(sourceFile) === 3) {
+            const { object, identifier } = getAndValidateKinds(propertyAccessExpression, [
+                'object',
+                SyntaxKind.DotToken,
+                SyntaxKind.Identifier,
+            ]);
+
+            const objectType = typechecker.getTypeAtLocation(object);
+            let objectTypeName = objectType.symbol.escapedName.toString();
+            let methodName = identifier.getText(sourceFile);
+            let suffix = '';
+            if (objectTypeName === 'Map' && methodName === 'get') {
+                objectTypeName = 'std::map';
+                methodName = 'find';
+                suffix = '::const_iterator';
+            }
+
+            const templateArgs: { intrinsicName: string }[] = (objectType as any).resolvedTypeArguments;
+            if (templateArgs && templateArgs.length) {
+                objectTypeName += `<${templateArgs
+                    .map(arg => arg.intrinsicName)
+                    .map(name => (name === 'string' ? 'std::string' : name))
+                    .join(',')}>`;
+            }
+            objectTypeName += suffix;
+
+            return { text: `${processNode(object)}.${methodName}(${processNode(syntaxList)})`, objectTypeName };
+        }
+
+        return { text: processChildren(callExpression), objectTypeName: '' };
     };
 
     let lastItemWasBlock = false;
@@ -234,8 +272,8 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                             )}(${parameters})${processNode(block)}`;
                             break;
                         case SyntaxKind.CallExpression:
-                            console.log(simpleTreeString(node, 2, true));
-                            returnValue = processNode(value);
+                            const { text, objectTypeName } = processCallExpression(value);
+                            returnValue = `${objectTypeName} ${identifier.getText(sourceFile)}(${text})`;
                             break;
                         default:
                             console.log(simpleTreeString(value));
