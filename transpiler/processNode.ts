@@ -2,6 +2,15 @@ import ts, { SyntaxKind } from 'typescript';
 import { hackBannerComment } from './hackBannerComment';
 import { simpleTreeCreator } from './simpleTree';
 
+interface Container {
+    name: string,
+    itemName: string,
+    iteratorName: string
+}
+
+// I'm going to need something more like a proper stack here
+const containers: Container[] = [];
+
 export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.TypeChecker) => {
     const { simpleTreeString } = simpleTreeCreator(sourceFile);
 
@@ -51,6 +60,27 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         }
     };
 
+    const mapTypes = (object: ts.Node, methodName?: string) => {
+        const objectType = typechecker.getTypeAtLocation(object);
+        let objectTypeName = objectType.symbol.escapedName.toString();
+        let suffix = '';
+        if (objectTypeName === 'Map' && methodName === 'get') {
+            objectTypeName = 'std::map';
+            methodName = 'find';
+            suffix = '::const_iterator';
+        }
+
+        const templateArgs: { intrinsicName: string }[] = (objectType as any).resolvedTypeArguments;
+        if (templateArgs && templateArgs.length) {
+            objectTypeName += `<${templateArgs
+                .map(arg => arg.intrinsicName)
+                .map(name => (name === 'string' ? 'std::string' : name))
+                .join(',')}>`;
+        }
+        objectTypeName += suffix;
+        return { objectTypeName, mappedMethodName: methodName };
+    };
+
     const processCallExpression = (callExpression: ts.Node): { text: string; objectTypeName: string } => {
         if (callExpression.kind !== SyntaxKind.CallExpression) {
             throw new Error('Expected CallExpression');
@@ -70,26 +100,10 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 SyntaxKind.Identifier,
             ]);
 
-            const objectType = typechecker.getTypeAtLocation(object);
-            let objectTypeName = objectType.symbol.escapedName.toString();
             let methodName = identifier.getText(sourceFile);
-            let suffix = '';
-            if (objectTypeName === 'Map' && methodName === 'get') {
-                objectTypeName = 'std::map';
-                methodName = 'find';
-                suffix = '::const_iterator';
-            }
+            const { objectTypeName, mappedMethodName } = mapTypes(object, methodName);
 
-            const templateArgs: { intrinsicName: string }[] = (objectType as any).resolvedTypeArguments;
-            if (templateArgs && templateArgs.length) {
-                objectTypeName += `<${templateArgs
-                    .map(arg => arg.intrinsicName)
-                    .map(name => (name === 'string' ? 'std::string' : name))
-                    .join(',')}>`;
-            }
-            objectTypeName += suffix;
-
-            return { text: `${processNode(object)}.${methodName}(${processNode(syntaxList)})`, objectTypeName };
+            return { text: `${processNode(object)}.${mappedMethodName}(${processNode(syntaxList)})`, objectTypeName };
         }
 
         return { text: processChildren(callExpression), objectTypeName: '' };
