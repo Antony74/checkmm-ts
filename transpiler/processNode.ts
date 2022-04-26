@@ -2,14 +2,14 @@ import ts, { SyntaxKind } from 'typescript';
 import { hackBannerComment } from './hackBannerComment';
 import { simpleTreeCreator } from './simpleTree';
 
-interface Container {
+interface ContainerVariable {
     name: string,
     itemName: string,
     iteratorName: string
 }
 
 // I'm going to need something more like a proper stack here
-const containers: Container[] = [];
+const containerVariables: ContainerVariable[] = [];
 
 export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.TypeChecker) => {
     const { simpleTreeString } = simpleTreeCreator(sourceFile);
@@ -305,9 +305,18 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
 
                     switch (object.kind) {
                         case SyntaxKind.Identifier:
-                            const identifierText = object.getText(sourceFile);
-                            const accessorToken = identifierText === 'std' ? '::' : '.';
-                            returnValue = `${processNode(object)}${accessorToken}${processNode(identifier)}`;
+                            let identifierText = object.getText(sourceFile);
+                            let accessorToken = identifierText === 'std' ? '::' : '.';
+
+                            for (const container of containerVariables) {
+                                if (container.itemName === identifierText) {
+                                    identifierText = `${container.iteratorName}`;
+                                    accessorToken = '->';
+                                    break;
+                                }
+                            }
+
+                            returnValue = `${identifierText}${accessorToken}${processNode(identifier)}`;
                             break;
                         case SyntaxKind.PropertyAccessExpression:
                             returnValue = `${processNode(object)}.${processNode(identifier)}`;
@@ -448,11 +457,13 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                     ]);
 
                     const { variableDeclaration } = getAndValidateKinds(syntaxList, [SyntaxKind.VariableDeclaration]);
+                    const itemName = variableDeclaration.getText(sourceFile);
 
                     const itemType = typechecker.getTypeAtLocation(variableDeclaration);
                     const itemTypeName = itemType.symbol.escapedName;
 
                     if (containerTypeName === 'Array') {
+                        containerVariables.push({name: identifierText, itemName, iteratorName: 'iter'});
                         returnValue = `for (std::vector<${itemTypeName}>::const_iterator iter(${identifierText}.begin()); iter != ${identifierText}.end(); ++iter) ${processNode(
                             code,
                         )}`;
