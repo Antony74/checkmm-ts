@@ -13,11 +13,11 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         return comment;
     };
 
-    const getKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): any => {
+    const getKindsOrError = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } | string => {
         const returnValue: { [key: string]: ts.Node } = {};
 
         if (node.getChildCount(sourceFile) !== kinds.length) {
-            return { error: `Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children` };
+            return `Unrecognised ${SyntaxKind[node.kind]}.  Expected ${kinds.length} children`;
         }
 
         node.getChildren().forEach((child, index) => {
@@ -25,7 +25,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 const key = kinds[index];
                 returnValue[key] = child;
             } else if (child.kind !== kinds[index]) {
-                return { error: `Unrecognised ${SyntaxKind[node.kind]}.` };
+                return `Unrecognised ${SyntaxKind[node.kind]}.`;
             } else {
                 for (let n = 0; true; ++n) {
                     const kind = SyntaxKind[child.kind];
@@ -41,12 +41,17 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         return returnValue;
     };
 
-    const getAndValidateKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } => {
-        const returnValue = getKinds(node, kinds);
+    const getKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } => {
+        const returnValue = getKindsOrError(node, kinds);
+        return typeof returnValue === 'string' ? {} : returnValue;
+    }
 
-        if (returnValue.error) {
+    const getAndValidateKinds = (node: ts.Node, kinds: (SyntaxKind | string)[]): { [key: string]: ts.Node } => {
+        const returnValue = getKindsOrError(node, kinds);
+
+        if (typeof returnValue === 'string') {
             console.log(simpleTreeString(node));
-            throw new Error(returnValue.error);
+            throw new Error(returnValue);
         } else {
             return returnValue;
         }
@@ -89,7 +94,6 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.VariableStatement:
             case SyntaxKind.VariableDeclarationList:
             case SyntaxKind.ReturnStatement:
-            case SyntaxKind.CallExpression:
             case SyntaxKind.IfStatement:
                 returnValue = processChildren(node);
                 break;
@@ -328,14 +332,14 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                         operator.kind === SyntaxKind.ExclamationEqualsEqualsToken
                     ) {
                         if (left.kind === SyntaxKind.CallExpression) {
-                            const { error, propertyAccessExpression, syntaxList } = getKinds(left, [
+                            const { propertyAccessExpression, syntaxList } = getKinds(left, [
                                 SyntaxKind.PropertyAccessExpression,
                                 SyntaxKind.OpenParenToken,
                                 SyntaxKind.SyntaxList,
                                 SyntaxKind.CloseParenToken,
                             ]);
                             if (
-                                !error &&
+                                propertyAccessExpression &&
                                 propertyAccessExpression.kind === SyntaxKind.PropertyAccessExpression &&
                                 propertyAccessExpression.getChildCount(sourceFile) === 3
                             ) {
