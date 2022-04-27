@@ -131,7 +131,8 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             node.kind !== SyntaxKind.SyntaxList &&
             node.kind !== SyntaxKind.FirstStatement &&
             node.kind !== SyntaxKind.VariableDeclarationList &&
-            node.kind !== SyntaxKind.ReturnStatement
+            node.kind !== SyntaxKind.ReturnStatement &&
+            node.kind !== SyntaxKind.IfStatement
         ) {
             comment = getComment(node);
             const lines = comment.split('\n');
