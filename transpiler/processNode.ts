@@ -6,6 +6,7 @@ interface ContainerVariable {
     name: string;
     itemName: string;
     iteratorName: string;
+    objectTypeName: string;
 }
 
 // I'm going to need something more like a proper stack here
@@ -70,20 +71,23 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             suffix = '::const_iterator';
         }
 
-        const templateArgs: { intrinsicName: string }[] = (objectType as any).resolvedTypeArguments;
-        if (templateArgs && templateArgs.length) {
-            objectTypeName += `<${templateArgs
-                .map(arg => arg.intrinsicName)
-                .map(name => (name === 'string' ? 'std::string' : name))
-                .join(',')}>`;
-        }
-        objectTypeName += suffix;
-        return { objectTypeName, mappedMethodName: methodName };
+        const templateArray: { intrinsicName: string }[] = (objectType as any).resolvedTypeArguments;
+        const templateArgs =
+            templateArray && templateArray.length
+                ? `<${templateArray
+                      .map(arg => arg.intrinsicName)
+                      .map(name => (name === 'string' ? 'std::string' : name))
+                      .join(',')}>`
+                : '';
+
+        return { objectTypeName, templateArgs, suffix, mappedMethodName: methodName };
     };
 
     interface CallExpression {
         text: string;
         objectTypeName: string;
+        templateArgs: string;
+        suffix: string;
         objectText: string;
     }
 
@@ -107,16 +111,24 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             ]);
 
             let methodName = identifier.getText(sourceFile);
-            const { objectTypeName, mappedMethodName } = mapTypes(object, methodName);
+            const { objectTypeName, templateArgs, suffix, mappedMethodName } = mapTypes(object, methodName);
 
             return {
                 text: `${processNode(object)}.${mappedMethodName}(${processNode(syntaxList)})`,
                 objectTypeName,
+                templateArgs,
+                suffix,
                 objectText: processNode(object),
             };
         }
 
-        return { text: processChildren(callExpression), objectTypeName: '', objectText: '' };
+        return {
+            text: processChildren(callExpression),
+            objectTypeName: '',
+            objectText: '',
+            templateArgs: '',
+            suffix: '',
+        };
     };
 
     let lastItemWasBlock = false;
@@ -155,11 +167,13 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 returnValue = processChildren(node);
                 console.log(containerVariables);
                 break;
+            case SyntaxKind.ReturnStatement:
+                returnValue = processChildren(node);
+                break;
             case SyntaxKind.SyntaxList:
             case SyntaxKind.TypeReference:
             case SyntaxKind.VariableStatement:
             case SyntaxKind.VariableDeclarationList:
-            case SyntaxKind.ReturnStatement:
             case SyntaxKind.IfStatement:
                 returnValue = processChildren(node);
                 break;
@@ -198,6 +212,14 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 }
                 break;
             case SyntaxKind.Identifier:
+                const identifierText = node.getText(sourceFile);
+
+                for (const container of containerVariables) {
+                    if (identifierText === container.iteratorName && container.objectTypeName === 'std::map') {
+                        return comment + `${identifierText}->second`;
+                    }
+                }
+
                 switch (node.getText(sourceFile)) {
                     case 'Array':
                         returnValue = 'std::vector';
@@ -305,9 +327,10 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                             )}`;
                             break;
                         case SyntaxKind.CallExpression:
-                            const { text, objectTypeName, objectText } = processCallExpression(value);
-                            returnValue = `${objectTypeName} ${identifierText}(${text})`;
-                            containerVariables.push({ name: objectText, iteratorName: identifierText, itemName: '' });
+                            const { text, objectTypeName, templateArgs, suffix, objectText } =
+                                processCallExpression(value);
+                            returnValue = `${objectTypeName}${templateArgs}${suffix} ${identifierText}(${text})`;
+                            containerVariables.push({ name: objectText, iteratorName: identifierText, itemName: '', objectTypeName });
                             break;
                         default:
                             console.log(simpleTreeString(value));
@@ -484,7 +507,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                     const itemTypeName = itemType.symbol.escapedName;
 
                     if (containerTypeName === 'Array') {
-                        containerVariables.push({ name: identifierText, itemName, iteratorName: 'iter' });
+                        containerVariables.push({ name: identifierText, itemName, iteratorName: 'iter', objectTypeName: 'std::vector' });
                         returnValue = `for (std::vector<${itemTypeName}>::const_iterator iter(${identifierText}.begin()); iter != ${identifierText}.end(); ++iter) ${processNode(
                             code,
                         )}`;
