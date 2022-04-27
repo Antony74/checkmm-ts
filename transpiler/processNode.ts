@@ -3,9 +3,9 @@ import { hackBannerComment } from './hackBannerComment';
 import { simpleTreeCreator } from './simpleTree';
 
 interface ContainerVariable {
-    name: string,
-    itemName: string,
-    iteratorName: string
+    name: string;
+    itemName: string;
+    iteratorName: string;
 }
 
 // I'm going to need something more like a proper stack here
@@ -141,6 +141,9 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 lastItemWasBlock = true;
                 break;
             case SyntaxKind.SourceFile:
+                returnValue = processChildren(node);
+                console.log(containerVariables);
+                break;
             case SyntaxKind.SyntaxList:
             case SyntaxKind.TypeReference:
             case SyntaxKind.VariableStatement:
@@ -214,15 +217,17 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 returnValue = '!=';
                 break;
             case SyntaxKind.TypeAliasDeclaration:
-                const { identifier, typeReference } = getAndValidateKinds(node, [
-                    SyntaxKind.TypeKeyword,
-                    SyntaxKind.Identifier,
-                    SyntaxKind.EqualsToken,
-                    SyntaxKind.TypeReference,
-                    SyntaxKind.SemicolonToken,
-                ]);
+                {
+                    const { identifier, typeReference } = getAndValidateKinds(node, [
+                        SyntaxKind.TypeKeyword,
+                        SyntaxKind.Identifier,
+                        SyntaxKind.EqualsToken,
+                        SyntaxKind.TypeReference,
+                        SyntaxKind.SemicolonToken,
+                    ]);
 
-                returnValue = `typedef ${processNode(typeReference)} ${identifier.getText(sourceFile)};`;
+                    returnValue = `typedef ${processNode(typeReference)} ${identifier.getText(sourceFile)};`;
+                }
                 break;
             case SyntaxKind.VariableDeclaration:
                 if (node.getChildCount(sourceFile) === 5) {
@@ -256,12 +261,12 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                         'value',
                     ]);
 
+                    const identifierText = identifier.getText(sourceFile);
+
                     switch (value.kind) {
                         case SyntaxKind.NewExpression:
                             const newExpression = value.getChildren(sourceFile).slice(1, -3);
-                            returnValue = `${newExpression.map(processNode).join('')} ${identifier.getText(
-                                sourceFile,
-                            )}`;
+                            returnValue = `${newExpression.map(processNode).join('')} ${identifierText}`;
                             break;
                         case SyntaxKind.ArrowFunction:
                             const { syntaxList, returnType, block } = getAndValidateKinds(value, [
@@ -284,13 +289,13 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                                 })
                                 .join(',');
 
-                            returnValue = `${processNode(returnType)} ${identifier.getText(
-                                sourceFile,
-                            )}(${parameters})${processNode(block)}`;
+                            returnValue = `${processNode(returnType)} ${identifierText}(${parameters})${processNode(
+                                block,
+                            )}`;
                             break;
                         case SyntaxKind.CallExpression:
                             const { text, objectTypeName } = processCallExpression(value);
-                            returnValue = `${objectTypeName} ${identifier.getText(sourceFile)}(${text})`;
+                            returnValue = `${objectTypeName} ${identifierText}(${text})`;
                             break;
                         default:
                             console.log(simpleTreeString(value));
@@ -460,7 +465,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                     const itemTypeName = itemType.symbol.escapedName;
 
                     if (containerTypeName === 'Array') {
-                        containerVariables.push({name: identifierText, itemName, iteratorName: 'iter'});
+                        containerVariables.push({ name: identifierText, itemName, iteratorName: 'iter' });
                         returnValue = `for (std::vector<${itemTypeName}>::const_iterator iter(${identifierText}.begin()); iter != ${identifierText}.end(); ++iter) ${processNode(
                             code,
                         )}`;
