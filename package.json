@@ -6,6 +6,7 @@
   "scripts": {
     "clang-format": "clang-format output/checkmm_ugly.cpp > output/checkmm.cpp",
     "output-cpp": "ts-node output-cpp.ts && npm run clang-format",
+    "test": "jest",
     "transpile": "ts-node transpiler/index.ts && npm run clang-format"
   },
   "repository": {
@@ -22,6 +23,12 @@
     "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.3"
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "^7.16.7",
+    "@babel/preset-env": "^7.16.11",
+    "@jest/globals": "^28.0.2",
+    "jest": "^28.0.2"
   },
   "prettier": {
     "semi": true,
