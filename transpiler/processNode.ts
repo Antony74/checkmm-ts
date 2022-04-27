@@ -180,6 +180,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.ImportDeclaration:
             case SyntaxKind.EndOfFileToken:
             case SyntaxKind.ConstKeyword:
+            case SyntaxKind.ExportKeyword:
                 break;
             case SyntaxKind.EqualsToken:
             case SyntaxKind.LessThanToken:
@@ -252,6 +253,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.TypeAliasDeclaration:
                 {
                     const { identifier, typeReference } = getAndValidateKinds(node, [
+                        SyntaxKind.SyntaxList,
                         SyntaxKind.TypeKeyword,
                         SyntaxKind.Identifier,
                         SyntaxKind.EqualsToken,
@@ -372,7 +374,8 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 break;
             case SyntaxKind.InterfaceDeclaration:
                 {
-                    const { identifier, syntaxList } = getAndValidateKinds(node, [
+                    const { identifier, syntaxList2 } = getAndValidateKinds(node, [
+                        SyntaxKind.SyntaxList,
                         SyntaxKind.InterfaceKeyword,
                         SyntaxKind.Identifier,
                         SyntaxKind.FirstPunctuation,
@@ -380,7 +383,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                         SyntaxKind.CloseBraceToken,
                     ]);
 
-                    returnValue = `struct ${identifier.getText(sourceFile)} {${processNode(syntaxList)}};`;
+                    returnValue = `struct ${identifier.getText(sourceFile)} {${processNode(syntaxList2)}};`;
                 }
                 break;
             case SyntaxKind.PropertySignature:
