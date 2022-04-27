@@ -81,7 +81,13 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
         return { objectTypeName, mappedMethodName: methodName };
     };
 
-    const processCallExpression = (callExpression: ts.Node): { text: string; objectTypeName: string } => {
+    interface CallExpression {
+        text: string;
+        objectTypeName: string;
+        objectText: string;
+    }
+
+    const processCallExpression = (callExpression: ts.Node): CallExpression => {
         if (callExpression.kind !== SyntaxKind.CallExpression) {
             throw new Error('Expected CallExpression');
         }
@@ -103,10 +109,14 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             let methodName = identifier.getText(sourceFile);
             const { objectTypeName, mappedMethodName } = mapTypes(object, methodName);
 
-            return { text: `${processNode(object)}.${mappedMethodName}(${processNode(syntaxList)})`, objectTypeName };
+            return {
+                text: `${processNode(object)}.${mappedMethodName}(${processNode(syntaxList)})`,
+                objectTypeName,
+                objectText: processNode(object),
+            };
         }
 
-        return { text: processChildren(callExpression), objectTypeName: '' };
+        return { text: processChildren(callExpression), objectTypeName: '', objectText: '' };
     };
 
     let lastItemWasBlock = false;
@@ -294,8 +304,9 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                             )}`;
                             break;
                         case SyntaxKind.CallExpression:
-                            const { text, objectTypeName } = processCallExpression(value);
+                            const { text, objectTypeName, objectText } = processCallExpression(value);
                             returnValue = `${objectTypeName} ${identifierText}(${text})`;
+                            containerVariables.push({ name: objectText, iteratorName: identifierText, itemName: '' });
                             break;
                         default:
                             console.log(simpleTreeString(value));
@@ -431,6 +442,13 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                                 return `${processNode(object)}.${methodName} (${processNode(syntaxList)}) ${processNode(
                                     operator,
                                 )} ${rightText}`;
+                            }
+                        } else if (right.getText(sourceFile) === 'undefined') {
+                            const leftText = left.getText(sourceFile);
+                            for (const container of containerVariables) {
+                                if (container.iteratorName === leftText) {
+                                    return `${leftText} ${processNode(operator)} ${container.name}.end()`;
+                                }
                             }
                         }
                     }
