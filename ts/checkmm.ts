@@ -35,22 +35,22 @@
 
 import { std } from './std';
 
-const tokens = new std.Queue<string>();
+export const tokens = new std.Queue<string>();
 
-const constants = new Set<string>();
+export const constants = new Set<string>();
 
-type Expression = Array<string>;
+export type Expression = Array<string>;
 
 // The first parameter is the statement of the hypothesis, the second is
 // true iff the hypothesis is floating.
-type Hypothesis = std.Pair<Expression, boolean>;
+export type Hypothesis = std.Pair<Expression, boolean>;
 
-const hypotheses = new Map<string, Hypothesis>();
+export const hypotheses = new Map<string, Hypothesis>();
 
-const variables = new Set<string>();
+export const variables = new Set<string>();
 
 // An axiom or a theorem.
-interface Assertion {
+export interface Assertion {
     // Hypotheses of this axiom or theorem.
     hypotheses: std.Deque<string>;
     disjvars: Set<std.Pair<string, string>>;
@@ -58,9 +58,9 @@ interface Assertion {
     expression: Expression;
 }
 
-const assertions = new Map<string, Assertion>();
+export const assertions = new Map<string, Assertion>();
 
-interface Scope {
+export interface Scope {
     activevariables: Set<string>;
     // Labels of active hypotheses
     activehyp: string[];
@@ -69,16 +69,16 @@ interface Scope {
     floatinghyp: Map<string, string>;
 }
 
-const scopes: Scope[] = [];
+export const scopes: Scope[] = [];
 
 // Determine if a string is used as a label
-const labelused = (label: string): boolean => {
+export const labelused = (label: string): boolean => {
     return hypotheses.get(label) !== undefined || assertions.get(label) !== undefined;
 };
 
 // Find active floating hypothesis corresponding to variable, or empty string
 // if there isn't one.
-const getfloatinghyp = (vari: string): string => {
+export const getfloatinghyp = (vari: string): string => {
     for (const scope of scopes) {
         const loc = scope.floatinghyp.get(vari);
         if (loc !== undefined) return loc;
@@ -86,3 +86,4 @@ const getfloatinghyp = (vari: string): string => {
 
     return '';
 };
+
