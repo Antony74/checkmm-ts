@@ -197,6 +197,9 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                     case 'Queue':
                         returnValue = 'queue';
                         break;
+                    case 'vari':
+                        returnValue = 'var'; // Reserved word in TypeScript but a valid variable name that is used in the C++ code
+                        break;
                     default:
                         returnValue = node.getText(sourceFile);
                 }
@@ -376,13 +379,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                         'paramType',
                     ]);
 
-                    let identifierText = identifier.getText(sourceFile);
-
-                    if (identifierText === 'vari') {
-                        identifierText = 'var';
-                    }
-
-                    returnValue = `${processNode(paramType)} ${identifierText}`;
+                    returnValue = `${processNode(paramType)} ${processNode(identifier)}`;
                 }
                 break;
             case SyntaxKind.BinaryExpression:
