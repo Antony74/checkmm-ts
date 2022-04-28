@@ -115,6 +115,33 @@ let isdvr = (var1: string, var2: string): boolean => {
     return false;
 };
 
+// Determine if a character is white space in Metamath.
+let ismmws = (ch: string): boolean => {
+    // This doesn't include \v ("vertical tab"), as the spec omits it.
+    return ch === ' ' || ch === '\n' || ch === '\t' || ch === '\f' || ch === '\r';
+};
+
+// Determine if a token is a label token.
+let islabeltoken = (token: string): boolean => {
+    for (const ch of token) {
+        if (!(std.isalnum(ch) || ch == '.' || ch == '-' || ch == '_')) return false;
+    }
+    return true;
+};
+
+// Determine if a token is a math symbol token.
+let ismathsymboltoken = (token: string): boolean => {
+    return token.search('$') === -1;
+};
+
+// Determine if a token consists solely of upper-case letters or question marks
+let containsonlyupperorq = (token: string): boolean => {
+    for (const ch of token) {
+        if (!std.isupper(ch) && ch !== '?') return false;
+    }
+    return true;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: std.Queue<string>) => {
@@ -152,4 +179,24 @@ export default {
     setIsactivehyp: (_isactivehyp: (str: string) => boolean) => {
         isactivehyp = _isactivehyp;
     },
+    isdvr,
+    setIsdvr: (_isdvr: (var1: string, var2: string) => boolean) => {
+        isdvr = _isdvr;
+    },
+    ismmws,
+    setIsmmws: (_ismmws: (ch: string) => boolean) => {
+        ismmws = _ismmws;
+    },
+    islabeltoken,
+    setIslabeltoken: (_islabeltoken: (token: string) => boolean) => {
+        islabeltoken = _islabeltoken;
+    },
+    ismathsymboltoken,
+    setIsmathsymboltoken: (_ismathsymboltoken: (token: string) => boolean) => {
+        ismathsymboltoken = _ismathsymboltoken;
+    },
+    containsonlyupperorq,
+    setContainsonlyupperorq: (_containsonlyupperorq: (token: string) => boolean) => {
+        containsonlyupperorq = _containsonlyupperorq;
+    }
 };
