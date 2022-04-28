@@ -87,6 +87,14 @@ let getfloatinghyp = (vari: string): string => {
     return '';
 };
 
+// Determine if a string is an active variable.
+let isactivevariable = (str: string): boolean => {
+    for (const scope of scopes) {
+        if (scope.activevariables.has(str)) return true;
+    }
+    return false;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: std.Queue<string>) => {
@@ -115,5 +123,9 @@ export default {
     getfloatinghyp,
     setGetfloatinghyp: (_getfloatinghyp: (vari: string) => string) => {
         getfloatinghyp = _getfloatinghyp;
+    },
+    isactivevariable,
+    setIsactivevariable: (_isactivevariable: (str: string) => boolean) => {
+        isactivevariable = _isactivevariable;
     },
 };

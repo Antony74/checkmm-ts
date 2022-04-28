@@ -64,11 +64,17 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
     const mapTypes = (object: ts.Node, methodName?: string) => {
         const objectType = typechecker.getTypeAtLocation(object);
         let objectTypeName = objectType.symbol.escapedName.toString();
-        let suffix = '';
+        let objectSuffix = '';
+        let methodSuffix = '';
         if (objectTypeName === 'Map' && methodName === 'get') {
             objectTypeName = 'std::map';
             methodName = 'find';
-            suffix = '::const_iterator';
+            objectSuffix = '::const_iterator';
+        } else if (objectTypeName === 'Set' && methodName === 'has') {
+            objectTypeName = 'std::set';
+            methodName = 'find';
+            objectSuffix = '::const_iterator';
+            methodSuffix = ` != ${processNode(object)}.end()`;
         }
 
         const templateArray: { intrinsicName: string }[] = (objectType as any).resolvedTypeArguments;
@@ -80,7 +86,7 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                       .join(',')}>`
                 : '';
 
-        return { objectTypeName, templateArgs, suffix, mappedMethodName: methodName };
+        return { objectTypeName, templateArgs, objectSuffix, mappedMethodName: methodName, methodSuffix };
     };
 
     interface CallExpression {
@@ -111,13 +117,13 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             ]);
 
             let methodName = identifier.getText(sourceFile);
-            const { objectTypeName, templateArgs, suffix, mappedMethodName } = mapTypes(object, methodName);
+            const { objectTypeName, templateArgs, objectSuffix, mappedMethodName, methodSuffix } = mapTypes(object, methodName);
 
             return {
-                text: `${processNode(object)}.${mappedMethodName}(${processNode(syntaxList)})`,
+                text: `${processNode(object)}.${mappedMethodName}(${processNode(syntaxList)})${methodSuffix}`,
                 objectTypeName,
                 templateArgs,
-                suffix,
+                suffix: objectSuffix,
                 objectText: processNode(object),
             };
         }
@@ -195,6 +201,8 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.BarBarToken:
             case SyntaxKind.CloseBraceToken:
             case SyntaxKind.IfKeyword:
+            case SyntaxKind.TrueKeyword:
+            case SyntaxKind.FalseKeyword:
                 returnValue = node.getText(sourceFile);
                 break;
             case SyntaxKind.SemicolonToken:
@@ -538,6 +546,10 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                 } else {
                     returnValue = 'std::string()'; // Just a quirk I intend to support
                 }
+                break;
+            case SyntaxKind.CallExpression:
+                const { text } = processCallExpression(node);
+                returnValue = text;
                 break;
             default:
                 console.log(simpleTreeString(node));
