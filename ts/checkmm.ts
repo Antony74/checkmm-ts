@@ -95,6 +95,26 @@ let isactivevariable = (str: string): boolean => {
     return false;
 };
 
+// Determine if a string is the label of an active hypothesis.
+let isactivehyp = (str: string): boolean => {
+    for (const scope of scopes) {
+        if (scope.activehyp.find(_str => str === _str)) return true;
+    }
+    return false;
+};
+
+// Determine if there is an active disjoint variable restriction on
+// two different variables.
+let isdvr = (var1: string, var2: string): boolean => {
+    if (var1 === var2) return false;
+    for (const scope of scopes) {
+        for (const disjvar of scope.disjvars) {
+            if (!disjvar.has(var1) && disjvar.has(var2)) return true;
+        }
+    }
+    return false;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: std.Queue<string>) => {
@@ -127,5 +147,9 @@ export default {
     isactivevariable,
     setIsactivevariable: (_isactivevariable: (str: string) => boolean) => {
         isactivevariable = _isactivevariable;
+    },
+    isactivehyp,
+    setIsactivehyp: (_isactivehyp: (str: string) => boolean) => {
+        isactivehyp = _isactivehyp;
     },
 };
