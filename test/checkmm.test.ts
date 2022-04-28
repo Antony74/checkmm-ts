@@ -1,5 +1,6 @@
-import { it, expect, describe } from '@jest/globals';
+import { it, expect, describe, jest } from '@jest/globals';
 import checkmm, { Assertion, Hypothesis } from '../ts/checkmm';
+import { stringstream } from '../ts/std';
 
 describe('checkmm', () => {
     describe('labelused', () => {
@@ -53,34 +54,31 @@ describe('checkmm', () => {
         });
     });
 
-    //   it('can get the next token', () => {
+    describe('nexttoken', () => {
+        it('can get the next token', () => {
+            const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    //     const checkmm = new CheckMM();
+            let input = new stringstream('hello world');
+            let token = '';
 
-    //     const old = console.error;
-    //     let errors = 0;
-    //     console.error = () => ++errors;
+            token = checkmm.nexttoken(input);
+            expect(token).toEqual('hello');
+            token = checkmm.nexttoken(input);
+            expect(token).toEqual('world');
+            token = checkmm.nexttoken(input);
+            expect(token).toEqual('');
+            token = checkmm.nexttoken(input);
+            expect(token).toEqual('');
+            expect(errorSpy).toBeCalledTimes(0);
 
-    //     let input = 'hello world';
-    //     let token = '';
+            input = new stringstream(String.fromCharCode(127));
+            token = checkmm.nexttoken(input);
+            expect(token).toEqual('');
 
-    //     ({token, input} = checkmm.nexttoken(input));
-    //     expect(token).to.equal('hello');
-    //     ({token, input} = checkmm.nexttoken(input));
-    //     expect(token).to.equal('world');
-    //     ({token, input} = checkmm.nexttoken(input));
-    //     expect(token).to.equal('');
-    //     ({token, input} = checkmm.nexttoken(input));
-    //     expect(token).to.equal('');
-    //     expect(errors).to.equal(0);
-
-    //     input = String.fromCharCode(127);
-    //     ({token, input} = checkmm.nexttoken(input));
-    //     expect(token).to.equal('');
-    //     expect(errors).to.equal(1);
-
-    //     console.error = old;
-    //   });
+            expect(errorSpy).toBeCalledTimes(1);
+            expect(errorSpy).toBeCalledWith('Invalid character read with code 0x7f');
+        });
+    });
 
     //   it('can read tokens', () => {
     //     const checkmm = new CheckMM();

@@ -33,7 +33,7 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-js/issues
 
-import { std } from './std';
+import { istream, std } from './std';
 
 let tokens = new std.Queue<string>();
 
@@ -142,6 +142,29 @@ let containsonlyupperorq = (token: string): boolean => {
     return true;
 };
 
+let nexttoken = (input: istream): string => {
+    let ch: string;
+    let token: string = '';
+
+    // Skip whitespace
+    while (!!(ch = input.get()) && ismmws(ch)) {}
+    if (input.good()) input.unget();
+
+    // Get token
+    while (!!(ch = input.get()) && !ismmws(ch)) {
+        if (ch < '!' || ch > '~') {
+            console.error('Invalid character read with code 0x' + ch.charCodeAt(0).toString(16));
+            return '';
+        }
+
+        token += ch;
+    }
+
+    if (!input.eof() && input.fail()) return '';
+
+    return token;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: std.Queue<string>) => {
@@ -198,5 +221,9 @@ export default {
     containsonlyupperorq,
     setContainsonlyupperorq: (_containsonlyupperorq: (token: string) => boolean) => {
         containsonlyupperorq = _containsonlyupperorq;
-    }
+    },
+    nexttoken,
+    setNexttoken: (_nexttoken: (input: istream) => string) => {
+        nexttoken = _nexttoken;
+    },
 };
