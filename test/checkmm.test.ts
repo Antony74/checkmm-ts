@@ -1,28 +1,35 @@
-import { it, expect, describe, afterEach } from '@jest/globals';
-import { hypotheses, assertions, labelused } from '../ts/checkmm';
+import { it, expect, describe } from '@jest/globals';
+import checkmm, { Assertion, Hypothesis } from '../ts/checkmm';
 
 describe('checkmm', () => {
-    afterEach(() => {
-        hypotheses.clear();
-        assertions.clear();
-    });
-
     describe('labelused', () => {
         it('can determine if a label is used', () => {
-            hypotheses.set('hello', {
-                first: ['my', 'hypothesis'],
-                second: false,
-            });
+            checkmm.setHypotheses(
+                new Map<string, Hypothesis>(
+                    Object.entries({
+                        hello: {
+                            first: ['my', 'hypothesis'],
+                            second: false,
+                        },
+                    }),
+                ),
+            );
 
-            assertions.set('world', {
-                hypotheses: [],
-                disjvars: new Set(),
-                expression: [],
-            });
+            checkmm.setAssertions(
+                new Map<string, Assertion>(
+                    Object.entries({
+                        world: {
+                            hypotheses: [],
+                            disjvars: new Set(),
+                            expression: [],
+                        },
+                    }),
+                ),
+            );
 
-            expect(labelused('hello')).toEqual(true);
-            expect(labelused('meaningless')).toEqual(false);
-            expect(labelused('world')).toEqual(true);
+            expect(checkmm.labelused('hello')).toEqual(true);
+            expect(checkmm.labelused('meaningless')).toEqual(false);
+            expect(checkmm.labelused('world')).toEqual(true);
         });
     });
 });

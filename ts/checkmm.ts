@@ -35,9 +35,9 @@
 
 import { std } from './std';
 
-export const tokens = new std.Queue<string>();
+let tokens = new std.Queue<string>();
 
-export const constants = new Set<string>();
+let constants = new Set<string>();
 
 export type Expression = Array<string>;
 
@@ -45,9 +45,9 @@ export type Expression = Array<string>;
 // true iff the hypothesis is floating.
 export type Hypothesis = std.Pair<Expression, boolean>;
 
-export const hypotheses = new Map<string, Hypothesis>();
+let hypotheses = new Map<string, Hypothesis>();
 
-export const variables = new Set<string>();
+let variables = new Set<string>();
 
 // An axiom or a theorem.
 export interface Assertion {
@@ -58,7 +58,7 @@ export interface Assertion {
     expression: Expression;
 }
 
-export const assertions = new Map<string, Assertion>();
+let assertions = new Map<string, Assertion>();
 
 export interface Scope {
     activevariables: Set<string>;
@@ -69,16 +69,16 @@ export interface Scope {
     floatinghyp: Map<string, string>;
 }
 
-export const scopes: Scope[] = [];
+let scopes: Scope[] = [];
 
 // Determine if a string is used as a label
-export const labelused = (label: string): boolean => {
+let labelused = (label: string): boolean => {
     return hypotheses.get(label) !== undefined || assertions.get(label) !== undefined;
 };
 
 // Find active floating hypothesis corresponding to variable, or empty string
 // if there isn't one.
-export const getfloatinghyp = (vari: string): string => {
+let getfloatinghyp = (vari: string): string => {
     for (const scope of scopes) {
         const loc = scope.floatinghyp.get(vari);
         if (loc !== undefined) return loc;
@@ -87,3 +87,33 @@ export const getfloatinghyp = (vari: string): string => {
     return '';
 };
 
+export default {
+    tokens,
+    setTokens: (_tokens: std.Queue<string>) => {
+        tokens = _tokens;
+    },
+    constants,
+    setConstants: (_constants: Set<string>) => {
+        constants = _constants;
+    },
+    hypotheses,
+    setHypotheses: (_hypotheses: Map<string, Hypothesis>) => {
+        hypotheses = _hypotheses;
+    },
+    assertions,
+    setAssertions: (_assertions: Map<string, Assertion>) => {
+        assertions = _assertions;
+    },
+    scopes,
+    setScopes: (_scopes: Scope[]) => {
+        scopes = _scopes;
+    },
+    labelused,
+    setLabelused: (_labelused: (label: string) => boolean) => {
+        labelused = _labelused;
+    },
+    getfloatinghyp,
+    setGetfloatinghyp: (_getfloatinghyp: (vari: string) => string) => {
+        getfloatinghyp = _getfloatinghyp;
+    },
+};

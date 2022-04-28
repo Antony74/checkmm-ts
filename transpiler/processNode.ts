@@ -180,7 +180,9 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
             case SyntaxKind.ImportDeclaration:
             case SyntaxKind.EndOfFileToken:
             case SyntaxKind.ConstKeyword:
+            case SyntaxKind.LetKeyword:
             case SyntaxKind.ExportKeyword:
+            case SyntaxKind.ExportAssignment:
                 break;
             case SyntaxKind.EqualsToken:
             case SyntaxKind.LessThanToken:
@@ -332,7 +334,12 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                             const { text, objectTypeName, templateArgs, suffix, objectText } =
                                 processCallExpression(value);
                             returnValue = `${objectTypeName}${templateArgs}${suffix} ${identifierText}(${text})`;
-                            containerVariables.push({ name: objectText, iteratorName: identifierText, itemName: '', objectTypeName });
+                            containerVariables.push({
+                                name: objectText,
+                                iteratorName: identifierText,
+                                itemName: '',
+                                objectTypeName,
+                            });
                             break;
                         default:
                             console.log(simpleTreeString(value));
@@ -510,7 +517,12 @@ export const createNodeProcessor = (sourceFile: ts.SourceFile, typechecker: ts.T
                     const itemTypeName = itemType.symbol.escapedName;
 
                     if (containerTypeName === 'Array') {
-                        containerVariables.push({ name: identifierText, itemName, iteratorName: 'iter', objectTypeName: 'std::vector' });
+                        containerVariables.push({
+                            name: identifierText,
+                            itemName,
+                            iteratorName: 'iter',
+                            objectTypeName: 'std::vector',
+                        });
                         returnValue = `for (std::vector<${itemTypeName}>::const_iterator iter(${identifierText}.begin()); iter != ${identifierText}.end(); ++iter) ${processNode(
                             code,
                         )}`;
