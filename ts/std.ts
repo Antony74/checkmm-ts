@@ -2,7 +2,7 @@ import fs from 'fs';
 
 // checkmm uses a little bit of C++'s Standard Template Library.  Simulate it.
 
-export function isupper(s: string): boolean {
+export let isupper = (s: string): boolean => {
     if (/[^A-Z]/.test(s)) {
         return false;
     } else {
@@ -10,7 +10,7 @@ export function isupper(s: string): boolean {
     }
 }
 
-export function isalnum(s: string): boolean {
+export let isalnum = (s: string): boolean => {
     if (/[^a-zA-Z0-9]/.test(s)) {
         return false;
     } else {
@@ -18,7 +18,7 @@ export function isalnum(s: string): boolean {
     }
 }
 
-export function set_intersection<T>(s1: Set<T>, s2: Set<T>): Set<T> {
+export let set_intersection = <T>(s1: Set<T>, s2: Set<T>): Set<T> => {
     const s3 = new Set<T>();
     s1.forEach((value: T) => {
         if (s2.has(value)) {
