@@ -103,43 +103,47 @@ describe('checkmm', () => {
         });
     });
 
-    //   it('can construct assertions with disjoint variables', () => {
+    describe('constructassertion', () => {
+        it('can construct assertions with disjoint variables', () => {
+            checkmm.setHypotheses(
+                new Map(
+                    Object.entries({
+                        wph: {
+                            first: ['wff', 'ph'],
+                            second: true,
+                        },
+                        vx: {
+                            first: ['wff', 'x'],
+                            second: true,
+                        },
+                    }),
+                ),
+            );
 
-    //     const checkmm = new CheckMM();
+            checkmm.setScopes([
+                {
+                    activevariables: new Set<string>(),
+                    activehyp: ['wph', 'vx'],
+                    disjvars: [new Set<string>()],
+                    floatinghyp: new Map(),
+                },
+                {
+                    activevariables: new Set<string>(),
+                    activehyp: [],
+                    disjvars: [new Set<string>(['ph', 'x'])],
+                    floatinghyp: new Map(),
+                },
+            ]);
 
-    //     checkmm.setState({
-    //       hypotheses: {
-    //         wph: {
-    //           first: ['wff', 'ph'],
-    //           second: true
-    //         },
-    //         vx: {
-    //           first: ['wff', 'x'],
-    //           second: true
-    //         }
-    //       },
-    //       scopes: [
-    //         {
-    //           activevariables: new Set<string>(),
-    //           activehyp: ['wph', 'vx'],
-    //           disjvars: [new Set<string>()],
-    //           floatinghyp: {}
-    //         },
-    //         {
-    //           activevariables: new Set<string>(),
-    //           activehyp: [],
-    //           disjvars: [new Set<string>(['ph', 'x'])],
-    //           floatinghyp: {}
-    //         }
-    //       ],
-    //       variables: new Set<string>(['ps', 'ph', 'x'])
-    //     });
-    //     const expression = '|- ( ph -> A. x ph )'.split(' ');
-    //     const assertion: Assertion = checkmm.constructassertion('ax-17', expression);
-    //     expect(assertion.hypotheses).to.deep.equal(['wph', 'vx']);
-    //     expect(assertion.disjvars).to.deep.equal([['ph', 'x']]);
-    //     expect(assertion.expression).to.deep.equal(expression);
-    //   });
+            checkmm.setVariables(new Set<string>(['ps', 'ph', 'x']));
+
+            const expression = '|- ( ph -> A. x ph )'.split(' ');
+            const assertion: Assertion = checkmm.constructassertion('ax-17', expression);
+            expect(assertion.hypotheses).toEqual(['wph', 'vx']);
+            expect(assertion.disjvars).toEqual(new Set([{ first: 'ph', second: 'x' }]));
+            expect(assertion.expression).toEqual(expression);
+        });
+    });
 
     //   it('can read expressions', () => {
 
