@@ -33,7 +33,7 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-js/issues
 
-import { istream, std } from './std';
+import * as std from './std';
 
 let tokens = new std.Queue<string>();
 
@@ -142,7 +142,7 @@ let containsonlyupperorq = (token: string): boolean => {
     return true;
 };
 
-let nexttoken = (input: istream): string => {
+let nexttoken = (input: std.istream): string => {
     let ch: string;
     let token: string = '';
 
@@ -223,7 +223,7 @@ export default {
         containsonlyupperorq = _containsonlyupperorq;
     },
     nexttoken,
-    setNexttoken: (_nexttoken: (input: istream) => string) => {
+    setNexttoken: (_nexttoken: (input: std.istream) => string) => {
         nexttoken = _nexttoken;
     },
 };
