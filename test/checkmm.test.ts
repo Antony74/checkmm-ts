@@ -58,7 +58,7 @@ describe('checkmm', () => {
         it('can get the next token', () => {
             const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-            let input = new std.stringstream('hello world');
+            let input = std.stringstream('hello world');
             let token = '';
 
             token = checkmm.nexttoken(input);
@@ -71,7 +71,7 @@ describe('checkmm', () => {
             expect(token).toEqual('');
             expect(errorSpy).toBeCalledTimes(0);
 
-            input = new std.stringstream(String.fromCharCode(127));
+            input = std.stringstream(String.fromCharCode(127));
             token = checkmm.nexttoken(input);
             expect(token).toEqual('');
 

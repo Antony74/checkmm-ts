@@ -8,7 +8,7 @@ export let isupper = (s: string): boolean => {
     } else {
         return true;
     }
-}
+};
 
 export let isalnum = (s: string): boolean => {
     if (/[^a-zA-Z0-9]/.test(s)) {
@@ -16,7 +16,7 @@ export let isalnum = (s: string): boolean => {
     } else {
         return true;
     }
-}
+};
 
 export let set_intersection = <T>(s1: Set<T>, s2: Set<T>): Set<T> => {
     const s3 = new Set<T>();
@@ -26,7 +26,7 @@ export let set_intersection = <T>(s1: Set<T>, s2: Set<T>): Set<T> => {
         }
     });
     return s3;
-}
+};
 
 export class Pair<T1, T2> {
     first: T1;
@@ -45,36 +45,27 @@ export interface istream {
     fail(): boolean;
 }
 
-export class stringstream implements istream {
-    private index: number = 0;
+export let stringstream = (str: string): istream => {
+    let index = 0;
 
-    constructor(private data: string) {}
+    const stream: istream = {
+        get: (): string => {
+            const ch = str.charAt(index);
+            ++index;
+            return ch;
+        },
+        good: (): boolean => true,
+        unget: (): void => {
+            --index;
+        },
+        eof: (): boolean => index >= stringstream.length,
+        fail: (): boolean => false,
+    };
 
-    get(): string {
-        const ch = this.data.charAt(this.index);
-        ++this.index;
-        return ch;
-    }
+    return stream;
+};
 
-    good(): boolean {
-        return true;
-    }
-
-    unget(): void {
-        --this.index;
-    }
-
-    eof(): boolean {
-        return this.index >= this.data.length;
-    }
-
-    fail(): boolean {
-        return false;
-    }
+export let ifstream = (filename: string): istream => {
+    return stringstream(fs.readFileSync(filename, {encoding: 'utf-8'}))
 }
 
-export class ifstream extends stringstream {
-    constructor(filename: string) {
-        super(fs.readFileSync(filename, { encoding: 'utf-8' }));
-    }
-}
