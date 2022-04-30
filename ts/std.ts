@@ -1,4 +1,7 @@
 import fs from 'fs';
+import { promisify } from 'util';
+
+const readFile = promisify(fs.readFile);
 
 // checkmm uses a little bit of C++'s Standard Template Library.  Simulate it.
 
@@ -65,7 +68,6 @@ export let stringstream = (str: string): istream => {
     return stream;
 };
 
-export let ifstream = (filename: string): istream => {
-    return stringstream(fs.readFileSync(filename, {encoding: 'utf-8'}))
-}
-
+export let ifstream = async (filename: string): Promise<istream> => {
+    return stringstream(await readFile(filename, { encoding: 'utf-8' }));
+};
