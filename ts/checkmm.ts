@@ -33,9 +33,9 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-js/issues
 
-import * as std from './std';
+import std, { Deque, istream, Pair, Queue } from './std';
 
-let tokens = new std.Queue<string>();
+let tokens = new Queue<string>();
 
 let constants = new Set<string>();
 
@@ -43,7 +43,7 @@ export type Expression = Array<string>;
 
 // The first parameter is the statement of the hypothesis, the second is
 // true iff the hypothesis is floating.
-export type Hypothesis = std.Pair<Expression, boolean>;
+export type Hypothesis = Pair<Expression, boolean>;
 
 let hypotheses = new Map<string, Hypothesis>();
 
@@ -52,8 +52,8 @@ let variables = new Set<string>();
 // An axiom or a theorem.
 export interface Assertion {
     // Hypotheses of this axiom or theorem.
-    hypotheses: std.Deque<string>;
-    disjvars: Set<std.Pair<string, string>>;
+    hypotheses: Deque<string>;
+    disjvars: Set<Pair<string, string>>;
     // Statement of axiom or theorem.
     expression: Expression;
 }
@@ -142,7 +142,7 @@ let containsonlyupperorq = (token: string): boolean => {
     return true;
 };
 
-let nexttoken = (input: std.istream): string => {
+let nexttoken = (input: istream): string => {
     let ch: string;
     let token: string = '';
 
@@ -254,10 +254,88 @@ let readtokens = async (filename: string): Promise<boolean> => {
 
     return true;
 };
+/*
+// Construct an Assertion from an Expression. That is, determine the
+// mandatory hypotheses and disjoint variable restrictions.
+// The Assertion is inserted into the assertions collection,
+// and is returned by reference.
+let constructassertion = (label: string, exp: Expression): Assertion =>
+{
+    const assertion: Assertion = {};
+    Assertion & assertion
+        (assertions.insert(std::make_pair(label, Assertion())).first->second);
 
+    assertion.expression = exp;
+
+    std::set<std::string> varsused;
+
+    // Determine variables used and find mandatory hypotheses
+
+    for (Expression::const_iterator iter(exp.begin()); iter != exp.end();
+         ++iter)
+    {
+        if (variables.find(*iter) != variables.end())
+            varsused.insert(*iter);
+    }
+
+    for (std::vector<Scope>::const_reverse_iterator iter(scopes.rbegin());
+         iter != scopes.rend(); ++iter)
+    {
+        std::vector<std::string> const & hypvec(iter->activehyp);
+        for (std::vector<std::string>::const_reverse_iterator iter2
+            (hypvec.rbegin()); iter2 != hypvec.rend(); ++iter2)
+        {
+            Hypothesis const & hyp(hypotheses.find(*iter2)->second);
+            if (hyp.second && varsused.find(hyp.first[1]) != varsused.end())
+            {
+                // Mandatory floating hypothesis
+                assertion.hypotheses.push_front(*iter2);
+            }
+            else if (!hyp.second)
+            {
+                // Essential hypothesis
+                assertion.hypotheses.push_front(*iter2);
+                for (Expression::const_iterator iter3(hyp.first.begin());
+                     iter3 != hyp.first.end(); ++iter3)
+                {
+                    if (variables.find(*iter3) != variables.end())
+                        varsused.insert(*iter3);
+                }
+            }
+        }
+    }
+
+    // Determine mandatory disjoint variable restrictions
+    for (std::vector<Scope>::const_iterator iter(scopes.begin());
+         iter != scopes.end(); ++iter)
+    {
+        std::vector<std::set<std::string> > const & disjvars(iter->disjvars);
+        for (std::vector<std::set<std::string> >::const_iterator iter2
+            (disjvars.begin()); iter2 != disjvars.end(); ++iter2)
+        {
+            std::set<std::string> dset;
+            std::set_intersection
+                 (iter2->begin(), iter2->end(),
+                  varsused.begin(), varsused.end(),
+                  std::inserter(dset, dset.end()));
+
+            for (std::set<std::string>::const_iterator diter(dset.begin());
+                 diter != dset.end(); ++diter)
+            {
+                std::set<std::string>::const_iterator diter2(diter);
+                ++diter2;
+                for (; diter2 != dset.end(); ++diter2)
+                    assertion.disjvars.insert(std::make_pair(*diter, *diter2));
+            }
+        }
+    }
+
+    return assertion;
+}
+*/
 export default {
     tokens,
-    setTokens: (_tokens: std.Queue<string>) => {
+    setTokens: (_tokens: Queue<string>) => {
         tokens = _tokens;
     },
     constants,
@@ -313,7 +391,7 @@ export default {
         containsonlyupperorq = _containsonlyupperorq;
     },
     nexttoken,
-    setNexttoken: (_nexttoken: (input: std.istream) => string) => {
+    setNexttoken: (_nexttoken: (input: istream) => string) => {
         nexttoken = _nexttoken;
     },
     readtokens,

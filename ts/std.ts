@@ -5,7 +5,7 @@ const readFile = promisify(fs.readFile);
 
 // checkmm uses a little bit of C++'s Standard Template Library.  Simulate it.
 
-export let isupper = (s: string): boolean => {
+let isupper = (s: string): boolean => {
     if (/[^A-Z]/.test(s)) {
         return false;
     } else {
@@ -13,7 +13,7 @@ export let isupper = (s: string): boolean => {
     }
 };
 
-export let isalnum = (s: string): boolean => {
+let isalnum = (s: string): boolean => {
     if (/[^a-zA-Z0-9]/.test(s)) {
         return false;
     } else {
@@ -21,7 +21,7 @@ export let isalnum = (s: string): boolean => {
     }
 };
 
-export let set_intersection = <T>(s1: Set<T>, s2: Set<T>): Set<T> => {
+let set_intersection = <T>(s1: Set<T>, s2: Set<T>): Set<T> => {
     const s3 = new Set<T>();
     s1.forEach((value: T) => {
         if (s2.has(value)) {
@@ -48,7 +48,7 @@ export interface istream {
     fail(): boolean;
 }
 
-export let stringstream = (str: string): istream => {
+let stringstream = (str: string): istream => {
     let index = 0;
 
     const stream: istream = {
@@ -68,6 +68,29 @@ export let stringstream = (str: string): istream => {
     return stream;
 };
 
-export let ifstream = async (filename: string): Promise<istream> => {
+let ifstream = async (filename: string): Promise<istream> => {
     return stringstream(await readFile(filename, { encoding: 'utf-8' }));
+};
+
+export default {
+    isupper,
+    setIsupper: (_isupper: (s: string) => boolean) => {
+        isupper = _isupper;
+    },
+    isalnum,
+    setIsalum: (_isalum: (s: string) => boolean) => {
+        isalnum = _isalum;
+    },
+    set_intersection,
+    setSet_intersection: (_set_intersection: <T>(s1: Set<T>, s2: Set<T>) => Set<T>) => {
+        set_intersection = _set_intersection;
+    },
+    stringstream,
+    setStringstream: (_stringstream: (str: string) => istream) => {
+        stringstream = _stringstream;
+    },
+    ifstream,
+    setIfstream: (_ifstream: (filename: string) => Promise<istream>) => {
+        ifstream = _ifstream;
+    },
 };

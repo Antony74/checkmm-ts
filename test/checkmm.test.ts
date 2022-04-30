@@ -1,6 +1,6 @@
 import { it, expect, describe, jest } from '@jest/globals';
 import checkmm, { Assertion, Hypothesis } from '../ts/checkmm';
-import * as std from '../ts/std';
+import std from '../ts/std';
 
 describe('checkmm', () => {
     describe('labelused', () => {
