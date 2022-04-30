@@ -131,7 +131,7 @@ let islabeltoken = (token: string): boolean => {
 
 // Determine if a token is a math symbol token.
 let ismathsymboltoken = (token: string): boolean => {
-    return token.search('$') === -1;
+    return !token.includes('$');
 };
 
 // Determine if a token consists solely of upper-case letters or question marks
@@ -163,6 +163,96 @@ let nexttoken = (input: std.istream): string => {
     if (!input.eof() && input.fail()) return '';
 
     return token;
+};
+
+let mmfilenames = new Set<string>();
+
+let readtokens = async (filename: string): Promise<boolean> => {
+    const alreadyencountered: boolean = mmfilenames.has(filename);
+    if (alreadyencountered) return true;
+
+    mmfilenames.add(filename);
+
+    const instream = await std.ifstream(filename);
+    if (!instream) {
+        console.error('Could not open ' + filename);
+        return false;
+    }
+
+    let incomment: boolean = false;
+    let infileinclusion: boolean = false;
+    let newfilename: string;
+
+    let token: string;
+    while ((token = nexttoken(instream)).length) {
+        if (incomment) {
+            if (token == '$)') {
+                incomment = false;
+                continue;
+            }
+            if (token.includes('$(')) {
+                console.error('Characters $( found in a comment');
+                return false;
+            }
+            if (token.includes('$)')) {
+                console.error('Characters $) found in a comment');
+                return false;
+            }
+            continue;
+        }
+
+        // Not in comment
+        if (token == '$(') {
+            incomment = true;
+            continue;
+        }
+
+        if (infileinclusion) {
+            if (!newfilename.length) {
+                if (token.includes('$')) {
+                    console.error('Filename ' + token + ' contains a $');
+                    return false;
+                }
+                newfilename = token;
+                continue;
+            } else {
+                if (token != '$]') {
+                    console.error("Didn't find closing file inclusion delimiter");
+                    return false;
+                }
+
+                const okay: boolean = await readtokens(newfilename);
+                if (!okay) return false;
+                infileinclusion = false;
+                newfilename = '';
+                continue;
+            }
+        }
+
+        if (token == '$[') {
+            infileinclusion = true;
+            continue;
+        }
+
+        tokens.push(token);
+    }
+
+    if (!instream.eof()) {
+        if (instream.fail()) console.error('Error reading from ' + filename);
+        return false;
+    }
+
+    if (incomment) {
+        console.error('Unclosed comment');
+        return false;
+    }
+
+    if (infileinclusion) {
+        console.error('Unfinished file inclusion command');
+        return false;
+    }
+
+    return true;
 };
 
 export default {
@@ -225,5 +315,9 @@ export default {
     nexttoken,
     setNexttoken: (_nexttoken: (input: std.istream) => string) => {
         nexttoken = _nexttoken;
+    },
+    readtokens,
+    setReadtokens: (_readtokens: (filename: string) => Promise<boolean>) => {
+        readtokens = _readtokens;
     },
 };

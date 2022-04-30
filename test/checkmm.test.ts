@@ -80,12 +80,28 @@ describe('checkmm', () => {
         });
     });
 
-    //   it('can read tokens', () => {
-    //     const checkmm = new CheckMM();
-    //     const okay: boolean = checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
-    //     expect(okay).to.equal(true);
-    //     expect(checkmm.tokens.length).to.equal(60);
-    //   });
+    describe('readtokens', () => {
+        it('can read tokens', async () => {
+            const anatomymm = `
+            $c ( ) -> wff $.
+            $( Declare the metavariables we will use $)
+            $v p q r s $.
+            $( Declare wffs $)
+            wp $f wff p $.
+            wq $f wff q $.
+            wr $f wff r $.
+            ws $f wff s $.
+            w2 $a wff ( p -> q ) $.
+            
+            $( Prove a simple theorem. $)
+            wnew $p wff ( s -> ( r -> p ) ) $= ws wr wp w2 w2 $.`;
+
+            jest.spyOn(std, 'ifstream').mockResolvedValue(std.stringstream(anatomymm));
+            const okay: boolean = await checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
+            expect(okay).toEqual(true);
+            expect(checkmm.tokens.length).toEqual(60);
+        });
+    });
 
     //   it('can construct assertions with disjoint variables', () => {
 
