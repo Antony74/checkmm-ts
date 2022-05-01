@@ -180,96 +180,112 @@ describe('checkmm', () => {
         });
     });
 
-    //   it('can verify a proof step references an assertion', () => {
-    //     const checkmm = new CheckMM();
-    //     checkmm.setState({
-    //       assertions: {
-    //         'ax-mp': {
-    //           hypotheses: ['wph', 'wps', 'min', 'maj'],
-    //           disjvars: [],
-    //           expression: ['|-', 'ps']
-    //         }
-    //       },
-    //       hypotheses: {
-    //         'wph': {
-    //           first: ['wff', 'ph'],
-    //           second: true
-    //         },
-    //         'wps': {
-    //           first: ['wff', 'ps'],
-    //           second: true
-    //         },
-    //         'min': {
-    //           first: ['|-', 'ph'],
-    //           second: false
-    //         },
-    //         'maj': {
-    //           first: ['|-', '(', 'ph', '->', 'ps', ')'],
-    //           second: false
-    //         }
-    //       }
-    //     });
+    describe('verifyassertionref', () => {
+        it('can verify a proof step references an assertion', () => {
+            checkmm.setAssertions(
+                new Map(
+                    Object.entries({
+                        'ax-mp': {
+                            hypotheses: ['wph', 'wps', 'min', 'maj'],
+                            disjvars: new Set(),
+                            expression: ['|-', 'ps'],
+                        },
+                    }),
+                ),
+            );
 
-    //     const result: Expression[] = checkmm.verifyassertionref('mpdb', 'ax-mp', [
-    //       ['wff', 'ps'],
-    //       ['wff', 'ch'],
-    //       ['wff', 'ph'],
-    //       ['wff', 'ps'],
-    //       ['|-', 'ph'],
-    //       ['|-', '(', 'ph', '->', 'ps', ')']
-    //     ]);
+            checkmm.setHypotheses(
+                new Map(
+                    Object.entries({
+                        wph: {
+                            first: ['wff', 'ph'],
+                            second: true,
+                        },
+                        wps: {
+                            first: ['wff', 'ps'],
+                            second: true,
+                        },
+                        min: {
+                            first: ['|-', 'ph'],
+                            second: false,
+                        },
+                        maj: {
+                            first: ['|-', '(', 'ph', '->', 'ps', ')'],
+                            second: false,
+                        },
+                    }),
+                ),
+            );
 
-    //     expect(result).to.deep.equal([
-    //       ['wff', 'ps'],
-    //       ['wff', 'ch'],
-    //       ['|-', 'ps']
-    //     ]);
-    //   });
+            const result: Expression[] = checkmm.verifyassertionref('mpdb', 'ax-mp', [
+                ['wff', 'ps'],
+                ['wff', 'ch'],
+                ['wff', 'ph'],
+                ['wff', 'ps'],
+                ['|-', 'ph'],
+                ['|-', '(', 'ph', '->', 'ps', ')'],
+            ]);
 
-    //   it('can verify a proof step references an assertion with disjoint variable conditions', () => {
-    //     const checkmm = new CheckMM();
-    //     checkmm.setState({
-    //       assertions: {
-    //         'ax-17': {
-    //           hypotheses: ['wph', 'vx'],
-    //           expression: ['|-', '(', 'ph', '->', 'A.', 'x', 'ph', ')'],
-    //           disjvars: [['ph', 'x']]
-    //         }
-    //       },
-    //       hypotheses: {
-    //         'wph': {
-    //           first: ['wff', 'ph'],
-    //           second: true
-    //         },
-    //         'vx': {
-    //           first: ['set', 'x'],
-    //           second: true
-    //         },
-    //       },
-    //       variables: new Set<string>(['ps', 'x']),
-    //       scopes: [
-    //         {
-    //           activehyp: [],
-    //           activevariables: new Set<string>(),
-    //           floatinghyp: {},
-    //           disjvars: [new Set<string>(['ps', 'x'])]
-    //         }
-    //       ]
-    //     });
+            expect(result).toEqual([
+                ['wff', 'ps'],
+                ['wff', 'ch'],
+                ['|-', 'ps'],
+            ]);
+        });
 
-    //     const result: Expression[] = checkmm.verifyassertionref('a17d', 'ax-17', [
-    //       ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
-    //       ['wff', 'ph'],
-    //       ['wff', 'ps'],
-    //       ['set', 'x']
-    //     ]);
+        it('can verify a proof step references an assertion with disjoint variable conditions', () => {
+            checkmm.setAssertions(
+                new Map(
+                    Object.entries({
+                        'ax-17': {
+                            hypotheses: ['wph', 'vx'],
+                            expression: ['|-', '(', 'ph', '->', 'A.', 'x', 'ph', ')'],
+                            disjvars: new Set([{ first: 'ph', second: 'x' }]),
+                        },
+                    }),
+                ),
+            );
 
-    //     expect(result).to.deep.equal([
-    //       ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
-    //       ['wff', 'ph'],
-    //       ['|-', '(', 'ps', '->', 'A.', 'x', 'ps', ')']
-    //     ]);
-    //   });
+            checkmm.setHypotheses(
+                new Map(
+                    Object.entries({
+                        wph: {
+                            first: ['wff', 'ph'],
+                            second: true,
+                        },
+                        vx: {
+                            first: ['set', 'x'],
+                            second: true,
+                        },
+                    }),
+                ),
+            );
+
+            checkmm.setVariables(new Set<string>(['ps', 'x']));
+
+            checkmm.setScopes([
+                {
+                    activehyp: [],
+                    activevariables: new Set<string>(),
+                    floatinghyp: new Map(),
+                    disjvars: [new Set<string>(['ps', 'x'])],
+                },
+            ]);
+
+            const result: Expression[] = checkmm.verifyassertionref('a17d', 'ax-17', [
+                ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
+                ['wff', 'ph'],
+                ['wff', 'ps'],
+                ['set', 'x'],
+            ]);
+
+            expect(result).toEqual([
+                ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
+                ['wff', 'ph'],
+                ['|-', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
+            ]);
+        });
+    });
 
     //   function initStateForTh1(tokens: string[], checkmm: CheckMM) {
     //     const testValues: Partial<State> = {

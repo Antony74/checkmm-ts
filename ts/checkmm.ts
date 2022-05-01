@@ -33,7 +33,7 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-js/issues
 
-import std, { Deque, istream, Pair, Queue } from './std';
+import std, { arraysequal, Deque, istream, Pair, Queue } from './std';
 
 let tokens = new Queue<string>();
 
@@ -109,7 +109,7 @@ let isdvr = (var1: string, var2: string): boolean => {
     if (var1 === var2) return false;
     for (const scope of scopes) {
         for (const disjvar of scope.disjvars) {
-            if (!disjvar.has(var1) && disjvar.has(var2)) return true;
+            if (disjvar.has(var1) && disjvar.has(var2)) return true;
         }
     }
     return false;
@@ -424,6 +424,76 @@ let getproofnumbers = (label: string, proof: string): number[] => {
     return proofnumbers;
 };
 
+// Subroutine for proof verification. Verify a proof step referencing an
+// assertion (i.e., not a hypothesis).
+let verifyassertionref = (thlabel: string, reflabel: string, stack: Expression[]): Expression[] => {
+    const assertion = assertions.get(reflabel);
+    if (stack.length < assertion.hypotheses.length) {
+        console.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
+        return undefined;
+    }
+
+    const base = stack.length - assertion.hypotheses.length;
+
+    const substitutions = new Map<string, Expression>();
+
+    // Determine substitutions and check that we can unify
+
+    for (let i = 0; i < assertion.hypotheses.length; ++i) {
+        const hypothesis: Hypothesis = hypotheses.get(assertion.hypotheses[i]);
+        if (hypothesis.second) {
+            // Floating hypothesis of the referenced assertion
+            if (hypothesis.first[0] != stack[base + i][0]) {
+                console.error('In proof of theorem ' + thlabel + ' unification failed');
+                return undefined;
+            }
+            const subst: Expression = stack[base + i].slice(1);
+            substitutions.set(hypothesis.first[1], subst);
+        } else {
+            // Essential hypothesis
+            const dest = makesubstitution(hypothesis.first, substitutions);
+            if (!arraysequal(dest, stack[base + i])) {
+                console.error('In proof of theorem ' + thlabel + ' unification failed');
+                return undefined;
+            }
+        }
+    }
+
+    // Remove hypotheses from stack
+    stack = stack.slice(0, base);
+
+    // Verify disjoint variable conditions
+    for (const item of assertion.disjvars) {
+        const exp1: Expression = substitutions.get(item.first);
+        const exp2: Expression = substitutions.get(item.second);
+
+        const exp1vars = new Set<string>();
+        for (const exp1item of exp1) {
+            if (variables.has(exp1item)) exp1vars.add(exp1item);
+        }
+
+        const exp2vars = new Set<string>();
+        for (const exp2item of exp2) {
+            if (variables.has(exp2item)) exp2vars.add(exp2item);
+        }
+
+        for (const exp1item of exp1vars) {
+            for (const exp2item of exp2vars) {
+                if (!isdvr(exp1item, exp2item)) {
+                    console.error('In proof of theorem ' + thlabel + ' disjoint variable restriction violated');
+                    return undefined;
+                }
+            }
+        }
+    }
+
+    // Done verification of this step. Insert new statement onto stack.
+    const dest: Expression = makesubstitution(assertion.expression, substitutions);
+    stack.push(dest);
+
+    return stack;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -510,5 +580,11 @@ export default {
     getproofnumbers,
     setGetproofnumbers: (_getproofnumbers: (label: string, proof: string) => number[]) => {
         getproofnumbers = _getproofnumbers;
+    },
+    verifyassertionref,
+    setVerifyassertionref: (
+        _verifyassertionref: (thlabel: string, reflabel: string, stack: Expression[]) => Expression[],
+    ) => {
+        verifyassertionref = _verifyassertionref;
     },
 };

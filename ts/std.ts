@@ -72,6 +72,21 @@ let ifstream = async (filename: string): Promise<istream> => {
     return stringstream(await readFile(filename, { encoding: 'utf-8' }));
 };
 
+// Simple function for comparing arrays (in C++ STL handles this automatically)
+export const arraysequal = (arr1: any[], arr2: any[]): boolean => {
+    if (arr1.length !== arr2.length) {
+        return false;
+    }
+
+    for (let n = 0; n < arr1.length; ++n) {
+        if (arr1[n] !== arr2[n]) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
 export default {
     isupper,
     setIsupper: (_isupper: (s: string) => boolean) => {
