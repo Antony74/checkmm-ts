@@ -145,17 +145,14 @@ describe('checkmm', () => {
         });
     });
 
-    //   it('can read expressions', () => {
-
-    //     const checkmm = new CheckMM();
-
-    //     checkmm.setState({
-    //       tokens: '|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' '),
-    //       constants: ['|-', '(', ')', '->', 'ph', 'ps']
-    //     });
-    //     const expression: Expression = checkmm.readexpression('a', 'ax-1', '$.');
-    //     expect(expression).to.deep.equal('|- ( ph -> ( ps -> ph ) )'.split(' '));
-    //   });
+    describe('readexpression', () => {
+        it('can read expressions', () => {
+            checkmm.setTokens('|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' '));
+            checkmm.setConstants(new Set(['|-', '(', ')', '->', 'ph', 'ps']));
+            const expression = checkmm.readexpression('a', 'ax-1', '$.');
+            expect(expression).toEqual('|- ( ph -> ( ps -> ph ) )'.split(' '));
+        });
+    });
 
     //   it('can make substituions', () => {
 

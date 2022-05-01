@@ -307,6 +307,58 @@ let constructassertion = (label: string, exp: Expression): Assertion => {
     return assertion;
 };
 
+// Read an expression from the token stream. Returns true iff okay.
+let readexpression = (stattype: string, label: string, terminator: string): Expression => {
+    if (!tokens.length) {
+        console.error('Unfinished $' + stattype + ' statement ' + label);
+        return undefined;
+    }
+
+    const type = tokens[0];
+
+    if (!constants.has(type)) {
+        console.error(
+            'First symbol in $' + stattype + ' statement ' + label + ' is ' + type + ' which is not a constant',
+        );
+        return undefined;
+    }
+
+    tokens.shift();
+
+    const exp: Expression = [type];
+
+    let token: string;
+
+    while (tokens.length && (token = tokens[0]) !== terminator) {
+        tokens.shift();
+
+        if (!constants.has(token) && !getfloatinghyp(token).length) {
+            console.error(
+                'In $' +
+                    stattype +
+                    ' statement ' +
+                    label +
+                    ' token ' +
+                    token +
+                    ' found which is not a constant or variable in an' +
+                    ' active $f statement',
+            );
+            return undefined;
+        }
+
+        exp.push(token);
+    }
+
+    if (!tokens.length) {
+        console.error('Unfinished $' + stattype + ' statement ' + label);
+        return undefined;
+    }
+
+    tokens.shift(); // Discard terminator token
+
+    return exp;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -379,5 +431,11 @@ export default {
     constructassertion,
     setConstructassertion: (_constructassertion: (label: string, exp: Expression) => Assertion) => {
         constructassertion = _constructassertion;
+    },
+    readexpression,
+    setReadexpression: (
+        _readexpression: (stattype: string, label: string, terminator: string) => Expression,
+    ) => {
+        readexpression = _readexpression;
     },
 };
