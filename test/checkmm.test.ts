@@ -1,5 +1,5 @@
 import { it, expect, describe, jest } from '@jest/globals';
-import checkmm, { Assertion, Hypothesis } from '../ts/checkmm';
+import checkmm, { Assertion, Expression, Hypothesis } from '../ts/checkmm';
 import std from '../ts/std';
 
 describe('checkmm', () => {
@@ -154,18 +154,17 @@ describe('checkmm', () => {
         });
     });
 
-    //   it('can make substituions', () => {
-
-    //     const checkmm = new CheckMM();
-
-    //     const expression: Expression = checkmm.makesubstitution(
-    //       ['weather', 'is', 'sunny'],
-    //       {
-    //         sunny: ['raining', 'cats', 'and', 'dogs']
-    //       }
-    //     );
-    //     expect(expression).to.deep.equal(['weather', 'is', 'raining', 'cats', 'and', 'dogs']);
-    //   });
+    it('can make substituions', () => {
+        const expression: Expression = checkmm.makesubstitution(
+            ['weather', 'is', 'sunny'],
+            new Map(
+                Object.entries({
+                    sunny: ['raining', 'cats', 'and', 'dogs'],
+                }),
+            ),
+        );
+        expect(expression).toEqual(['weather', 'is', 'raining', 'cats', 'and', 'dogs']);
+    });
 
     //   it('can get proof numbers', () => {
     //     const checkmm = new CheckMM();

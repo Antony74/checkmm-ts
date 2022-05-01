@@ -359,6 +359,23 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
     return exp;
 };
 
+// Make a substitution of variables. The result is put in "destination",
+// which should be empty.
+let makesubstitution = (original: Expression, substmap: Map<string, Expression>): Expression => {
+    let destination: Expression = [];
+    for (const item of original) {
+        const item2 = substmap.get(item);
+        if (!item2) {
+            // Constant
+            destination.push(item);
+        } else {
+            // Variable
+            destination = [...destination, ...item2];
+        }
+    }
+    return destination;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -433,9 +450,13 @@ export default {
         constructassertion = _constructassertion;
     },
     readexpression,
-    setReadexpression: (
-        _readexpression: (stattype: string, label: string, terminator: string) => Expression,
-    ) => {
+    setReadexpression: (_readexpression: (stattype: string, label: string, terminator: string) => Expression) => {
         readexpression = _readexpression;
+    },
+    makesubstitution,
+    setMakesubstitution: (
+        _makesubstitution: (original: Expression, substmap: Map<string, Expression>) => Expression,
+    ) => {
+        makesubstitution = _makesubstitution;
     },
 };
