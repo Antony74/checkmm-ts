@@ -166,17 +166,17 @@ describe('checkmm', () => {
         expect(expression).toEqual(['weather', 'is', 'raining', 'cats', 'and', 'dogs']);
     });
 
-    //   it('can get proof numbers', () => {
-    //     const checkmm = new CheckMM();
-    //     const proofnumbers: number[] = checkmm.getproofnumbers(
-    //       'pm5.32',
-    //       'ABCDZEZABFZEZFZACFZEZFZDZABGZACGZDPAQTDZERUADUCOUFABCHIAQTJRUAHKUDSUEUBABLACLMN'
-    //     );
-    //     expect(proofnumbers).to.deep.equal([
-    //       1, 2, 3, 4, 0, 5, 0, 1, 2, 6, 0, 5, 0, 6, 0, 1, 3, 6, 0, 5, 0, 6, 0, 4, 0, 1, 2, 7, 0, 1, 3, 7, 0, 4, 16, 1, 17, 20, 4, 0, 5,
-    //       18, 21, 4, 23, 15, 26, 1, 2, 3, 8, 9, 1, 17, 20, 10, 18, 21, 8, 11, 24, 19, 25, 22, 1, 2, 12, 1, 3, 12, 13, 14
-    //     ]);
-    //   });
+    it('can get proof numbers', () => {
+        const proofnumbers: number[] = checkmm.getproofnumbers(
+            'pm5.32',
+            'ABCDZEZABFZEZFZACFZEZFZDZABGZACGZDPAQTDZERUADUCOUFABCHIAQTJRUAHKUDSUEUBABLACLMN',
+        );
+        expect(proofnumbers).toEqual([
+            1, 2, 3, 4, 0, 5, 0, 1, 2, 6, 0, 5, 0, 6, 0, 1, 3, 6, 0, 5, 0, 6, 0, 4, 0, 1, 2, 7, 0, 1, 3, 7, 0, 4, 16, 1,
+            17, 20, 4, 0, 5, 18, 21, 4, 23, 15, 26, 1, 2, 3, 8, 9, 1, 17, 20, 10, 18, 21, 8, 11, 24, 19, 25, 22, 1, 2,
+            12, 1, 3, 12, 13, 14,
+        ]);
+    });
 
     //   it('can verify a proof step references an assertion', () => {
     //     const checkmm = new CheckMM();

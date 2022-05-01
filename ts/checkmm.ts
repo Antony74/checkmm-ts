@@ -376,6 +376,54 @@ let makesubstitution = (original: Expression, substmap: Map<string, Expression>)
     return destination;
 };
 
+// Get the raw numbers from compressed proof format.
+// The letter Z is translated as 0.
+let getproofnumbers = (label: string, proof: string): number[] => {
+    const proofnumbers: number[] = [];
+    let num = 0;
+    let justgotnum: boolean = false;
+    for (const item of proof) {
+        if (item <= 'T') {
+            const addval: number = item.charCodeAt(0) - ('A'.charCodeAt(0) - 1);
+
+            if (num > Number.MAX_SAFE_INTEGER / 20 || 20 * num > Number.MAX_SAFE_INTEGER - addval) {
+                console.error('Overflow computing numbers in compressed proof of ' + label);
+                return undefined;
+            }
+
+            proofnumbers.push(20 * num + addval);
+            num = 0;
+            justgotnum = true;
+        } else if (item <= 'Y') {
+            const addval: number = item.charCodeAt(0) - 'T'.charCodeAt(0);
+
+            if (num > Number.MAX_SAFE_INTEGER / 5 || 5 * num > Number.MAX_SAFE_INTEGER - addval) {
+                console.error('Overflow computing numbers in compressed proof of ' + label);
+                return undefined;
+            }
+
+            num = 5 * num + addval;
+            justgotnum = false;
+        } // It must be Z
+        else {
+            if (!justgotnum) {
+                console.error('Stray Z found in compressed proof of ' + label);
+                return undefined;
+            }
+
+            proofnumbers.push(0);
+            justgotnum = false;
+        }
+    }
+
+    if (num !== 0) {
+        console.error('Compressed proof of theorem ' + label + ' ends in unfinished number');
+        return undefined;
+    }
+
+    return proofnumbers;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -458,5 +506,9 @@ export default {
         _makesubstitution: (original: Expression, substmap: Map<string, Expression>) => Expression,
     ) => {
         makesubstitution = _makesubstitution;
+    },
+    getproofnumbers,
+    setGetproofnumbers: (_getproofnumbers: (label: string, proof: string) => number[]) => {
+        getproofnumbers = _getproofnumbers;
     },
 };
