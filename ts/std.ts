@@ -73,7 +73,7 @@ let ifstream = async (filename: string): Promise<istream> => {
 };
 
 // Simple function for comparing arrays (in C++ STL handles this automatically)
-export const arraysequal = (arr1: any[], arr2: any[]): boolean => {
+export let arraysequal = (arr1: any[], arr2: any[]): boolean => {
     if (arr1.length !== arr2.length) {
         return false;
     }
@@ -85,6 +85,34 @@ export const arraysequal = (arr1: any[], arr2: any[]): boolean => {
     }
 
     return true;
+};
+
+export interface Stack<T> {
+    push(item: T): void;
+    pop(): T;
+    size(): number;
+    front(): T;
+    truncate(newLength: number): void;
+    at(index: number): T;
+    toArray(): T[];
+}
+
+export let createStack = <T>(arr?: T[]): Stack<T> => {
+    let container: T[] = arr ?? [];
+
+    return {
+        push: (item: T) => {
+            container.push(item);
+        },
+        pop: (): T => container.pop(),
+        size: () => container.length,
+        front: (): T => container[container.length - 1],
+        truncate: (newLength: number) => {
+            container = container.slice(0, newLength);
+        },
+        at: (index: number): T => container[index],
+        toArray: (): T[] => [...container],
+    };
 };
 
 export default {
@@ -107,5 +135,13 @@ export default {
     ifstream,
     setIfstream: (_ifstream: (filename: string) => Promise<istream>) => {
         ifstream = _ifstream;
+    },
+    arraysequal,
+    setArraysequal: (_arraysequal: (arr1: any[], arr2: any[]) => boolean) => {
+        arraysequal = _arraysequal;
+    },
+    createStack,
+    setCreateStack: (_createStack: <T>() => T) => {
+        createStack = _createStack;
     },
 };

@@ -1,6 +1,6 @@
 import { it, expect, describe, jest } from '@jest/globals';
 import checkmm, { Assertion, Expression, Hypothesis } from '../ts/checkmm';
-import std from '../ts/std';
+import std, { createStack, Stack } from '../ts/std';
 
 describe('checkmm', () => {
     describe('labelused', () => {
@@ -217,16 +217,20 @@ describe('checkmm', () => {
                 ),
             );
 
-            const result: Expression[] = checkmm.verifyassertionref('mpdb', 'ax-mp', [
-                ['wff', 'ps'],
-                ['wff', 'ch'],
-                ['wff', 'ph'],
-                ['wff', 'ps'],
-                ['|-', 'ph'],
-                ['|-', '(', 'ph', '->', 'ps', ')'],
-            ]);
+            const result: Stack<Expression> = checkmm.verifyassertionref(
+                'mpdb',
+                'ax-mp',
+                createStack([
+                    ['wff', 'ps'],
+                    ['wff', 'ch'],
+                    ['wff', 'ph'],
+                    ['wff', 'ps'],
+                    ['|-', 'ph'],
+                    ['|-', '(', 'ph', '->', 'ps', ')'],
+                ]),
+            );
 
-            expect(result).toEqual([
+            expect(result.toArray()).toEqual([
                 ['wff', 'ps'],
                 ['wff', 'ch'],
                 ['|-', 'ps'],
@@ -272,14 +276,18 @@ describe('checkmm', () => {
                 },
             ]);
 
-            const result: Expression[] = checkmm.verifyassertionref('a17d', 'ax-17', [
-                ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
-                ['wff', 'ph'],
-                ['wff', 'ps'],
-                ['set', 'x'],
-            ]);
+            const result: Stack<Expression> = checkmm.verifyassertionref(
+                'a17d',
+                'ax-17',
+                createStack([
+                    ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
+                    ['wff', 'ph'],
+                    ['wff', 'ps'],
+                    ['set', 'x'],
+                ]),
+            );
 
-            expect(result).toEqual([
+            expect(result.toArray()).toEqual([
                 ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
                 ['wff', 'ph'],
                 ['|-', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
