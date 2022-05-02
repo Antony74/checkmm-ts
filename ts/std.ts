@@ -31,7 +31,7 @@ let set_intersection = <T>(s1: Set<T>, s2: Set<T>): Set<T> => {
     return s3;
 };
 
-export class Pair<T1, T2> {
+export interface Pair<T1, T2> {
     first: T1;
     second: T2;
 }
@@ -89,7 +89,7 @@ export let arraysequal = (arr1: any[], arr2: any[]): boolean => {
 
 export interface Stack<T> {
     push(item: T): void;
-    pop(): T;
+    pop(): T | undefined;
     size(): number;
     front(): T;
     truncate(newLength: number): void;
@@ -104,7 +104,7 @@ export let createStack = <T>(arr?: T[]): Stack<T> => {
         push: (item: T) => {
             container.push(item);
         },
-        pop: (): T => container.pop(),
+        pop: (): T | undefined => container.pop(),
         size: () => container.length,
         front: (): T => container[container.length - 1],
         truncate: (newLength: number) => {

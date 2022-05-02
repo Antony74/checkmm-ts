@@ -418,24 +418,25 @@ describe('checkmm', () => {
         });
     });
 
-    //   it('can verify compressed proofs', () => {
+    it('can verify compressed proofs', () => {
+        const spy = jest.spyOn(checkmm, 'verifyassertionref');
+        checkmm.setVerifyassertionref(spy as any);
 
-    //     const checkmm = new CheckMM();
+        initStateForTh1([]);
 
-    //     initStateForTh1([], checkmm);
+        const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
+        const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
 
-    //     const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
-    //     const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
+        const theorem: Assertion = {
+            hypotheses: ['tt'],
+            disjvars: new Set(),
+            expression: ['|-', 't', '=', 't'],
+        };
 
-    //     const theorem: Assertion = {
-    //       hypotheses: ['tt'],
-    //       disjvars: [],
-    //       expression: ['|-', 't', '=', 't']
-    //     };
-
-    //     const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
-    //     expect(result2).to.equal(true);
-    //   });
+        const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
+        expect(spy).toBeCalledTimes(9);
+        expect(result2).toEqual(true);
+    });
 
     //   it('can parse $p statements for regular proofs', () => {
     //     const checkmm = new CheckMM();

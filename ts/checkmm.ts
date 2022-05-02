@@ -33,7 +33,7 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-js/issues
 
-import std, { Deque, istream, Pair, Queue, Stack } from './std';
+import std, { createStack, Deque, istream, Pair, Queue, Stack } from './std';
 
 let tokens = new Queue<string>();
 
@@ -181,7 +181,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
 
     let incomment: boolean = false;
     let infileinclusion: boolean = false;
-    let newfilename: string;
+    let newfilename: string = '';
 
     let token: string;
     while ((token = nexttoken(instream)).length) {
@@ -276,8 +276,8 @@ let constructassertion = (label: string, exp: Expression): Assertion => {
     for (const scope of scopes.reverse()) {
         const hypvec = scope.activehyp;
         for (const item2 of hypvec.reverse()) {
-            const hyp = hypotheses.get(item2);
-            if (hyp && varsused.has(hyp.first[1])) {
+            const hyp = hypotheses.get(item2)!;
+            if (hyp.second && varsused.has(hyp.first[1])) {
                 // Mandatory floating hypothesis
                 assertion.hypotheses.unshift(item2);
             } else if (!hyp.second) {
@@ -308,7 +308,7 @@ let constructassertion = (label: string, exp: Expression): Assertion => {
 };
 
 // Read an expression from the token stream. Returns true iff okay.
-let readexpression = (stattype: string, label: string, terminator: string): Expression => {
+let readexpression = (stattype: string, label: string, terminator: string): Expression | undefined => {
     if (!tokens.length) {
         console.error('Unfinished $' + stattype + ' statement ' + label);
         return undefined;
@@ -378,7 +378,7 @@ let makesubstitution = (original: Expression, substmap: Map<string, Expression>)
 
 // Get the raw numbers from compressed proof format.
 // The letter Z is translated as 0.
-let getproofnumbers = (label: string, proof: string): number[] => {
+let getproofnumbers = (label: string, proof: string): number[] | undefined => {
     const proofnumbers: number[] = [];
     let num = 0;
     let justgotnum: boolean = false;
@@ -426,8 +426,8 @@ let getproofnumbers = (label: string, proof: string): number[] => {
 
 // Subroutine for proof verification. Verify a proof step referencing an
 // assertion (i.e., not a hypothesis).
-let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expression>): Stack<Expression> => {
-    const assertion = assertions.get(reflabel);
+let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expression>): Stack<Expression> | undefined => {
+    const assertion = assertions.get(reflabel)!;
     if (stack.size() < assertion.hypotheses.length) {
         console.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
         return undefined;
@@ -440,7 +440,7 @@ let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expres
     // Determine substitutions and check that we can unify
 
     for (let i = 0; i < assertion.hypotheses.length; ++i) {
-        const hypothesis: Hypothesis = hypotheses.get(assertion.hypotheses[i]);
+        const hypothesis: Hypothesis = hypotheses.get(assertion.hypotheses[i])!;
         if (hypothesis.second) {
             // Floating hypothesis of the referenced assertion
             if (hypothesis.first[0] !== stack.at(base + i)[0]) {
@@ -464,8 +464,8 @@ let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expres
 
     // Verify disjoint variable conditions
     for (const item of assertion.disjvars) {
-        const exp1: Expression = substitutions.get(item.first);
-        const exp2: Expression = substitutions.get(item.second);
+        const exp1: Expression = substitutions.get(item.first)!;
+        const exp2: Expression = substitutions.get(item.second)!;
 
         const exp1vars = new Set<string>();
         for (const exp1item of exp1) {
@@ -508,7 +508,7 @@ let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): b
         }
 
         // It must be an axiom or theorem
-        stack = verifyassertionref(label, proofstep, stack);
+        stack = verifyassertionref(label, proofstep, stack)!;
         if (stack === undefined) return false;
     }
 
@@ -517,90 +517,70 @@ let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): b
         return false;
     }
 
-    if (!std.arraysequal(stack.front(), theorem.expression)) {
+    if (!std.arraysequal(stack.at(0), theorem.expression)) {
         console.error('Proof of theorem ' + label + ' proves wrong statement');
         return false;
     }
 
     return true;
 };
-/*
+
 // Verify a compressed proof
-let verifycompressedproof =
-    (label: string, theorem: Assertion,
-     labels: string[],
-     proofnumbers: number[]): boolean =>
-{
-    let stack: Expression[] = [];
+let verifycompressedproof = (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]): boolean => {
+    let stack: Stack<Expression> = createStack();
 
     const mandhypt: number = theorem.hypotheses.length;
-    const labelt: number = (mandhypt + labels.length);
+    const labelt: number = mandhypt + labels.length;
 
     const savedsteps: Expression[] = [];
-    for (const item of proofnumbers)
-    {
+    for (const item of proofnumbers) {
         // Save the last proof step if 0
-        if (item === 0)
-        {
-            savedsteps.push(stack.back());
+        if (item === 0) {
+            savedsteps.push(stack.front());
             continue;
         }
 
         // If step is a mandatory hypothesis, just push it onto the stack.
-        if (*iter <= mandhypt)
-        {
-            stack.push_back
-                (hypotheses.find(theorem.hypotheses[*iter - 1])->second.first);
-        }
-        else if (*iter <= labelt)
-        {
-            std::string const proofstep(labels[*iter - mandhypt - 1]);
+        if (item <= mandhypt) {
+            stack.push(hypotheses.get(theorem.hypotheses[item - 1])!.first);
+        } else if (item <= labelt) {
+            const proofstep: string = labels[item - mandhypt - 1];
 
             // If step is a (non-mandatory) hypothesis,
             // just push it onto the stack.
-            std::map<std::string, Hypothesis>::const_iterator hyp
-            (hypotheses.find(proofstep));
-            if (hyp != hypotheses.end())
-            {
-                stack.push_back(hyp->second.first);
+            const hyp: Hypothesis = hypotheses.get(proofstep)!;
+            if (hyp) {
+                stack.push(hyp.first);
                 continue;
             }
 
             // It must be an axiom or theorem
-            bool const okay(verifyassertionref(label, proofstep, &stack));
-            if (!okay)
-                return false;
-        }
-        else // Must refer to saved step
-        {
-            if (*iter > labelt + savedsteps.size())
-            {
-                std::cerr << "Number in compressed proof of " << label
-                          << " is too high" << std::endl;
+            stack = verifyassertionref(label, proofstep, stack)!;
+            if (stack === undefined) return false;
+        } // Must refer to saved step
+        else {
+            if (item > labelt + savedsteps.length) {
+                console.error('Number in compressed proof of ' + label + ' is too high');
                 return false;
             }
 
-            stack.push_back(savedsteps[*iter - labelt - 1]);
+            stack.push(savedsteps[item - labelt - 1]);
         }
     }
 
-    if (stack.size() != 1)
-    {
-        std::cerr << "Proof of theorem " << label
-                  << " does not end with only one item on the stack"
-                  << std::endl;
+    if (stack.size() !== 1) {
+        console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
         return false;
     }
 
-    if (stack[0] != theorem.expression)
-    {
-        std::cerr << "Proof of theorem " << label << " proves wrong statement"
-                  << std::endl; 
+    if (!std.arraysequal(stack.at(0), theorem.expression)) {
+        console.error('Proof of theorem ' + label + ' proves wrong statement');
+        return false;
     }
 
     return true;
-}
-*/
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -697,5 +677,16 @@ export default {
     verifyregularproof,
     setVerifyrefularproof: (_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => boolean) => {
         verifyregularproof = _verifyregularproof;
+    },
+    verifycompressedproof,
+    setVerifycompressedproof: (
+        _verifycompressedproof: (
+            label: string,
+            theorem: Assertion,
+            labels: string[],
+            proofnumbers: number[],
+        ) => boolean,
+    ) => {
+        verifycompressedproof = _verifycompressedproof;
     },
 };
