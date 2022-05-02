@@ -536,7 +536,7 @@ let verifycompressedproof = (label: string, theorem: Assertion, labels: string[]
     for (const item of proofnumbers) {
         // Save the last proof step if 0
         if (item === 0) {
-            savedsteps.push(stack.front());
+            savedsteps.push(stack.top());
             continue;
         }
 

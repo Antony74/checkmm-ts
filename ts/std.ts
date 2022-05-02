@@ -91,7 +91,7 @@ export interface Stack<T> {
     push(item: T): void;
     pop(): T | undefined;
     size(): number;
-    front(): T;
+    top(): T;
     truncate(newLength: number): void;
     at(index: number): T;
     toArray(): T[];
@@ -106,7 +106,7 @@ export let createStack = <T>(arr?: T[]): Stack<T> => {
         },
         pop: (): T | undefined => container.pop(),
         size: () => container.length,
-        front: (): T => container[container.length - 1],
+        top: (): T => container[container.length - 1],
         truncate: (newLength: number) => {
             container = container.slice(0, newLength);
         },
