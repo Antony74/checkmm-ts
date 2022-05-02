@@ -494,6 +494,36 @@ let verifyassertionref = (thlabel: string, reflabel: string, stack: Expression[]
     return stack;
 };
 
+// Verify a regular proof. The "proof" argument should be a non-empty sequence
+// of valid labels. Return true iff the proof is correct.
+let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): boolean => {
+    let stack: Expression[] = [];
+
+    for (const proofstep of proof) {
+        // If step is a hypothesis, just push it onto the stack.
+        const hyp = hypotheses.get(proofstep);
+        if (hyp) {
+            stack.push(hyp.first);
+            continue;
+        }
+
+        // It must be an axiom or theorem
+        stack = verifyassertionref(label, proofstep, stack);
+        if (stack === undefined) return false;
+    }
+
+    if (stack.length !== 1) {
+        console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
+        return false;
+    }
+
+    if (stack[0] != theorem.expression) {
+        console.error('Proof of theorem ' + label + ' proves wrong statement');
+    }
+
+    return true;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -586,5 +616,9 @@ export default {
         _verifyassertionref: (thlabel: string, reflabel: string, stack: Expression[]) => Expression[],
     ) => {
         verifyassertionref = _verifyassertionref;
+    },
+    verifyregularproof,
+    setVerifyrefularproof: (_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => boolean) => {
+        verifyregularproof = _verifyregularproof;
     },
 };

@@ -287,118 +287,128 @@ describe('checkmm', () => {
         });
     });
 
-    //   function initStateForTh1(tokens: string[], checkmm: CheckMM) {
-    //     const testValues: Partial<State> = {
-    //       hypotheses: {
-    //         tt: {
-    //           first: ['term', 't'],
-    //           second: true
-    //         },
-    //         tr: {
-    //           first: ['term', 'r'],
-    //           second: true
-    //         },
-    //         ts: {
-    //           first: ['term', 's'],
-    //           second: true
-    //         },
-    //         wp: {
-    //           first: ['wff', 'P'],
-    //           second: true
-    //         },
-    //         wq: {
-    //           first: ['wff', 'Q'],
-    //           second: true
-    //         },
-    //         min: {
-    //           first: ['|-', 'P'],
-    //           second: false
-    //         },
-    //         maj: {
-    //           first: '|- ( P -> Q )'.split(' '),
-    //           second: false
-    //         }
-    //       },
-    //       assertions: {
-    //         tze: {
-    //           expression: ['term', '0'],
-    //           disjvars: [],
-    //           hypotheses: []
-    //         },
-    //         tpl: {
-    //           expression: ['term', '(', 't', '+', 'r', ')'],
-    //           disjvars: [],
-    //           hypotheses: ['tt', 'tr']
-    //         },
-    //         weq: {
-    //           expression: ['wff', 't', '=', 'r'],
-    //           disjvars: [],
-    //           hypotheses: ['tt', 'tr']
-    //         },
-    //         a1: {
-    //           expression: '|- ( t = r -> ( t = s -> r = s ) )'.split(' '),
-    //           disjvars: [],
-    //           hypotheses: ['tt', 'tr', 'ts']
-    //         },
-    //         a2: {
-    //           expression: ['|-', '(', 't', '+', '0', ')', '=', 't'],
-    //           disjvars: [],
-    //           hypotheses: ['tt']
-    //         },
-    //         mp: {
-    //           expression: ['|-', 'Q'],
-    //           disjvars: [],
-    //           hypotheses: ['wp', 'wq', 'min', 'maj']
-    //         },
-    //         wim: {
-    //           expression: ['wff', '(', 'P', '->', 'Q', ')'],
-    //           disjvars: [],
-    //           hypotheses: ['wp', 'wq']
-    //         }
-    //       },
-    //       constants: ['(', ')', '+', '->', '0', '=', 'term', 'wff', '|-'],
-    //       variables: new Set<string>(['P', 'Q', 'r', 's', 't']),
-    //       tokens: tokens,
-    //       scopes: [
-    //         {
-    //           activevariables: new Set<string>(['P', 'Q', 'r', 's', 't']),
-    //           activehyp: ['tt', 'tr', 'ts', 'wp', 'wq'],
-    //           disjvars: [],
-    //           floatinghyp: {
-    //             'P': 'wp',
-    //             'Q': 'wq',
-    //             'r': 'tr',
-    //             's': 'ts',
-    //             't': 'tt'
-    //           }
-    //         }
-    //       ]
-    //     };
+    const initStateForTh1 = (tokens: string[]) => {
+        checkmm.setHypotheses(
+            new Map(
+                Object.entries({
+                    tt: {
+                        first: ['term', 't'],
+                        second: true,
+                    },
+                    tr: {
+                        first: ['term', 'r'],
+                        second: true,
+                    },
+                    ts: {
+                        first: ['term', 's'],
+                        second: true,
+                    },
+                    wp: {
+                        first: ['wff', 'P'],
+                        second: true,
+                    },
+                    wq: {
+                        first: ['wff', 'Q'],
+                        second: true,
+                    },
+                    min: {
+                        first: ['|-', 'P'],
+                        second: false,
+                    },
+                    maj: {
+                        first: '|- ( P -> Q )'.split(' '),
+                        second: false,
+                    },
+                }),
+            ),
+        );
 
-    //     checkmm.setState(testValues);
-    //   }
+        checkmm.setAssertions(
+            new Map(
+                Object.entries({
+                    tze: {
+                        expression: ['term', '0'],
+                        disjvars: new Set(),
+                        hypotheses: [],
+                    },
+                    tpl: {
+                        expression: ['term', '(', 't', '+', 'r', ')'],
+                        disjvars: new Set(),
+                        hypotheses: ['tt', 'tr'],
+                    },
+                    weq: {
+                        expression: ['wff', 't', '=', 'r'],
+                        disjvars: new Set(),
+                        hypotheses: ['tt', 'tr'],
+                    },
+                    a1: {
+                        expression: '|- ( t = r -> ( t = s -> r = s ) )'.split(' '),
+                        disjvars: new Set(),
+                        hypotheses: ['tt', 'tr', 'ts'],
+                    },
+                    a2: {
+                        expression: ['|-', '(', 't', '+', '0', ')', '=', 't'],
+                        disjvars: new Set(),
+                        hypotheses: ['tt'],
+                    },
+                    mp: {
+                        expression: ['|-', 'Q'],
+                        disjvars: new Set(),
+                        hypotheses: ['wp', 'wq', 'min', 'maj'],
+                    },
+                    wim: {
+                        expression: ['wff', '(', 'P', '->', 'Q', ')'],
+                        disjvars: new Set(),
+                        hypotheses: ['wp', 'wq'],
+                    },
+                }),
+            ),
+        );
 
-    //   it('can verify regular and compressed proofs', () => {
+        checkmm.setConstants(new Set(['(', ')', '+', '->', '0', '=', 'term', 'wff', '|-']));
 
-    //     const checkmm = new CheckMM();
+        checkmm.setVariables(new Set<string>(['P', 'Q', 'r', 's', 't']));
 
-    //     initStateForTh1([], checkmm);
+        checkmm.setTokens(tokens);
 
-    //     const theorem: Assertion = {
-    //       hypotheses: ['tt'],
-    //       disjvars: [],
-    //       expression: ['|-', 't', '=', 't']
-    //     };
+        checkmm.setScopes([
+            {
+                activevariables: new Set<string>(['P', 'Q', 'r', 's', 't']),
+                activehyp: ['tt', 'tr', 'ts', 'wp', 'wq'],
+                disjvars: [],
+                floatinghyp: new Map(
+                    Object.entries({
+                        P: 'wp',
+                        Q: 'wq',
+                        r: 'tr',
+                        s: 'ts',
+                        t: 'tt',
+                    }),
+                ),
+            },
+        ]);
+    };
 
-    //     const proof: string[] = (
-    //       'tt tze tpl tt weq tt tt weq tt a2 tt tze tpl ' +
-    //       'tt weq tt tze tpl tt weq tt tt weq wim tt a2 ' +
-    //       'tt tze tpl tt tt a1 mp mp'
-    //     ).split(' ');
+    describe('verifyregularproof', () => {
+        it('can verify regular proofs', () => {
+            initStateForTh1([]);
 
-    //     const result1: boolean = checkmm.verifyregularproof('th1', theorem, proof);
-    //     expect(result1).to.equal(true);
-    //   });
+            const theorem: Assertion = {
+                hypotheses: ['tt'],
+                disjvars: new Set(),
+                expression: ['|-', 't', '=', 't'],
+            };
+
+            const proof: string[] = (
+                'tt tze tpl tt weq tt tt weq tt a2 tt tze tpl ' +
+                'tt weq tt tze tpl tt weq tt tt weq wim tt a2 ' +
+                'tt tze tpl tt tt a1 mp mp'
+            ).split(' ');
+
+            const result1: boolean = checkmm.verifyregularproof('th1', theorem, proof);
+            expect(result1).toEqual(true);
+        });
+    });
 
     //   it('can verify compressed proofs', () => {
 
