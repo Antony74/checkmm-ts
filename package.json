@@ -4,11 +4,8 @@
   "description": "",
   "main": "checkmm.js",
   "scripts": {
-    "clang-format": "clang-format output/checkmm_ugly.cpp > output/checkmm.cpp",
-    "output-cpp": "ts-node output-cpp.ts && npm run clang-format",
     "play": "ts-node play.ts",
-    "test": "jest",
-    "transpile": "ts-node transpiler/index.ts && npm run clang-format"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
