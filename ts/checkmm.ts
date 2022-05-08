@@ -296,11 +296,11 @@ let constructassertion = (label: string, exp: Expression): Assertion => {
         for (const item2 of disjvars) {
             const dset = Array.from(std.set_intersection(item2, varsused));
 
-            dset.forEach((d, index) => {
-                for (const d2 of dset.slice(index + 1)) {
-                    assertion.disjvars.add({ first: d, second: d2 });
+            for (let index = 0; index < dset.length; ++index) {
+                for (let index2 = index + 1; index2 < dset.length; ++index2) {
+                    assertion.disjvars.add({ first: dset[index], second: dset[index2] });
                 }
-            });
+            }
         }
     }
 
@@ -426,7 +426,11 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
 
 // Subroutine for proof verification. Verify a proof step referencing an
 // assertion (i.e., not a hypothesis).
-let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expression>): Stack<Expression> | undefined => {
+let verifyassertionref = (
+    thlabel: string,
+    reflabel: string,
+    stack: Stack<Expression>,
+): Stack<Expression> | undefined => {
     const assertion = assertions.get(reflabel)!;
     if (stack.size() < assertion.hypotheses.length) {
         console.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
