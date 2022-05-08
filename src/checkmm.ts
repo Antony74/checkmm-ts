@@ -584,15 +584,12 @@ let verifycompressedproof = (label: string, theorem: Assertion, labels: string[]
 
     return true;
 };
-/*
-// Parse $p statement. Return true iff okay.
-let parsep = (label: string): boolean => 
-{
-    const newtheorem: Expression = 
-    readexpression('p', label, "$=");
 
-    if (!newtheorem)
-    {
+// Parse $p statement. Return true iff okay.
+let parsep = (label: string): boolean => {
+    const newtheorem: Expression = readexpression('p', label, '$=')!;
+
+    if (!newtheorem) {
         return false;
     }
 
@@ -600,163 +597,124 @@ let parsep = (label: string): boolean =>
 
     // Now for the proof
 
-    if (!tokens.length)
-    {
-        console.error("Unfinished $p statement " + label);
+    if (!tokens.length) {
+        console.error('Unfinished $p statement ' + label);
         return false;
     }
 
-    if (tokens.front() === "(")
-    {
+    if (tokens.front() === '(') {
         // Compressed proof
-        tokens.pop();
+        tokens.shift();
 
         // Get labels
 
         const labels: string[] = [];
         let token: string;
 
-        while (tokens.length && ((token = tokens.front()) !== ")"))
-        {
-            tokens.pop();
+        while (tokens.length && (token = tokens.front()) !== ')') {
+            tokens.shift();
             labels.push(token);
-            if (token == label)
-            {
-                std::cerr << "Proof of theorem " << label
-                          << " refers to itself" << std::endl;
+            if (token === label) {
+                console.error('Proof of theorem ' + label + ' refers to itself');
                 return false;
-            }
-            else if (std::find
-                    (assertion.hypotheses.begin(), assertion.hypotheses.end(),
-                     token) != assertion.hypotheses.end())
-            {
-                std::cerr << "Compressed proof of theorem " << label
-                          << " has mandatory hypothesis " << token
-                          << " in label list" << std::endl;
+            } else if (assertion.hypotheses.find(_token => _token === token)) {
+                console.error(
+                    'Compressed proof of theorem ' + label + ' has mandatory hypothesis ' + token + ' in label list',
+                );
                 return false;
-            }
-            else if (assertions.find(token) == assertions.end()
-                  && !isactivehyp(token))
-            {
-                std::cerr << "Proof of theorem " << label << " refers to "
-                          << token << " which is not an active statement"
-                          << std::endl;
+            } else if (!assertions.has(token) && !isactivehyp(token)) {
+                console.error(
+                    'Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement',
+                );
                 return false;
             }
         }
 
-        if (tokens.empty())
-        {
-            std::cerr << "Unfinished $p statement " << label << std::endl;
+        if (!tokens.length) {
+            console.error('Unfinished $p statement ' + label);
             return false;
         }
 
-        tokens.pop(); // Discard ) token
+        tokens.shift(); // Discard ) token
 
         // Get proof steps
 
-        std::string proof;
-        while (!tokens.empty() && (token = tokens.front()) != "$.")
-        {
-            tokens.pop();
+        let proof = '';
+        while (tokens.length && (token = tokens.front()) !== '$.') {
+            tokens.shift();
 
             proof += token;
-            if (!containsonlyupperorq(token))
-            {
-                std::cerr << "Bogus character found in compressed proof of "
-                          << label << std::endl;
+            if (!containsonlyupperorq(token)) {
+                console.error('Bogus character found in compressed proof of ' + label);
                 return false;
             }
         }
 
-        if (tokens.empty())
-        {
-            std::cerr << "Unfinished $p statement " << label << std::endl;
+        if (!tokens.length) {
+            console.error('Unfinished $p statement ' + label);
             return false;
         }
 
-        if (proof.empty())
-        {
-            std::cerr << "Theorem " << label << " has no proof" << std::endl;
+        if (!proof.length) {
+            console.error('Theorem ' + label + ' has no proof');
             return false;
         }
 
-        tokens.pop(); // Discard $. token
+        tokens.shift(); // Discard $. token
 
-        if (proof.find('?') != std::string::npos)
-        {
-            std::cerr << "Warning: Proof of theorem " << label
-                      << " is incomplete" << std::endl;
+        if (proof.includes('?')) {
+            console.error('Warning: Proof of theorem ' + label + ' is incomplete');
             return true; // Continue processing file
         }
 
-        std::vector<std::size_t> proofnumbers;
-        proofnumbers.reserve(proof.size()); // Preallocate for efficiency
-        bool okay(getproofnumbers(label, proof, &proofnumbers));
-        if (!okay)
-            return false;
+        const proofnumbers: number[] = getproofnumbers(label, proof)!;
+        if (!proofnumbers) return false;
 
-        okay = verifycompressedproof(label, assertion, labels, proofnumbers);
-        if (!okay)
-            return false;
-    }
-    else
-    {
+        const okay: boolean = verifycompressedproof(label, assertion, labels, proofnumbers);
+        if (!okay) return false;
+    } else {
         // Regular (uncompressed proof)
-        std::vector<std::string> proof;
-        bool incomplete(false);
-        std::string token;
-        while (!tokens.empty() && (token = tokens.front()) != "$.")
-        {
-            tokens.pop();
-            proof.push_back(token);
-            if (token == "?")
-                incomplete = true;
-            else if (token == label)
-            {
-                std::cerr << "Proof of theorem " << label
-                          << " refers to itself" << std::endl;
+        const proof: string[] = [];
+        let incomplete: boolean = false;
+        let token: string;
+        while (tokens.length && (token = tokens.front()) !== '$.') {
+            tokens.shift();
+            proof.push(token);
+            if (token == '?') incomplete = true;
+            else if (token == label) {
+                console.error('Proof of theorem ' + label + ' refers to itself');
                 return false;
-            }
-            else if (assertions.find(token) == assertions.end()
-                  && !isactivehyp(token))
-            {
-                std::cerr << "Proof of theorem " << label << " refers to "
-                          << token << " which is not an active statement"
-                          << std::endl;
+            } else if (!assertions.has(token) && !isactivehyp(token)) {
+                console.error(
+                    'Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement',
+                );
                 return false;
             }
         }
 
-        if (tokens.empty())
-        {
-            std::cerr << "Unfinished $p statement " << label << std::endl;
+        if (!tokens.length) {
+            console.error('Unfinished $p statement ' + label);
             return false;
         }
 
-        if (proof.empty())
-        {
-            std::cerr << "Theorem " << label << " has no proof" << std::endl;
+        if (!proof.length) {
+            console.error('Theorem ' + label + ' has no proof');
             return false;
         }
 
-        tokens.pop(); // Discard $. token
+        tokens.shift(); // Discard $. token
 
-        if (incomplete)
-        {
-            std::cerr << "Warning: Proof of theorem " << label
-                      << " is incomplete" << std::endl;
+        if (incomplete) {
+            console.log('Warning: Proof of theorem ' + label + ' is incomplete');
             return true; // Continue processing file
         }
 
-        bool okay(verifyregularproof(label, assertion, proof));
-        if (!okay)
-            return false;
+        const okay: boolean = verifyregularproof(label, assertion, proof);
+        if (!okay) return false;
     }
 
     return true;
-}
-*/
+};
 
 export default {
     tokens,
@@ -865,5 +823,9 @@ export default {
         ) => boolean,
     ) => {
         verifycompressedproof = _verifycompressedproof;
+    },
+    parsep,
+    setParsep: (_parsep: (label: string) => boolean) => {
+        parsep = _parsep;
     },
 };

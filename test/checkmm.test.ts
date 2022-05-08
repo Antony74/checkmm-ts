@@ -418,46 +418,52 @@ describe('checkmm', () => {
         });
     });
 
-    it('can verify compressed proofs', () => {
-        const spy = jest.spyOn(checkmm, 'verifyassertionref');
-        checkmm.setVerifyassertionref(spy as any);
+    describe('verifycompressedproof', () => {
+        it('can verify compressed proofs', () => {
+            const spy = jest.spyOn(checkmm, 'verifyassertionref');
+            checkmm.setVerifyassertionref(spy as any);
 
-        initStateForTh1(new Queue());
+            initStateForTh1(new Queue());
 
-        const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
-        const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
+            const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
+            const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
 
-        const theorem: Assertion = {
-            hypotheses: ['tt'],
-            disjvars: new Set(),
-            expression: ['|-', 't', '=', 't'],
-        };
+            const theorem: Assertion = {
+                hypotheses: ['tt'],
+                disjvars: new Set(),
+                expression: ['|-', 't', '=', 't'],
+            };
 
-        const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
-        expect(spy).toBeCalledTimes(9);
-        expect(result2).toEqual(true);
+            const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
+            expect(spy).toBeCalledTimes(9);
+            expect(result2).toEqual(true);
+        });
     });
 
-    //   it('can parse $p statements for regular proofs', () => {
-    //     const checkmm = new CheckMM();
-    //     initStateForTh1((
-    //       '|- t = t $= tt tze tpl tt weq tt tt weq tt a2 tt tze tpl tt weq tt tze tpl tt weq tt tt weq ' +
-    //       'wim tt a2 tt tze tpl tt tt a1 mp mp $.'
-    //     ).split(' '), checkmm);
+    describe('parsep', () => {
+        it('can parse $p statements for regular proofs', () => {
+            initStateForTh1(
+                new Queue(
+                    ...(
+                        '|- t = t $= tt tze tpl tt weq tt tt weq tt a2 tt tze tpl tt weq tt tze tpl tt weq tt tt weq ' +
+                        'wim tt a2 tt tze tpl tt tt a1 mp mp $.'
+                    ).split(' '),
+                ),
+            );
 
-    //     const okay: boolean = checkmm.parsep('th1');
-    //     expect(okay).to.equal(true);
-    //   });
+            const okay: boolean = checkmm.parsep('th1');
+            expect(okay).toEqual(true);
+        });
 
-    //   it('can parse $p statements for compressed proofs', () => {
-    //     const checkmm = new CheckMM();
-    //     initStateForTh1((
-    //       '|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'
-    //     ).split(' '), checkmm);
+        it('can parse $p statements for compressed proofs', () => {
+            initStateForTh1(
+                new Queue(...'|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'.split(' ')),
+            );
 
-    //     const okay: boolean = checkmm.parsep('th1');
-    //     expect(okay).to.equal(true);
-    //   });
+            const okay: boolean = checkmm.parsep('th1');
+            expect(okay).toEqual(true);
+        });
+    });
 
     //   it('can parse $c statements', () => {
     //     const checkmm = new CheckMM();
