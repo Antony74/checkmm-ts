@@ -1,4 +1,5 @@
 import checkmm, { Assertion } from './src/checkmm';
+import { Queue } from './src/std';
 
 checkmm.setHypotheses(
     new Map(
@@ -81,7 +82,7 @@ checkmm.setConstants(new Set(['(', ')', '+', '->', '0', '=', 'term', 'wff', '|-'
 
 checkmm.setVariables(new Set<string>(['P', 'Q', 'r', 's', 't']));
 
-checkmm.setTokens([]);
+checkmm.setTokens(new Queue());
 
 checkmm.setScopes([
     {

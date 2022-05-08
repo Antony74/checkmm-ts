@@ -1,6 +1,6 @@
 import { it, expect, describe, jest } from '@jest/globals';
 import checkmm, { Assertion, Expression, Hypothesis } from '../src/checkmm';
-import std, { createStack, Stack } from '../src/std';
+import std, { createStack, Queue, Stack } from '../src/std';
 
 describe('checkmm', () => {
     describe('labelused', () => {
@@ -147,7 +147,7 @@ describe('checkmm', () => {
 
     describe('readexpression', () => {
         it('can read expressions', () => {
-            checkmm.setTokens('|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' '));
+            checkmm.setTokens(new Queue<string>(...'|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' ')));
             checkmm.setConstants(new Set(['|-', '(', ')', '->', 'ph', 'ps']));
             const expression = checkmm.readexpression('a', 'ax-1', '$.');
             expect(expression).toEqual('|- ( ph -> ( ps -> ph ) )'.split(' '));
@@ -295,7 +295,7 @@ describe('checkmm', () => {
         });
     });
 
-    const initStateForTh1 = (tokens: string[]) => {
+    const initStateForTh1 = (tokens: Queue<string>) => {
         checkmm.setHypotheses(
             new Map(
                 Object.entries({
@@ -399,7 +399,7 @@ describe('checkmm', () => {
 
     describe('verifyregularproof', () => {
         it('can verify regular proofs', () => {
-            initStateForTh1([]);
+            initStateForTh1(new Queue());
 
             const theorem: Assertion = {
                 hypotheses: ['tt'],
@@ -422,7 +422,7 @@ describe('checkmm', () => {
         const spy = jest.spyOn(checkmm, 'verifyassertionref');
         checkmm.setVerifyassertionref(spy as any);
 
-        initStateForTh1([]);
+        initStateForTh1(new Queue());
 
         const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
         const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
