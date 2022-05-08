@@ -1,5 +1,5 @@
 import { it, expect, describe } from '@jest/globals';
-import std from '../ts/std';
+import std from '../src/std';
 
 describe('isupper', () => {
     it('can detect upper case', () => {

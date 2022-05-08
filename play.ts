@@ -1,4 +1,4 @@
-import checkmm, { Assertion } from './ts/checkmm';
+import checkmm, { Assertion } from './src/checkmm';
 
 checkmm.setHypotheses(
     new Map(
