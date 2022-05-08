@@ -716,6 +716,20 @@ let parsep = (label: string): boolean => {
     return true;
 };
 
+// Parse $e statement. Return true iff okay.
+let parsee = (label: string): boolean => {
+    const newhyp: Expression = readexpression('e', label, '$.')!;
+    if (!newhyp) {
+        return false;
+    }
+
+    // Create new essential hypothesis
+    hypotheses.set(label, { first: newhyp, second: false });
+    scopes[scopes.length - 1].activehyp.push(label);
+
+    return true;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -827,5 +841,9 @@ export default {
     parsep,
     setParsep: (_parsep: (label: string) => boolean) => {
         parsep = _parsep;
+    },
+    parsee,
+    setParsee: (_parsee: (label: string) => boolean) => {
+        parsee = _parsee;
     },
 };
