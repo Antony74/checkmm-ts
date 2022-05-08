@@ -730,6 +730,18 @@ let parsee = (label: string): boolean => {
     return true;
 };
 
+// Parse $a statement. Return true iff okay.
+let parsea = (label: string): boolean => {
+    const newaxiom = readexpression('a', label, '$.');
+    if (!newaxiom) {
+        return false;
+    }
+
+    constructassertion(label, newaxiom);
+
+    return true;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -845,5 +857,9 @@ export default {
     parsee,
     setParsee: (_parsee: (label: string) => boolean) => {
         parsee = _parsee;
+    },
+    parsea,
+    setParsea: (_parsea: (label: string) => boolean) => {
+        parsea = _parsea;
     },
 };
