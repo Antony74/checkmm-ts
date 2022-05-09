@@ -880,6 +880,53 @@ let parsed = (): boolean => {
     return true;
 };
 
+// Parse $c statement. Return true iff okay.
+let parsec = (): boolean => {
+    if (scopes.length > 1) {
+        console.error('$c statement occurs in inner block');
+        return false;
+    }
+
+    let token: string;
+    let listempty = true;
+    while (tokens.length && (token = tokens.front()) !== '$.') {
+        tokens.shift();
+        listempty = false;
+
+        if (!ismathsymboltoken(token)) {
+            console.error('Attempt to declare ' + token + ' as a constant');
+            return false;
+        }
+        if (variables.has(token)) {
+            console.error('Attempt to redeclare variable ' + token + ' as a constant');
+            return false;
+        }
+        if (labelused(token)) {
+            console.error('Attempt to reuse label ' + token + ' as a constant');
+            return false;
+        }
+        if (constants.has(token)) {
+            console.error('Attempt to redeclare constant ' + token);
+            return false;
+        }
+        constants.add(token);
+    }
+
+    if (!tokens.length) {
+        console.error('Unterminated $c statement');
+        return false;
+    }
+
+    if (listempty) {
+        console.error('Empty $c statement');
+        return false;
+    }
+
+    tokens.shift(); // Discard $. token
+
+    return true;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -1011,5 +1058,9 @@ export default {
     parsed,
     setParsed: (_parsed: () => boolean) => {
         parsed = _parsed;
+    },
+    parsec,
+    setParsec: (_parsec: () => boolean) => {
+        parsec = _parsec;
     },
 };

@@ -478,16 +478,14 @@ describe('checkmm', () => {
         });
     });
 
-    //   it('can parse $c statements', () => {
-    //     const checkmm = new CheckMM();
-    //     checkmm.setState({
-    //       scopes: [new Scope()],
-    //       tokens: '0 + = -> ( ) term wff |- $.'.split(' ')
-    //     });
+    it('can parse $c statements', () => {
+        checkmm.setScopes([]);
+        checkmm.setTokens(new Queue<string>(...'0 + = -> ( ) term wff |- $.'.split(' ')));
+        checkmm.setConstants(new Set());
 
-    //     const okay = checkmm.parsec();
-    //     expect(okay).to.equal(true);
-    //   });
+        const okay = checkmm.parsec();
+        expect(okay).toEqual(true);
+    });
 
     //   it('can verify demo0.mm', () => {
 
