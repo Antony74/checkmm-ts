@@ -742,6 +742,64 @@ let parsea = (label: string): boolean => {
     return true;
 };
 
+// Parse $f statement. Return true iff okay.
+let parsef = (label: string): boolean => {
+    if (!tokens.length) {
+        console.error('Unfinished $f statement' + label);
+        return false;
+    }
+
+    const typeToken = tokens.front();
+
+    if (!constants.has(typeToken)) {
+        console.error('First symbol in $f statement ' + label + ' is ' + typeToken + ' which is not a constant');
+        return false;
+    }
+
+    tokens.shift();
+
+    if (!tokens.length) {
+        console.error('Unfinished $f statement ' + label);
+        return false;
+    }
+
+    const variable = tokens.front();
+    if (!isactivevariable(variable)) {
+        console.error(
+            'Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable',
+        );
+        return false;
+    }
+    if (getfloatinghyp(variable).length) {
+        console.error('The variable ' + variable + ' appears in a second $f statement ' + label);
+        return false;
+    }
+
+    tokens.shift();
+
+    if (!tokens.length) {
+        console.error('Unfinished $f statement' + label);
+        return false;
+    }
+
+    if (tokens.front() !== '$.') {
+        console.error('Expected end of $f statement ' + label + ' but found ' + tokens.front());
+        return false;
+    }
+
+    tokens.shift(); // Discard $. token
+
+    // Create new floating hypothesis
+    const newhyp: Expression = [];
+    newhyp.push(typeToken);
+    newhyp.push(variable);
+    hypotheses.set(label, { first: newhyp, second: true });
+    scopes[scopes.length - 1].activehyp.push(label);
+    scopes[scopes.length - 1].floatinghyp.set(variable, label);
+
+    return true;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -861,5 +919,9 @@ export default {
     parsea,
     setParsea: (_parsea: (label: string) => boolean) => {
         parsea = _parsea;
+    },
+    parsef,
+    setParsef: (_parsef: (label: string) => boolean) => {
+        parsef = _parsef;
     },
 };
