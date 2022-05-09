@@ -705,7 +705,7 @@ let parsep = (label: string): boolean => {
         tokens.shift(); // Discard $. token
 
         if (incomplete) {
-            console.log('Warning: Proof of theorem ' + label + ' is incomplete');
+            console.error('Warning: Proof of theorem ' + label + ' is incomplete');
             return true; // Continue processing file
         }
 
@@ -798,6 +798,47 @@ let parsef = (label: string): boolean => {
     scopes[scopes.length - 1].floatinghyp.set(variable, label);
 
     return true;
+};
+
+// Parse labeled statement. Return true iff okay.
+let parselabel = (label: string): boolean => {
+    if (constants.has(label)) {
+        console.error('Attempt to reuse constant ' + label + ' as a label');
+        return false;
+    }
+
+    if (variables.has(label)) {
+        console.error('Attempt to reuse variable ' + label + ' as a label');
+        return false;
+    }
+
+    if (labelused(label)) {
+        console.error('Attempt to reuse label ' + label);
+        return false;
+    }
+
+    if (!tokens.length) {
+        console.error('Unfinished labeled statement');
+        return false;
+    }
+
+    const typeToken = tokens.shift();
+
+    let okay = true;
+    if (typeToken === '$p') {
+        okay = parsep(label);
+    } else if (typeToken === '$e') {
+        okay = parsee(label);
+    } else if (typeToken === '$a') {
+        okay = parsea(label);
+    } else if (typeToken === '$f') {
+        okay = parsef(label);
+    } else {
+        console.error('Unexpected token ' + typeToken + ' encountered');
+        return false;
+    }
+
+    return okay;
 };
 
 export default {
@@ -923,5 +964,9 @@ export default {
     parsef,
     setParsef: (_parsef: (label: string) => boolean) => {
         parsef = _parsef;
+    },
+    parselabel,
+    setParselabel: (_parselabel: (label: string) => boolean) => {
+        parselabel = _parselabel;
     },
 };
