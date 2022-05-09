@@ -78,6 +78,19 @@ describe('checkmm', () => {
             expect(errorSpy).toBeCalledTimes(1);
             expect(errorSpy).toBeCalledWith('Invalid character read with code 0x7f');
         });
+
+        it('can process a lot of tokens without me getting bored waiting for the tests to finish', () => {
+            let size = 100000;
+            const bigString = Array.from({ length: size })
+                .map((_value, index) => index)
+                .join(' ');
+            let input = std.stringstream(bigString);
+            let token: string;
+            while ((token = checkmm.nexttoken(input)).length) {
+                --size;
+            }
+            expect(size).toEqual(0);
+        });
     });
 
     describe('readtokens', () => {
