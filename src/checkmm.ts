@@ -841,6 +841,45 @@ let parselabel = (label: string): boolean => {
     return okay;
 };
 
+// Parse $d statement. Return true iff okay.
+let parsed = (): boolean => {
+    const dvars = new Set<string>();
+    let token: string;
+
+    while (tokens.length && (token = tokens.front()) !== '$.') {
+        tokens.shift();
+
+        if (!isactivevariable(token)) {
+            console.error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
+            return false;
+        }
+
+        if (dvars.has(token)) {
+            console.error('$d statement mentions ' + token + ' twice');
+            return false;
+        }
+
+        dvars.add(token);
+    }
+
+    if (!tokens.length) {
+        console.error('Unterminated $d statement');
+        return false;
+    }
+
+    if (dvars.size < 2) {
+        console.error('Not enough items in $d statement');
+        return false;
+    }
+
+    // Record it
+    scopes[scopes.length - 1].disjvars.push(dvars);
+
+    tokens.shift(); // Discard $. token
+
+    return true;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -968,5 +1007,9 @@ export default {
     parselabel,
     setParselabel: (_parselabel: (label: string) => boolean) => {
         parselabel = _parselabel;
+    },
+    parsed,
+    setParsed: (_parsed: () => boolean) => {
+        parsed = _parsed;
     },
 };
