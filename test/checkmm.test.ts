@@ -486,46 +486,4 @@ describe('checkmm', () => {
         const okay = checkmm.parsec();
         expect(okay).toEqual(true);
     });
-
-    //   it('can verify demo0.mm', () => {
-
-    //     const old = console.log;
-    //     console.log = () => {};
-
-    //     const checkmm = new CheckMM();
-    //     checkmm.setState({});
-
-    //     let okay: boolean = checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/demo0.mm');
-    //     expect(okay).to.equal(true);
-
-    //     okay = checkmm.checkmm();
-    //     expect(okay).to.equal(true);
-
-    //     console.log = old;
-    //   });
-
-    //   it('can asynchronously verify demo0.mm', (done) => {
-
-    //     const old = console.log;
-    //     console.log = () => {};
-
-    //     const url = 'http://loclhost:8080/demo0.mm';
-
-    //     const checkmm = new CheckMMex();
-
-    //     fetchMock.get('*', fs.readFileSync(__dirname + '/../../node_modules/metamath-test/demo0.mm', {encoding: 'utf8'}));
-
-    //     checkmm.readTokensAsync(url, (error: string) => {
-    //       expect(error).to.equal('');
-    //       expect(checkmm.getState().tokens.length).to.equal(166);
-    //       const okay: boolean = checkmm.checkmm();
-    //       expect(okay).to.equal(true);
-
-    //       console.log = old;
-
-    //       done();
-    //     });
-    //   });
-
-    // });
 });
