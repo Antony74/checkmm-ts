@@ -60,13 +60,13 @@ export class Assertion {
 
 let assertions = new Map<string, Assertion>();
 
-export interface Scope {
-    activevariables: Set<string>;
+export class Scope {
+    activevariables: Set<string> = new Set();
     // Labels of active hypotheses
-    activehyp: string[];
-    disjvars: Set<string>[];
+    activehyp: string[] = [];
+    disjvars: Set<string>[] = [];
     // Map from variable to label of active floating hypothesis
-    floatinghyp: Map<string, string>;
+    floatinghyp: Map<string, string> = new Map();
 }
 
 let scopes: Scope[] = [];
@@ -971,6 +971,55 @@ let parsev = (): boolean => {
     return true;
 };
 
+const EXIT_FAILURE = 1;
+
+let main = async (argv: string[]): Promise<number> => {
+    if (argv.length !== 2) {
+        console.error('Syntax: checkmm <filename>');
+        return EXIT_FAILURE;
+    }
+
+    const okay = await readtokens(argv[1]);
+    if (!okay) return EXIT_FAILURE;
+
+    scopes.push(new Scope());
+
+    while (tokens.length) {
+        const token = tokens.shift();
+
+        let okay = true;
+
+        if (islabeltoken(token)) {
+            okay = parselabel(token);
+        } else if (token === '$d') {
+            okay = parsed();
+        } else if (token === '${') {
+            scopes.push(new Scope());
+        } else if (token == '$}') {
+            scopes.pop();
+            if (!scopes.length) {
+                console.error('$} without corresponding ${');
+                return EXIT_FAILURE;
+            }
+        } else if (token === '$c') {
+            okay = parsec();
+        } else if (token === '$v') {
+            okay = parsev();
+        } else {
+            console.error('Unexpected token ' + token + ' encountered');
+            return EXIT_FAILURE;
+        }
+        if (!okay) return EXIT_FAILURE;
+    }
+
+    if (scopes.length > 1) {
+        console.error('${ without corresponding $}');
+        return EXIT_FAILURE;
+    }
+
+    return 0;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -1110,5 +1159,9 @@ export default {
     parsev,
     setParsev: (_parsev: () => boolean) => {
         parsev = _parsev;
-    }
+    },
+    main,
+    setMain: (_main: (argv: string[]) => Promise<number>) => {
+        main = _main;
+    },
 };
