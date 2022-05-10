@@ -927,6 +927,50 @@ let parsec = (): boolean => {
     return true;
 };
 
+// Parse $v statement. Return true iff okay.
+let parsev = (): boolean => {
+    let token: string;
+    let listempty = true;
+    while (tokens.length && (token = tokens.front()) !== '$.') {
+        tokens.shift();
+        listempty = false;
+
+        if (!ismathsymboltoken(token)) {
+            console.error('Attempt to declare ' + token + ' as a variable');
+            return false;
+        }
+        if (constants.has(token)) {
+            console.error('Attempt to redeclare constant ' + token + ' as a variable');
+            return false;
+        }
+        if (labelused(token)) {
+            console.error('Attempt to reuse label ' + token + ' as a variable');
+            return false;
+        }
+        const alreadyactive: boolean = isactivevariable(token);
+        if (alreadyactive) {
+            console.error('Attempt to redeclare active variable ' + token);
+            return false;
+        }
+        variables.add(token);
+        scopes[scopes.length - 1].activevariables.add(token);
+    }
+
+    if (!tokens.length) {
+        console.error('Unterminated $v statement');
+        return false;
+    }
+
+    if (listempty) {
+        console.error('Empty $v statement');
+        return false;
+    }
+
+    tokens.shift(); // Discard $. token
+
+    return true;
+};
+
 export default {
     tokens,
     setTokens: (_tokens: Queue<string>) => {
@@ -1063,4 +1107,8 @@ export default {
     setParsec: (_parsec: () => boolean) => {
         parsec = _parsec;
     },
+    parsev,
+    setParsev: (_parsev: () => boolean) => {
+        parsev = _parsev;
+    }
 };
