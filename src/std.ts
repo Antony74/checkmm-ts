@@ -41,7 +41,7 @@ export class Deque<T> extends Array<T> {}
 
 export class Queue<T> extends Array<T> {
     front() {
-        return this[0];
+        return this[this.length - 1];
     }
 }
 

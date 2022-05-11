@@ -252,6 +252,8 @@ let readtokens = async (filename: string): Promise<boolean> => {
         return false;
     }
 
+    tokens.reverse();
+
     return true;
 };
 
@@ -323,14 +325,14 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
         return undefined;
     }
 
-    tokens.shift();
+    tokens.pop();
 
     const exp: Expression = [type];
 
     let token: string;
 
     while (tokens.length && (token = tokens.front()) !== terminator) {
-        tokens.shift();
+        tokens.pop();
 
         if (!constants.has(token) && !getfloatinghyp(token).length) {
             console.error(
@@ -354,7 +356,7 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
         return undefined;
     }
 
-    tokens.shift(); // Discard terminator token
+    tokens.pop(); // Discard terminator token
 
     return exp;
 };
@@ -604,7 +606,7 @@ let parsep = (label: string): boolean => {
 
     if (tokens.front() === '(') {
         // Compressed proof
-        tokens.shift();
+        tokens.pop();
 
         // Get labels
 
@@ -612,7 +614,7 @@ let parsep = (label: string): boolean => {
         let token: string;
 
         while (tokens.length && (token = tokens.front()) !== ')') {
-            tokens.shift();
+            tokens.pop();
             labels.push(token);
             if (token === label) {
                 console.error('Proof of theorem ' + label + ' refers to itself');
@@ -635,13 +637,13 @@ let parsep = (label: string): boolean => {
             return false;
         }
 
-        tokens.shift(); // Discard ) token
+        tokens.pop(); // Discard ) token
 
         // Get proof steps
 
         let proof = '';
         while (tokens.length && (token = tokens.front()) !== '$.') {
-            tokens.shift();
+            tokens.pop();
 
             proof += token;
             if (!containsonlyupperorq(token)) {
@@ -660,7 +662,7 @@ let parsep = (label: string): boolean => {
             return false;
         }
 
-        tokens.shift(); // Discard $. token
+        tokens.pop(); // Discard $. token
 
         if (proof.includes('?')) {
             console.error('Warning: Proof of theorem ' + label + ' is incomplete');
@@ -678,7 +680,7 @@ let parsep = (label: string): boolean => {
         let incomplete: boolean = false;
         let token: string;
         while (tokens.length && (token = tokens.front()) !== '$.') {
-            tokens.shift();
+            tokens.pop();
             proof.push(token);
             if (token == '?') incomplete = true;
             else if (token == label) {
@@ -702,7 +704,7 @@ let parsep = (label: string): boolean => {
             return false;
         }
 
-        tokens.shift(); // Discard $. token
+        tokens.pop(); // Discard $. token
 
         if (incomplete) {
             console.error('Warning: Proof of theorem ' + label + ' is incomplete');
@@ -756,7 +758,7 @@ let parsef = (label: string): boolean => {
         return false;
     }
 
-    tokens.shift();
+    tokens.pop();
 
     if (!tokens.length) {
         console.error('Unfinished $f statement ' + label);
@@ -775,7 +777,7 @@ let parsef = (label: string): boolean => {
         return false;
     }
 
-    tokens.shift();
+    tokens.pop();
 
     if (!tokens.length) {
         console.error('Unfinished $f statement' + label);
@@ -787,7 +789,7 @@ let parsef = (label: string): boolean => {
         return false;
     }
 
-    tokens.shift(); // Discard $. token
+    tokens.pop(); // Discard $. token
 
     // Create new floating hypothesis
     const newhyp: Expression = [];
@@ -822,7 +824,7 @@ let parselabel = (label: string): boolean => {
         return false;
     }
 
-    const typeToken = tokens.shift();
+    const typeToken = tokens.pop();
 
     let okay = true;
     if (typeToken === '$p') {
@@ -847,7 +849,7 @@ let parsed = (): boolean => {
     let token: string;
 
     while (tokens.length && (token = tokens.front()) !== '$.') {
-        tokens.shift();
+        tokens.pop();
 
         if (!isactivevariable(token)) {
             console.error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
@@ -875,7 +877,7 @@ let parsed = (): boolean => {
     // Record it
     scopes[scopes.length - 1].disjvars.push(dvars);
 
-    tokens.shift(); // Discard $. token
+    tokens.pop(); // Discard $. token
 
     return true;
 };
@@ -890,7 +892,7 @@ let parsec = (): boolean => {
     let token: string;
     let listempty = true;
     while (tokens.length && (token = tokens.front()) !== '$.') {
-        tokens.shift();
+        tokens.pop();
         listempty = false;
 
         if (!ismathsymboltoken(token)) {
@@ -922,7 +924,7 @@ let parsec = (): boolean => {
         return false;
     }
 
-    tokens.shift(); // Discard $. token
+    tokens.pop(); // Discard $. token
 
     return true;
 };
@@ -932,7 +934,7 @@ let parsev = (): boolean => {
     let token: string;
     let listempty = true;
     while (tokens.length && (token = tokens.front()) !== '$.') {
-        tokens.shift();
+        tokens.pop();
         listempty = false;
 
         if (!ismathsymboltoken(token)) {
@@ -966,7 +968,7 @@ let parsev = (): boolean => {
         return false;
     }
 
-    tokens.shift(); // Discard $. token
+    tokens.pop(); // Discard $. token
 
     return true;
 };
@@ -985,7 +987,7 @@ let main = async (argv: string[]): Promise<number> => {
     scopes.push(new Scope());
 
     while (tokens.length) {
-        const token = tokens.shift()!;
+        const token = tokens.pop()!;
 
         let okay = true;
 
