@@ -985,7 +985,7 @@ let main = async (argv: string[]): Promise<number> => {
     scopes.push(new Scope());
 
     while (tokens.length) {
-        const token = tokens.shift();
+        const token = tokens.shift()!;
 
         let okay = true;
 
@@ -1019,6 +1019,14 @@ let main = async (argv: string[]): Promise<number> => {
 
     return 0;
 };
+
+// Are we being run as a program or a library?
+if (process.argv.length >= 2 && process.argv[1] === __filename) {
+    // We are being run as a program
+    main(process.argv.slice(1)).then(exitCode => {
+        process.exitCode = exitCode;
+    });
+}
 
 export default {
     tokens,

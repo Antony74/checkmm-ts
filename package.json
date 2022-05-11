@@ -5,6 +5,7 @@
   "main": "checkmm.js",
   "scripts": {
     "play": "ts-node play.ts",
+    "start": "ts-node src/checkmm.ts",
     "test": "jest"
   },
   "repository": {
