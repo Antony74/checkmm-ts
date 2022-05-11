@@ -273,9 +273,9 @@ let constructassertion = (label: string, exp: Expression): Assertion => {
         if (variables.has(e)) varsused.add(e);
     }
 
-    for (const scope of scopes.reverse()) {
+    for (const scope of scopes.slice().reverse()) {
         const hypvec = scope.activehyp;
-        for (const item2 of hypvec.reverse()) {
+        for (const item2 of hypvec.slice().reverse()) {
             const hyp = hypotheses.get(item2)!;
             if (hyp.second && varsused.has(hyp.first[1])) {
                 // Mandatory floating hypothesis
