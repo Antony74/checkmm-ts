@@ -4,7 +4,6 @@
   "description": "",
   "main": "checkmm.js",
   "scripts": {
-    "play": "ts-node play.ts",
     "set.mm": "ts-node src/checkmm.ts set.mm",
     "start": "ts-node src/checkmm.ts",
     "test": "jest"
