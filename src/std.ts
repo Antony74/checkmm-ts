@@ -39,12 +39,6 @@ export interface Pair<T1, T2> {
 export class Vector<T> extends Array<T> {}
 export class Deque<T> extends Array<T> {}
 
-export class Queue<T> extends Array<T> {
-    front() {
-        return this[this.length - 1];
-    }
-}
-
 export interface istream {
     get(): string;
     good(): boolean;

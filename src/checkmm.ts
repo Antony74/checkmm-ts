@@ -33,9 +33,9 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-js/issues
 
-import std, { createStack, Deque, istream, Pair, Queue, Stack } from './std';
+import std, { createStack, Deque, istream, Pair, Stack } from './std';
 
-let tokens = new Queue<string>();
+let tokens: string[] = [];
 
 let constants = new Set<string>();
 
@@ -252,6 +252,11 @@ let readtokens = async (filename: string): Promise<boolean> => {
         return false;
     }
 
+    // Reverse the order of the tokens.  We do this O(n) operation just
+    // once here so that the tokens were added with 'push' O(1) but
+    // can be removed with 'pop' O(1) in the order they were added (first
+    // in first out).  It's completely impractical to use 'shift' or 'unshift'
+    // because they're O(n) operations.
     tokens.reverse();
 
     return true;
@@ -316,7 +321,7 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
         return undefined;
     }
 
-    const type = tokens.front();
+    const type = tokens[tokens.length - 1];
 
     if (!constants.has(type)) {
         console.error(
@@ -331,7 +336,7 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
 
     let token: string;
 
-    while (tokens.length && (token = tokens.front()) !== terminator) {
+    while (tokens.length && (token = tokens[tokens.length - 1]) !== terminator) {
         tokens.pop();
 
         if (!constants.has(token) && !getfloatinghyp(token).length) {
@@ -604,7 +609,7 @@ let parsep = (label: string): boolean => {
         return false;
     }
 
-    if (tokens.front() === '(') {
+    if (tokens[tokens.length - 1] === '(') {
         // Compressed proof
         tokens.pop();
 
@@ -613,7 +618,7 @@ let parsep = (label: string): boolean => {
         const labels: string[] = [];
         let token: string;
 
-        while (tokens.length && (token = tokens.front()) !== ')') {
+        while (tokens.length && (token = tokens[tokens.length - 1]) !== ')') {
             tokens.pop();
             labels.push(token);
             if (token === label) {
@@ -642,7 +647,7 @@ let parsep = (label: string): boolean => {
         // Get proof steps
 
         let proof = '';
-        while (tokens.length && (token = tokens.front()) !== '$.') {
+        while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
             tokens.pop();
 
             proof += token;
@@ -679,7 +684,7 @@ let parsep = (label: string): boolean => {
         const proof: string[] = [];
         let incomplete: boolean = false;
         let token: string;
-        while (tokens.length && (token = tokens.front()) !== '$.') {
+        while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
             tokens.pop();
             proof.push(token);
             if (token == '?') incomplete = true;
@@ -751,7 +756,7 @@ let parsef = (label: string): boolean => {
         return false;
     }
 
-    const typeToken = tokens.front();
+    const typeToken = tokens[tokens.length - 1];
 
     if (!constants.has(typeToken)) {
         console.error('First symbol in $f statement ' + label + ' is ' + typeToken + ' which is not a constant');
@@ -765,7 +770,7 @@ let parsef = (label: string): boolean => {
         return false;
     }
 
-    const variable = tokens.front();
+    const variable = tokens[tokens.length - 1];
     if (!isactivevariable(variable)) {
         console.error(
             'Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable',
@@ -784,8 +789,8 @@ let parsef = (label: string): boolean => {
         return false;
     }
 
-    if (tokens.front() !== '$.') {
-        console.error('Expected end of $f statement ' + label + ' but found ' + tokens.front());
+    if (tokens[tokens.length - 1] !== '$.') {
+        console.error('Expected end of $f statement ' + label + ' but found ' + tokens[tokens.length - 1]);
         return false;
     }
 
@@ -848,7 +853,7 @@ let parsed = (): boolean => {
     const dvars = new Set<string>();
     let token: string;
 
-    while (tokens.length && (token = tokens.front()) !== '$.') {
+    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
         tokens.pop();
 
         if (!isactivevariable(token)) {
@@ -891,7 +896,7 @@ let parsec = (): boolean => {
 
     let token: string;
     let listempty = true;
-    while (tokens.length && (token = tokens.front()) !== '$.') {
+    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
         tokens.pop();
         listempty = false;
 
@@ -933,7 +938,7 @@ let parsec = (): boolean => {
 let parsev = (): boolean => {
     let token: string;
     let listempty = true;
-    while (tokens.length && (token = tokens.front()) !== '$.') {
+    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
         tokens.pop();
         listempty = false;
 
@@ -1032,7 +1037,7 @@ if (process.argv.length >= 2 && process.argv[1] === __filename) {
 
 export default {
     tokens,
-    setTokens: (_tokens: Queue<string>) => {
+    setTokens: (_tokens: string[]) => {
         tokens = _tokens;
     },
     constants,
