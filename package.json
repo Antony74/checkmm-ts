@@ -4,6 +4,7 @@
   "description": "",
   "main": "checkmm.js",
   "scripts": {
+    "metamath-test": "ts-node test/metamath-test.ts",
     "set.mm": "ts-node src/checkmm.ts set.mm",
     "start": "ts-node src/checkmm.ts",
     "test": "jest"
