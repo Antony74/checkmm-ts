@@ -35,7 +35,14 @@
 
 import std, { createStack, Deque, istream, Pair, Stack } from './std';
 
-let tokens: string[] = [];
+type TokenArray = ArrayLike<string> & Pick<Array<string>, 'pop' | 'push' | 'reverse'>;
+
+type ScopeArray = ArrayLike<Scope> &
+    Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
+        [Symbol.iterator](): IterableIterator<Scope>;
+    };
+
+let tokens: TokenArray = [];
 
 let constants = new Set<string>();
 
@@ -69,7 +76,7 @@ export class Scope {
     floatinghyp: Map<string, string> = new Map();
 }
 
-let scopes: Scope[] = [];
+let scopes: ScopeArray = new Array<Scope>();
 
 // Determine if a string is used as a label
 let labelused = (label: string): boolean => {
@@ -1037,7 +1044,7 @@ if (process.argv.length >= 2 && process.argv[1] === __filename) {
 
 export default {
     tokens,
-    setTokens: (_tokens: string[]) => {
+    setTokens: (_tokens: TokenArray) => {
         tokens = _tokens;
     },
     constants,
@@ -1057,7 +1064,7 @@ export default {
         assertions = _assertions;
     },
     scopes,
-    setScopes: (_scopes: Scope[]) => {
+    setScopes: (_scopes: ScopeArray) => {
         scopes = _scopes;
     },
     labelused,
