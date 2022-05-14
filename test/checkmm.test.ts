@@ -185,7 +185,7 @@ describe('checkmm', () => {
             const proofnumbers: number[] = checkmm.getproofnumbers(
                 'pm5.32',
                 'ABCDZEZABFZEZFZACFZEZFZDZABGZACGZDPAQTDZERUADUCOUFABCHIAQTJRUAHKUDSUEUBABLACLMN',
-            );
+            )!;
             expect(proofnumbers).toEqual([
                 1, 2, 3, 4, 0, 5, 0, 1, 2, 6, 0, 5, 0, 6, 0, 1, 3, 6, 0, 5, 0, 6, 0, 4, 0, 1, 2, 7, 0, 1, 3, 7, 0, 4,
                 16, 1, 17, 20, 4, 0, 5, 18, 21, 4, 23, 15, 26, 1, 2, 3, 8, 9, 1, 17, 20, 10, 18, 21, 8, 11, 24, 19, 25,
@@ -242,7 +242,7 @@ describe('checkmm', () => {
                     ['|-', 'ph'],
                     ['|-', '(', 'ph', '->', 'ps', ')'],
                 ]),
-            );
+            )!;
 
             expect(result.toArray()).toEqual([
                 ['wff', 'ps'],
@@ -299,7 +299,7 @@ describe('checkmm', () => {
                     ['wff', 'ps'],
                     ['set', 'x'],
                 ]),
-            );
+            )!;
 
             expect(result.toArray()).toEqual([
                 ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
@@ -440,7 +440,7 @@ describe('checkmm', () => {
             initStateForTh1([]);
 
             const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
-            const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
+            const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH')!;
 
             const theorem: Assertion = {
                 hypotheses: ['tt'],
