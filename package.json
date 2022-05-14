@@ -4,6 +4,7 @@
   "description": "",
   "main": "checkmm.js",
   "scripts": {
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "metamath-test": "ts-node test/metamath-test.ts",
     "set.mm": "ts-node src/checkmm.ts set.mm",
     "start": "ts-node src/checkmm.ts",
@@ -19,14 +20,17 @@
     "url": "https://github.com/Antony74/checkmm-ts/issues"
   },
   "devDependencies": {
-    "@types/node": "^17.0.23",
-    "@babel/preset-typescript": "^7.16.7",
     "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
     "@jest/globals": "^28.0.2",
+    "@types/node": "^17.0.23",
+    "@typescript-eslint/eslint-plugin": "^5.23.0",
+    "@typescript-eslint/parser": "^5.23.0",
+    "eslint": "^8.15.0",
     "jest": "^28.0.2",
     "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
-    "typescript": "^4.6.3"
+    "typescript": "^4.6.4"
   },
   "prettier": {
     "semi": true,
