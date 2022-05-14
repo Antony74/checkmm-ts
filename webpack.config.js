@@ -19,4 +19,5 @@ module.exports = {
         filename: 'checkmm.js',
         path: __dirname + '/dist',
     },
+    devtool: 'source-map',
 };
