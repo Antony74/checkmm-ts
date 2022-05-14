@@ -33,6 +33,7 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-ts/issues
 
+import path from 'path';
 import std, { createStack, Deque, istream, Pair, Stack } from './std';
 
 // These type-statements just restrict normal Array functionality to what we actually
@@ -182,7 +183,12 @@ let readtokens = async (filename: string): Promise<boolean> => {
 
     mmfilenames.add(filename);
 
-    const instream = await std.ifstream(filename);
+    let instream: istream | undefined = undefined;
+
+    try {
+        instream = await std.ifstream(filename);
+    } catch (_e) {}
+
     if (!instream) {
         console.error('Could not open ' + filename);
         return false;
@@ -222,6 +228,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
                     console.error('Filename ' + token + ' contains a $');
                     return false;
                 }
+                // newfilename = path.normalize(path.join(path.dirname(filename), token));
                 newfilename = token;
                 continue;
             } else {

@@ -80,10 +80,10 @@ const main = async (): Promise<number> => {
             } catch (e) {}
 
             if (okay === false && expectedPass === true) {
-                console.error('Expected fail but passed');
+                console.error('Expected pass but failed');
                 return 1;
             } else if (okay === true && expectedPass === false) {
-                console.error('Expected pass but failed');
+                console.error('Expected fail but passed');
                 return 1;
             }
         }
