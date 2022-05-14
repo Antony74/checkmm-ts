@@ -228,8 +228,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
                     console.error('Filename ' + token + ' contains a $');
                     return false;
                 }
-                // newfilename = path.normalize(path.join(path.dirname(filename), token));
-                newfilename = token;
+                newfilename = path.normalize(path.join(path.dirname(filename), token));
                 continue;
             } else {
                 if (token != '$]') {
@@ -267,13 +266,6 @@ let readtokens = async (filename: string): Promise<boolean> => {
         console.error('Unfinished file inclusion command');
         return false;
     }
-
-    // Reverse the order of the tokens.  We do this O(n) operation just
-    // once here so that the tokens were added with 'push' O(1) but
-    // can be removed with 'pop' O(1) in the order they were added (first
-    // in first out).  It's completely impractical to use 'shift' or 'unshift'
-    // because they're O(n) operations.
-    tokens.reverse();
 
     return true;
 };
@@ -1004,6 +996,13 @@ let main = async (argv: string[]): Promise<number> => {
 
     const okay = await readtokens(argv[1]);
     if (!okay) return EXIT_FAILURE;
+
+    // Reverse the order of the tokens.  We do this O(n) operation just
+    // once here so that the tokens were added with 'push' O(1) but
+    // can be removed with 'pop' O(1) in the order they were added (first
+    // in first out).  It's completely impractical to use 'shift' or 'unshift'
+    // because they're O(n) operations.
+    tokens.reverse();
 
     scopes.push(new Scope());
 
