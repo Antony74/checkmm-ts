@@ -134,7 +134,7 @@ let ismmws = (ch: string): boolean => {
 // Determine if a token is a label token.
 let islabeltoken = (token: string): boolean => {
     for (const ch of token) {
-        if (!(std.isalnum(ch) || ch == '.' || ch == '-' || ch == '_')) return false;
+        if (!(std.isalnum(ch) || ch === '.' || ch === '-' || ch === '_')) return false;
     }
     return true;
 };
@@ -154,7 +154,7 @@ let containsonlyupperorq = (token: string): boolean => {
 
 let nexttoken = (input: istream): string => {
     let ch: string;
-    let token: string = '';
+    let token = '';
 
     // Skip whitespace
     while (!!(ch = input.get()) && ismmws(ch)) {}
@@ -175,7 +175,7 @@ let nexttoken = (input: istream): string => {
     return token;
 };
 
-let mmfilenames = new Set<string>();
+const mmfilenames = new Set<string>();
 
 let readtokens = async (filename: string): Promise<boolean> => {
     const alreadyencountered: boolean = mmfilenames.has(filename);
@@ -194,14 +194,14 @@ let readtokens = async (filename: string): Promise<boolean> => {
         return false;
     }
 
-    let incomment: boolean = false;
-    let infileinclusion: boolean = false;
-    let newfilename: string = '';
+    let incomment = false;
+    let infileinclusion = false;
+    let newfilename = '';
 
     let token: string;
     while ((token = nexttoken(instream)).length) {
         if (incomment) {
-            if (token == '$)') {
+            if (token === '$)') {
                 incomment = false;
                 continue;
             }
@@ -217,7 +217,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
         }
 
         // Not in comment
-        if (token == '$(') {
+        if (token === '$(') {
             incomment = true;
             continue;
         }
@@ -231,7 +231,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
                 newfilename = path.normalize(path.join(path.dirname(filename), token));
                 continue;
             } else {
-                if (token != '$]') {
+                if (token !== '$]') {
                     console.error("Didn't find closing file inclusion delimiter");
                     return false;
                 }
@@ -244,7 +244,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
             }
         }
 
-        if (token == '$[') {
+        if (token === '$[') {
             infileinclusion = true;
             continue;
         }
@@ -396,7 +396,7 @@ let makesubstitution = (original: Expression, substmap: Map<string, Expression>)
 let getproofnumbers = (label: string, proof: string): number[] | undefined => {
     const proofnumbers: number[] = [];
     let num = 0;
-    let justgotnum: boolean = false;
+    let justgotnum = false;
     for (const item of proof) {
         if (item <= 'T') {
             const addval: number = item.charCodeAt(0) - ('A'.charCodeAt(0) - 1);
@@ -690,13 +690,13 @@ let parsep = (label: string): boolean => {
     } else {
         // Regular (uncompressed proof)
         const proof: string[] = [];
-        let incomplete: boolean = false;
+        let incomplete = false;
         let token: string;
         while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
             tokens.pop();
             proof.push(token);
-            if (token == '?') incomplete = true;
-            else if (token == label) {
+            if (token === '?') incomplete = true;
+            else if (token === label) {
                 console.error('Proof of theorem ' + label + ' refers to itself');
                 return false;
             } else if (!assertions.has(token) && !isactivehyp(token)) {
@@ -1017,7 +1017,7 @@ let main = async (argv: string[]): Promise<number> => {
             okay = parsed();
         } else if (token === '${') {
             scopes.push(new Scope());
-        } else if (token == '$}') {
+        } else if (token === '$}') {
             scopes.pop();
             if (!scopes.length) {
                 console.error('$} without corresponding ${');

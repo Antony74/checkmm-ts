@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { it, expect, describe, jest } from '@jest/globals';
 import checkmm, { Assertion, Expression, Hypothesis } from '../src/checkmm';
 import std, { createStack, Stack } from '../src/std';
@@ -56,6 +57,7 @@ describe('checkmm', () => {
 
     describe('nexttoken', () => {
         it('can get the next token', () => {
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             let input = std.stringstream('hello world');
@@ -84,9 +86,8 @@ describe('checkmm', () => {
             const bigString = Array.from({ length: size })
                 .map((_value, index) => index)
                 .join(' ');
-            let input = std.stringstream(bigString);
-            let token: string;
-            while ((token = checkmm.nexttoken(input)).length) {
+            const input = std.stringstream(bigString);
+            while (checkmm.nexttoken(input).length) {
                 --size;
             }
             expect(size).toEqual(0);

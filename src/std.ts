@@ -72,7 +72,7 @@ let ifstream = async (filename: string): Promise<istream> => {
 };
 
 // Simple function for comparing arrays (in C++ STL handles this automatically)
-export let arraysequal = (arr1: any[], arr2: any[]): boolean => {
+export let arraysequal = (arr1: Array<unknown>, arr2: Array<unknown>): boolean => {
     if (arr1.length !== arr2.length) {
         return false;
     }
@@ -136,7 +136,7 @@ export default {
         ifstream = _ifstream;
     },
     arraysequal,
-    setArraysequal: (_arraysequal: (arr1: any[], arr2: any[]) => boolean) => {
+    setArraysequal: (_arraysequal: (arr1: unknown[], arr2: unknown[]) => boolean) => {
         arraysequal = _arraysequal;
     },
     createStack,
