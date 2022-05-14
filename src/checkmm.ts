@@ -31,12 +31,14 @@
 // issued and checking continues.
 //
 // Please let me know of any bugs.
-// https://github.com/Antony74/checkmm-js/issues
+// https://github.com/Antony74/checkmm-ts/issues
 
 import std, { createStack, Deque, istream, Pair, Stack } from './std';
 
+// These type-statements just restrict normal Array functionality to what we actually
+// use.  As such they have no effect, but should make an alternative implementation
+// a little easier if we ever want to pass in something besides an array.
 type TokenArray = ArrayLike<string> & Pick<Array<string>, 'pop' | 'push' | 'reverse'>;
-
 type ScopeArray = ArrayLike<Scope> &
     Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
         [Symbol.iterator](): IterableIterator<Scope>;
