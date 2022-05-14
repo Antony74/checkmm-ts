@@ -2,7 +2,7 @@
   "name": "checkmm",
   "version": "1.0.0",
   "description": "",
-  "main": "checkmm.js",
+  "main": "dist/checkmm.js",
   "bin": "cli.js",
   "scripts": {
     "build": "webpack --mode production",
@@ -44,5 +44,6 @@
     "tabWidth": 4,
     "trailingComma": "all",
     "arrowParens": "avoid"
-  }
+  },
+  "dependencies": {}
 }
