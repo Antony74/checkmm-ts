@@ -17,6 +17,6 @@ module.exports = {
     },
     output: {
         filename: 'checkmm.js',
-        path: __dirname,
+        path: __dirname + '/dist',
     },
 };
