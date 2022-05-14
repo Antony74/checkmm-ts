@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "checkmm.js",
-  "bin": {
-    "checkmm": "checkmm.js"
-  },
+  "bin": "dist/checkmm.js",
   "scripts": {
     "build": "webpack --mode production",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",

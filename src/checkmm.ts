@@ -1042,9 +1042,17 @@ let main = async (argv: string[]): Promise<number> => {
     return 0;
 };
 
-// Are we being run as a program or a library?
-if (process.argv.length >= 2 && process.argv[1] === __filename) {
-    // We are being run as a program
+// Are we being run as a cli program or a library?
+const executedScript = process.argv.length >= 2 ? process.argv[1] : '';
+const validCliSuffices = [__filename, '.bin/checkmm', 'cli.js'];
+
+const isCliCommand = validCliSuffices.reduce(
+    (acc, suffix) => (acc ? acc : executedScript.slice(-suffix.length) === suffix),
+    false,
+);
+
+if (isCliCommand) {
+    // We are being run as a cli program
     main(process.argv.slice(1)).then(exitCode => {
         process.exitCode = exitCode;
     });
