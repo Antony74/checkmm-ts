@@ -1,6 +1,7 @@
 /*global module, __dirname */
 
 module.exports = {
+    target: 'node',
     entry: './src/checkmm.ts',
     module: {
         rules: [
@@ -13,11 +14,6 @@ module.exports = {
     },
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
-        fallback: {
-            path: false,
-            fs: false,
-            util: false,
-        },
     },
     output: {
         filename: 'checkmm.js',
