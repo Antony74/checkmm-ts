@@ -228,7 +228,11 @@ let readtokens = async (filename: string): Promise<boolean> => {
                     console.error('Filename ' + token + ' contains a $');
                     return false;
                 }
-                newfilename = path.normalize(path.join(path.dirname(filename), token));
+                if (path) {
+                    newfilename = path.normalize(path.join(path.dirname(filename), token));
+                } else {
+                    newfilename = token;
+                }
                 continue;
             } else {
                 if (token !== '$]') {
@@ -1043,19 +1047,21 @@ let main = async (argv: string[]): Promise<number> => {
 };
 
 // Are we being run as a cli program or a library?
-const executedScript = process.argv.length >= 2 ? process.argv[1] : '';
-const validCliSuffices = [__filename, '.bin/checkmm', 'cli.js'];
+if (process) {
+    const executedScript = process.argv.length >= 2 ? process.argv[1] : '';
+    const validCliSuffices = [__filename, '/.bin/checkmm', '/bin/checkmm', '/cli.js'];
 
-const isCliCommand = validCliSuffices.reduce(
-    (acc, suffix) => (acc ? acc : executedScript.slice(-suffix.length) === suffix),
-    false,
-);
+    const isCliCommand = validCliSuffices.reduce(
+        (acc, suffix) => (acc ? acc : executedScript.slice(-suffix.length) === suffix),
+        false,
+    );
 
-if (isCliCommand) {
-    // We are being run as a cli program
-    main(process.argv.slice(1)).then(exitCode => {
-        process.exitCode = exitCode;
-    });
+    if (isCliCommand) {
+        // We are being run as a cli program
+        main(process.argv.slice(1)).then(exitCode => {
+            process.exitCode = exitCode;
+        });
+    }
 }
 
 export default {
