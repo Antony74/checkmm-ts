@@ -2,6 +2,7 @@
 import { it, expect, describe, jest } from '@jest/globals';
 import checkmm, { Assertion, Expression, Hypothesis } from '../src/checkmm';
 import std, { createStack, Stack } from '../src/std';
+import tokensModule, { Tokens } from '../src/tokens';
 
 describe('checkmm', () => {
     describe('labelused', () => {
@@ -113,7 +114,6 @@ describe('checkmm', () => {
             jest.spyOn(std, 'ifstream').mockResolvedValue(std.stringstream(anatomymm));
             const okay: boolean = await checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
             expect(okay).toEqual(true);
-            expect(checkmm.tokens.length).toEqual(60);
         });
     });
 
@@ -161,7 +161,9 @@ describe('checkmm', () => {
 
     describe('readexpression', () => {
         it('can read expressions', () => {
-            checkmm.setTokens('|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' ').reverse());
+            checkmm.setTokens(
+                tokensModule.createTokens(...'|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' ').reverse()),
+            );
             checkmm.setConstants(new Set(['|-', '(', ')', '->', 'ph', 'ps']));
             const expression = checkmm.readexpression('a', 'ax-1', '$.');
             expect(expression).toEqual('|- ( ph -> ( ps -> ph ) )'.split(' '));
@@ -309,7 +311,7 @@ describe('checkmm', () => {
         });
     });
 
-    const initStateForTh1 = (tokens: string[]) => {
+    const initStateForTh1 = (tokens: Tokens) => {
         checkmm.setHypotheses(
             new Map(
                 Object.entries({
@@ -413,7 +415,7 @@ describe('checkmm', () => {
 
     describe('verifyregularproof', () => {
         it('can verify regular proofs', () => {
-            initStateForTh1([]);
+            initStateForTh1(tokensModule.createTokens());
 
             const theorem: Assertion = {
                 hypotheses: ['tt'],
@@ -437,7 +439,7 @@ describe('checkmm', () => {
             const spy = jest.spyOn(checkmm, 'verifyassertionref');
             checkmm.setVerifyassertionref(spy as any);
 
-            initStateForTh1([]);
+            initStateForTh1(tokensModule.createTokens());
 
             const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
             const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH')!;
@@ -457,12 +459,14 @@ describe('checkmm', () => {
     describe('parsep', () => {
         it('can parse $p statements for regular proofs', () => {
             initStateForTh1(
-                (
-                    '|- t = t $= tt tze tpl tt weq tt tt weq tt a2 tt tze tpl tt weq tt tze tpl tt weq tt tt weq ' +
-                    'wim tt a2 tt tze tpl tt tt a1 mp mp $.'
-                )
-                    .split(' ')
-                    .reverse(),
+                tokensModule.createTokens(
+                    ...(
+                        '|- t = t $= tt tze tpl tt weq tt tt weq tt a2 tt tze tpl tt weq tt tze tpl tt weq tt tt weq ' +
+                        'wim tt a2 tt tze tpl tt tt a1 mp mp $.'
+                    )
+                        .split(' ')
+                        .reverse(),
+                ),
             );
 
             const okay: boolean = checkmm.parsep('th1');
@@ -471,7 +475,9 @@ describe('checkmm', () => {
 
         it('can parse $p statements for compressed proofs', () => {
             initStateForTh1(
-                '|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'.split(' ').reverse(),
+                tokensModule.createTokens(
+                    ...'|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'.split(' ').reverse(),
+                ),
             );
 
             const okay: boolean = checkmm.parsep('th1');
@@ -481,7 +487,7 @@ describe('checkmm', () => {
 
     it('can parse $c statements', () => {
         checkmm.setScopes([]);
-        checkmm.setTokens('0 + = -> ( ) term wff |- $.'.split(' ').reverse());
+        checkmm.setTokens(tokensModule.createTokens(...'0 + = -> ( ) term wff |- $.'.split(' ').reverse()));
         checkmm.setConstants(new Set());
 
         const okay = checkmm.parsec();
