@@ -35,17 +35,17 @@
 
 import path from 'path';
 import std, { createStack, Deque, istream, Pair, Stack } from './std';
+import tokensModule, { Tokens } from './tokens';
 
-// These type-statements just restrict normal Array functionality to what we actually
-// use.  As such they have no effect, but should make an alternative implementation
-// a little easier if we ever want to pass in something besides an array.
-type TokenArray = ArrayLike<string> & Pick<Array<string>, 'pop' | 'push' | 'reverse'>;
+// Restrict ScopeArray to just the Array functionality we actually use.
+// This has no effect, but should make an alternative implmentation a little
+// easier to write if we ever want to pass in something besides an array.
 type ScopeArray = ArrayLike<Scope> &
     Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
         [Symbol.iterator](): IterableIterator<Scope>;
     };
 
-let tokens: TokenArray = [];
+let tokens: Tokens = tokensModule.createTokens();
 
 let constants = new Set<string>();
 
@@ -328,12 +328,12 @@ let constructassertion = (label: string, exp: Expression): Assertion => {
 
 // Read an expression from the token stream. Returns true iff okay.
 let readexpression = (stattype: string, label: string, terminator: string): Expression | undefined => {
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unfinished $' + stattype + ' statement ' + label);
         return undefined;
     }
 
-    const type = tokens[tokens.length - 1];
+    const type = tokens.front();
 
     if (!constants.has(type)) {
         console.error(
@@ -348,7 +348,7 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
 
     let token: string;
 
-    while (tokens.length && (token = tokens[tokens.length - 1]) !== terminator) {
+    while (!tokens.empty() && (token = tokens.front()) !== terminator) {
         tokens.pop();
 
         if (!constants.has(token) && !getfloatinghyp(token).length) {
@@ -368,7 +368,7 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
         exp.push(token);
     }
 
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unfinished $' + stattype + ' statement ' + label);
         return undefined;
     }
@@ -616,12 +616,12 @@ let parsep = (label: string): boolean => {
 
     // Now for the proof
 
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unfinished $p statement ' + label);
         return false;
     }
 
-    if (tokens[tokens.length - 1] === '(') {
+    if (tokens.front() === '(') {
         // Compressed proof
         tokens.pop();
 
@@ -630,7 +630,7 @@ let parsep = (label: string): boolean => {
         const labels: string[] = [];
         let token: string;
 
-        while (tokens.length && (token = tokens[tokens.length - 1]) !== ')') {
+        while (!tokens.empty() && (token = tokens.front()) !== ')') {
             tokens.pop();
             labels.push(token);
             if (token === label) {
@@ -649,7 +649,7 @@ let parsep = (label: string): boolean => {
             }
         }
 
-        if (!tokens.length) {
+        if (tokens.empty()) {
             console.error('Unfinished $p statement ' + label);
             return false;
         }
@@ -659,7 +659,7 @@ let parsep = (label: string): boolean => {
         // Get proof steps
 
         let proof = '';
-        while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+        while (!tokens.empty() && (token = tokens.front()) !== '$.') {
             tokens.pop();
 
             proof += token;
@@ -669,7 +669,7 @@ let parsep = (label: string): boolean => {
             }
         }
 
-        if (!tokens.length) {
+        if (tokens.empty()) {
             console.error('Unfinished $p statement ' + label);
             return false;
         }
@@ -696,7 +696,7 @@ let parsep = (label: string): boolean => {
         const proof: string[] = [];
         let incomplete = false;
         let token: string;
-        while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+        while (!tokens.empty() && (token = tokens.front()) !== '$.') {
             tokens.pop();
             proof.push(token);
             if (token === '?') incomplete = true;
@@ -711,7 +711,7 @@ let parsep = (label: string): boolean => {
             }
         }
 
-        if (!tokens.length) {
+        if (tokens.empty()) {
             console.error('Unfinished $p statement ' + label);
             return false;
         }
@@ -763,12 +763,12 @@ let parsea = (label: string): boolean => {
 
 // Parse $f statement. Return true iff okay.
 let parsef = (label: string): boolean => {
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unfinished $f statement' + label);
         return false;
     }
 
-    const typeToken = tokens[tokens.length - 1];
+    const typeToken = tokens.front();
 
     if (!constants.has(typeToken)) {
         console.error('First symbol in $f statement ' + label + ' is ' + typeToken + ' which is not a constant');
@@ -777,12 +777,12 @@ let parsef = (label: string): boolean => {
 
     tokens.pop();
 
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unfinished $f statement ' + label);
         return false;
     }
 
-    const variable = tokens[tokens.length - 1];
+    const variable = tokens.front();
     if (!isactivevariable(variable)) {
         console.error(
             'Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable',
@@ -796,13 +796,13 @@ let parsef = (label: string): boolean => {
 
     tokens.pop();
 
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unfinished $f statement' + label);
         return false;
     }
 
-    if (tokens[tokens.length - 1] !== '$.') {
-        console.error('Expected end of $f statement ' + label + ' but found ' + tokens[tokens.length - 1]);
+    if (tokens.front() !== '$.') {
+        console.error('Expected end of $f statement ' + label + ' but found ' + tokens.front());
         return false;
     }
 
@@ -836,7 +836,7 @@ let parselabel = (label: string): boolean => {
         return false;
     }
 
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unfinished labeled statement');
         return false;
     }
@@ -865,7 +865,7 @@ let parsed = (): boolean => {
     const dvars = new Set<string>();
     let token: string;
 
-    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
         tokens.pop();
 
         if (!isactivevariable(token)) {
@@ -881,7 +881,7 @@ let parsed = (): boolean => {
         dvars.add(token);
     }
 
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unterminated $d statement');
         return false;
     }
@@ -908,7 +908,7 @@ let parsec = (): boolean => {
 
     let token: string;
     let listempty = true;
-    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
         tokens.pop();
         listempty = false;
 
@@ -931,7 +931,7 @@ let parsec = (): boolean => {
         constants.add(token);
     }
 
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unterminated $c statement');
         return false;
     }
@@ -950,7 +950,7 @@ let parsec = (): boolean => {
 let parsev = (): boolean => {
     let token: string;
     let listempty = true;
-    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
         tokens.pop();
         listempty = false;
 
@@ -975,7 +975,7 @@ let parsev = (): boolean => {
         scopes[scopes.length - 1].activevariables.add(token);
     }
 
-    if (!tokens.length) {
+    if (tokens.empty()) {
         console.error('Unterminated $v statement');
         return false;
     }
@@ -1010,7 +1010,7 @@ let main = async (argv: string[]): Promise<number> => {
 
     scopes.push(new Scope());
 
-    while (tokens.length) {
+    while (!tokens.empty()) {
         const token = tokens.pop()!;
 
         let okay = true;
@@ -1074,7 +1074,7 @@ if (process) {
 
 export default {
     tokens,
-    setTokens: (_tokens: TokenArray) => {
+    setTokens: (_tokens: Tokens) => {
         tokens = _tokens;
     },
     constants,
