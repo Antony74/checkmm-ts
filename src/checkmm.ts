@@ -177,9 +177,11 @@ let nexttoken = (input: istream): string => {
 
 const mmfilenames = new Set<string>();
 
-let readtokens = async (filename: string): Promise<boolean> => {
+let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens> => {
+    let tokens = parentTokens ?? tokensModule.createTokens();
+
     const alreadyencountered: boolean = mmfilenames.has(filename);
-    if (alreadyencountered) return true;
+    if (alreadyencountered) return tokens;
 
     mmfilenames.add(filename);
 
@@ -190,8 +192,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
     } catch (_e) {}
 
     if (!instream) {
-        console.error('Could not open ' + filename);
-        return false;
+        throw new Error('Could not open ' + filename);
     }
 
     let incomment = false;
@@ -206,12 +207,10 @@ let readtokens = async (filename: string): Promise<boolean> => {
                 continue;
             }
             if (token.includes('$(')) {
-                console.error('Characters $( found in a comment');
-                return false;
+                throw new Error('Characters $( found in a comment');
             }
             if (token.includes('$)')) {
-                console.error('Characters $) found in a comment');
-                return false;
+                throw new Error('Characters $) found in a comment');
             }
             continue;
         }
@@ -225,8 +224,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
         if (infileinclusion) {
             if (!newfilename.length) {
                 if (token.includes('$')) {
-                    console.error('Filename ' + token + ' contains a $');
-                    return false;
+                    throw new Error('Filename ' + token + ' contains a $');
                 }
                 if (path) {
                     newfilename = path.normalize(path.join(path.dirname(filename), token));
@@ -236,12 +234,10 @@ let readtokens = async (filename: string): Promise<boolean> => {
                 continue;
             } else {
                 if (token !== '$]') {
-                    console.error("Didn't find closing file inclusion delimiter");
-                    return false;
+                    throw new Error("Didn't find closing file inclusion delimiter");
                 }
 
-                const okay: boolean = await readtokens(newfilename);
-                if (!okay) return false;
+                tokens = await readtokens(newfilename, tokens);
                 infileinclusion = false;
                 newfilename = '';
                 continue;
@@ -257,21 +253,18 @@ let readtokens = async (filename: string): Promise<boolean> => {
     }
 
     if (!instream.eof()) {
-        if (instream.fail()) console.error('Error reading from ' + filename);
-        return false;
+        throw new Error('Error reading from ' + filename);
     }
 
     if (incomment) {
-        console.error('Unclosed comment');
-        return false;
+        throw new Error('Unclosed comment');
     }
 
     if (infileinclusion) {
-        console.error('Unfinished file inclusion command');
-        return false;
+        throw new Error('Unfinished file inclusion command');
     }
 
-    return true;
+    return tokens;
 };
 
 // Construct an Assertion from an Expression. That is, determine the
@@ -993,13 +986,13 @@ let parsev = (): boolean => {
 const EXIT_FAILURE = 1;
 
 let main = async (argv: string[]): Promise<number> => {
+    try {
     if (argv.length !== 2) {
         console.error('Syntax: checkmm <filename>');
         return EXIT_FAILURE;
     }
 
-    const okay = await readtokens(argv[1]);
-    if (!okay) return EXIT_FAILURE;
+    tokens = await readtokens(argv[1]);
 
     // Reverse the order of the tokens.  We do this O(n) operation just
     // once here so that the tokens were added with 'push' O(1) but
@@ -1044,6 +1037,14 @@ let main = async (argv: string[]): Promise<number> => {
     }
 
     return 0;
+    } catch (err) {
+        if (err instanceof Error) {
+            console.error(err.message);
+        } else {
+            console.error(err);
+        }
+        return EXIT_FAILURE;
+    }
 };
 
 // Are we being run as a cli program or a library?
@@ -1138,7 +1139,7 @@ export default {
         nexttoken = _nexttoken;
     },
     readtokens,
-    setReadtokens: (_readtokens: (filename: string) => Promise<boolean>) => {
+    setReadtokens: (_readtokens: (filename: string) => Promise<Tokens>) => {
         readtokens = _readtokens;
     },
     constructassertion,

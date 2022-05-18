@@ -112,8 +112,8 @@ describe('checkmm', () => {
             wnew $p wff ( s -> ( r -> p ) ) $= ws wr wp w2 w2 $.`;
 
             jest.spyOn(std, 'ifstream').mockResolvedValue(std.stringstream(anatomymm));
-            const okay: boolean = await checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
-            expect(okay).toEqual(true);
+            const tokens: Tokens = await checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
+            expect(!!tokens).toEqual(true);
         });
     });
 
