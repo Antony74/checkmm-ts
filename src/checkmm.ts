@@ -1049,7 +1049,15 @@ let main = async (argv: string[]): Promise<number> => {
 // Are we being run as a cli program or a library?
 if (process) {
     const executedScript = process.argv.length >= 2 ? process.argv[1] : '';
-    const validCliSuffices = [__filename, '/.bin/checkmm', '/bin/checkmm', '/cli.js'];
+    const validCliSuffices = [
+        __filename,
+        '/.bin/checkmm',
+        '/bin/checkmm',
+        '/cli.js',
+        '\\.bin\\checkmm',
+        '\\bin\\checkmm',
+        '\\cli.js',
+    ];
 
     const isCliCommand = validCliSuffices.reduce(
         (acc, suffix) => (acc ? acc : executedScript.slice(-suffix.length) === suffix),
