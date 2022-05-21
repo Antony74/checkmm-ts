@@ -163,14 +163,11 @@ let nexttoken = (input: istream): string => {
     // Get token
     while (!!(ch = input.get()) && !ismmws(ch)) {
         if (ch < '!' || ch > '~') {
-            console.error('Invalid character read with code 0x' + ch.charCodeAt(0).toString(16));
-            return '';
+            throw new Error('Invalid character read with code 0x' + ch.charCodeAt(0).toString(16));
         }
 
         token += ch;
     }
-
-    if (!input.eof() && input.fail()) return '';
 
     return token;
 };
@@ -320,19 +317,17 @@ let constructassertion = (label: string, exp: Expression): Assertion => {
 };
 
 // Read an expression from the token stream. Returns true iff okay.
-let readexpression = (stattype: string, label: string, terminator: string): Expression | undefined => {
+let readexpression = (stattype: string, label: string, terminator: string): Expression => {
     if (tokens.empty()) {
-        console.error('Unfinished $' + stattype + ' statement ' + label);
-        return undefined;
+        throw new Error('Unfinished $' + stattype + ' statement ' + label);
     }
 
     const type = tokens.front();
 
     if (!constants.has(type)) {
-        console.error(
+        throw new Error(
             'First symbol in $' + stattype + ' statement ' + label + ' is ' + type + ' which is not a constant',
         );
-        return undefined;
     }
 
     tokens.pop();
@@ -345,7 +340,7 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
         tokens.pop();
 
         if (!constants.has(token) && !getfloatinghyp(token).length) {
-            console.error(
+            throw new Error(
                 'In $' +
                     stattype +
                     ' statement ' +
@@ -355,15 +350,13 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
                     ' found which is not a constant or variable in an' +
                     ' active $f statement',
             );
-            return undefined;
         }
 
         exp.push(token);
     }
 
     if (tokens.empty()) {
-        console.error('Unfinished $' + stattype + ' statement ' + label);
-        return undefined;
+        throw new Error('Unfinished $' + stattype + ' statement ' + label);
     }
 
     tokens.pop(); // Discard terminator token
@@ -390,7 +383,7 @@ let makesubstitution = (original: Expression, substmap: Map<string, Expression>)
 
 // Get the raw numbers from compressed proof format.
 // The letter Z is translated as 0.
-let getproofnumbers = (label: string, proof: string): number[] | undefined => {
+let getproofnumbers = (label: string, proof: string): number[] => {
     const proofnumbers: number[] = [];
     let num = 0;
     let justgotnum = false;
@@ -399,8 +392,7 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
             const addval: number = item.charCodeAt(0) - ('A'.charCodeAt(0) - 1);
 
             if (num > Number.MAX_SAFE_INTEGER / 20 || 20 * num > Number.MAX_SAFE_INTEGER - addval) {
-                console.error('Overflow computing numbers in compressed proof of ' + label);
-                return undefined;
+                throw new Error('Overflow computing numbers in compressed proof of ' + label);
             }
 
             proofnumbers.push(20 * num + addval);
@@ -410,8 +402,7 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
             const addval: number = item.charCodeAt(0) - 'T'.charCodeAt(0);
 
             if (num > Number.MAX_SAFE_INTEGER / 5 || 5 * num > Number.MAX_SAFE_INTEGER - addval) {
-                console.error('Overflow computing numbers in compressed proof of ' + label);
-                return undefined;
+                throw new Error('Overflow computing numbers in compressed proof of ' + label);
             }
 
             num = 5 * num + addval;
@@ -419,8 +410,7 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
         } // It must be Z
         else {
             if (!justgotnum) {
-                console.error('Stray Z found in compressed proof of ' + label);
-                return undefined;
+                throw new Error('Stray Z found in compressed proof of ' + label);
             }
 
             proofnumbers.push(0);
@@ -429,8 +419,7 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
     }
 
     if (num !== 0) {
-        console.error('Compressed proof of theorem ' + label + ' ends in unfinished number');
-        return undefined;
+        throw new Error('Compressed proof of theorem ' + label + ' ends in unfinished number');
     }
 
     return proofnumbers;
@@ -438,15 +427,10 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
 
 // Subroutine for proof verification. Verify a proof step referencing an
 // assertion (i.e., not a hypothesis).
-let verifyassertionref = (
-    thlabel: string,
-    reflabel: string,
-    stack: Stack<Expression>,
-): Stack<Expression> | undefined => {
+let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expression>): Stack<Expression> => {
     const assertion = assertions.get(reflabel)!;
     if (stack.size() < assertion.hypotheses.length) {
-        console.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
-        return undefined;
+        throw new Error('In proof of theorem ' + thlabel + ' not enough items found on stack');
     }
 
     const base = stack.size() - assertion.hypotheses.length;
@@ -460,8 +444,7 @@ let verifyassertionref = (
         if (hypothesis.second) {
             // Floating hypothesis of the referenced assertion
             if (hypothesis.first[0] !== stack.at(base + i)[0]) {
-                console.error('In proof of theorem ' + thlabel + ' unification failed');
-                return undefined;
+                throw new Error('In proof of theorem ' + thlabel + ' unification failed');
             }
             const subst: Expression = stack.at(base + i).slice(1);
             substitutions.set(hypothesis.first[1], subst);
@@ -469,8 +452,7 @@ let verifyassertionref = (
             // Essential hypothesis
             const dest = makesubstitution(hypothesis.first, substitutions);
             if (!std.arraysequal(dest, stack.at(base + i))) {
-                console.error('In proof of theorem ' + thlabel + ' unification failed');
-                return undefined;
+                throw new Error('In proof of theorem ' + thlabel + ' unification failed');
             }
         }
     }
@@ -496,8 +478,7 @@ let verifyassertionref = (
         for (const exp1item of exp1vars) {
             for (const exp2item of exp2vars) {
                 if (!isdvr(exp1item, exp2item)) {
-                    console.error('In proof of theorem ' + thlabel + ' disjoint variable restriction violated');
-                    return undefined;
+                    throw new Error('In proof of theorem ' + thlabel + ' disjoint variable restriction violated');
                 }
             }
         }
@@ -512,7 +493,7 @@ let verifyassertionref = (
 
 // Verify a regular proof. The "proof" argument should be a non-empty sequence
 // of valid labels. Return true iff the proof is correct.
-let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): boolean => {
+let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): void => {
     let stack: Stack<Expression> = std.createStack();
 
     for (const proofstep of proof) {
@@ -524,25 +505,20 @@ let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): b
         }
 
         // It must be an axiom or theorem
-        stack = verifyassertionref(label, proofstep, stack)!;
-        if (stack === undefined) return false;
+        stack = verifyassertionref(label, proofstep, stack);
     }
 
     if (stack.size() !== 1) {
-        console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
-        return false;
+        throw new Error('Proof of theorem ' + label + ' does not end with only one item on the stack');
     }
 
     if (!std.arraysequal(stack.at(0), theorem.expression)) {
-        console.error('Proof of theorem ' + label + ' proves wrong statement');
-        return false;
+        throw new Error('Proof of theorem ' + label + ' proves wrong statement');
     }
-
-    return true;
 };
 
 // Verify a compressed proof
-let verifycompressedproof = (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]): boolean => {
+let verifycompressedproof = (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]): void => {
     let stack: Stack<Expression> = createStack();
 
     const mandhypt: number = theorem.hypotheses.length;
@@ -571,13 +547,11 @@ let verifycompressedproof = (label: string, theorem: Assertion, labels: string[]
             }
 
             // It must be an axiom or theorem
-            stack = verifyassertionref(label, proofstep, stack)!;
-            if (stack === undefined) return false;
+            stack = verifyassertionref(label, proofstep, stack);
         } // Must refer to saved step
         else {
             if (item > labelt + savedsteps.length) {
-                console.error('Number in compressed proof of ' + label + ' is too high');
-                return false;
+                throw new Error('Number in compressed proof of ' + label + ' is too high');
             }
 
             stack.push(savedsteps[item - labelt - 1]);
@@ -585,33 +559,24 @@ let verifycompressedproof = (label: string, theorem: Assertion, labels: string[]
     }
 
     if (stack.size() !== 1) {
-        console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
-        return false;
+        throw new Error('Proof of theorem ' + label + ' does not end with only one item on the stack');
     }
 
     if (!std.arraysequal(stack.at(0), theorem.expression)) {
-        console.error('Proof of theorem ' + label + ' proves wrong statement');
-        return false;
+        throw new Error('Proof of theorem ' + label + ' proves wrong statement');
     }
-
-    return true;
 };
 
 // Parse $p statement. Return true iff okay.
-let parsep = (label: string): boolean => {
-    const newtheorem: Expression = readexpression('p', label, '$=')!;
-
-    if (!newtheorem) {
-        return false;
-    }
+let parsep = (label: string): void => {
+    const newtheorem: Expression = readexpression('p', label, '$=');
 
     const assertion: Assertion = constructassertion(label, newtheorem);
 
     // Now for the proof
 
     if (tokens.empty()) {
-        console.error('Unfinished $p statement ' + label);
-        return false;
+        throw new Error('Unfinished $p statement ' + label);
     }
 
     if (tokens.front() === '(') {
@@ -627,24 +592,20 @@ let parsep = (label: string): boolean => {
             tokens.pop();
             labels.push(token);
             if (token === label) {
-                console.error('Proof of theorem ' + label + ' refers to itself');
-                return false;
+                throw new Error('Proof of theorem ' + label + ' refers to itself');
             } else if (assertion.hypotheses.find(_token => _token === token)) {
-                console.error(
+                throw new Error(
                     'Compressed proof of theorem ' + label + ' has mandatory hypothesis ' + token + ' in label list',
                 );
-                return false;
             } else if (!assertions.has(token) && !isactivehyp(token)) {
-                console.error(
+                throw new Error(
                     'Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement',
                 );
-                return false;
             }
         }
 
         if (tokens.empty()) {
-            console.error('Unfinished $p statement ' + label);
-            return false;
+            throw new Error('Unfinished $p statement ' + label);
         }
 
         tokens.pop(); // Discard ) token
@@ -657,33 +618,28 @@ let parsep = (label: string): boolean => {
 
             proof += token;
             if (!containsonlyupperorq(token)) {
-                console.error('Bogus character found in compressed proof of ' + label);
-                return false;
+                throw new Error('Bogus character found in compressed proof of ' + label);
             }
         }
 
         if (tokens.empty()) {
-            console.error('Unfinished $p statement ' + label);
-            return false;
+            throw new Error('Unfinished $p statement ' + label);
         }
 
         if (!proof.length) {
-            console.error('Theorem ' + label + ' has no proof');
-            return false;
+            throw new Error('Theorem ' + label + ' has no proof');
         }
 
         tokens.pop(); // Discard $. token
 
         if (proof.includes('?')) {
             console.error('Warning: Proof of theorem ' + label + ' is incomplete');
-            return true; // Continue processing file
+            return; // Continue processing file
         }
 
-        const proofnumbers: number[] = getproofnumbers(label, proof)!;
-        if (!proofnumbers) return false;
+        const proofnumbers: number[] = getproofnumbers(label, proof);
 
-        const okay: boolean = verifycompressedproof(label, assertion, labels, proofnumbers);
-        if (!okay) return false;
+        verifycompressedproof(label, assertion, labels, proofnumbers);
     } else {
         // Regular (uncompressed proof)
         const proof: string[] = [];
@@ -694,109 +650,83 @@ let parsep = (label: string): boolean => {
             proof.push(token);
             if (token === '?') incomplete = true;
             else if (token === label) {
-                console.error('Proof of theorem ' + label + ' refers to itself');
-                return false;
+                throw new Error('Proof of theorem ' + label + ' refers to itself');
             } else if (!assertions.has(token) && !isactivehyp(token)) {
-                console.error(
+                throw new Error(
                     'Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement',
                 );
-                return false;
             }
         }
 
         if (tokens.empty()) {
-            console.error('Unfinished $p statement ' + label);
-            return false;
+            throw new Error('Unfinished $p statement ' + label);
         }
 
         if (!proof.length) {
-            console.error('Theorem ' + label + ' has no proof');
-            return false;
+            throw new Error('Theorem ' + label + ' has no proof');
         }
 
         tokens.pop(); // Discard $. token
 
         if (incomplete) {
-            console.error('Warning: Proof of theorem ' + label + ' is incomplete');
-            return true; // Continue processing file
+            throw new Error('Warning: Proof of theorem ' + label + ' is incomplete');
         }
 
-        const okay: boolean = verifyregularproof(label, assertion, proof);
-        if (!okay) return false;
+        verifyregularproof(label, assertion, proof);
     }
-
-    return true;
 };
 
 // Parse $e statement. Return true iff okay.
-let parsee = (label: string): boolean => {
-    const newhyp: Expression = readexpression('e', label, '$.')!;
-    if (!newhyp) {
-        return false;
-    }
+let parsee = (label: string): void => {
+    const newhyp: Expression = readexpression('e', label, '$.');
 
     // Create new essential hypothesis
     hypotheses.set(label, { first: newhyp, second: false });
     scopes[scopes.length - 1].activehyp.push(label);
-
-    return true;
 };
 
 // Parse $a statement. Return true iff okay.
-let parsea = (label: string): boolean => {
+let parsea = (label: string): void => {
     const newaxiom = readexpression('a', label, '$.');
-    if (!newaxiom) {
-        return false;
-    }
-
     constructassertion(label, newaxiom);
-
-    return true;
 };
 
 // Parse $f statement. Return true iff okay.
-let parsef = (label: string): boolean => {
+let parsef = (label: string): void => {
     if (tokens.empty()) {
-        console.error('Unfinished $f statement' + label);
-        return false;
+        throw new Error('Unfinished $f statement' + label);
     }
 
     const typeToken = tokens.front();
 
     if (!constants.has(typeToken)) {
-        console.error('First symbol in $f statement ' + label + ' is ' + typeToken + ' which is not a constant');
-        return false;
+        throw new Error('First symbol in $f statement ' + label + ' is ' + typeToken + ' which is not a constant');
     }
 
     tokens.pop();
 
     if (tokens.empty()) {
-        console.error('Unfinished $f statement ' + label);
-        return false;
+        throw new Error('Unfinished $f statement ' + label);
     }
 
     const variable = tokens.front();
     if (!isactivevariable(variable)) {
-        console.error(
+        throw new Error(
             'Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable',
         );
-        return false;
     }
     if (getfloatinghyp(variable).length) {
-        console.error('The variable ' + variable + ' appears in a second $f statement ' + label);
-        return false;
+        throw new Error('The variable ' + variable + ' appears in a second $f statement ' + label);
     }
 
     tokens.pop();
 
     if (tokens.empty()) {
-        console.error('Unfinished $f statement' + label);
-        return false;
+        throw new Error('Unfinished $f statement' + label);
     }
 
     if (tokens.front() !== '$.') {
-        console.error('Expected end of $f statement ' + label + ' but found ' + tokens.front());
-        return false;
+        throw new Error('Expected end of $f statement ' + label + ' but found ' + tokens.front());
     }
 
     tokens.pop(); // Discard $. token
@@ -808,53 +738,43 @@ let parsef = (label: string): boolean => {
     hypotheses.set(label, { first: newhyp, second: true });
     scopes[scopes.length - 1].activehyp.push(label);
     scopes[scopes.length - 1].floatinghyp.set(variable, label);
-
-    return true;
 };
 
 // Parse labeled statement. Return true iff okay.
-let parselabel = (label: string): boolean => {
+let parselabel = (label: string): void => {
     if (constants.has(label)) {
-        console.error('Attempt to reuse constant ' + label + ' as a label');
-        return false;
+        throw new Error('Attempt to reuse constant ' + label + ' as a label');
     }
 
     if (variables.has(label)) {
-        console.error('Attempt to reuse variable ' + label + ' as a label');
-        return false;
+        throw new Error('Attempt to reuse variable ' + label + ' as a label');
     }
 
     if (labelused(label)) {
-        console.error('Attempt to reuse label ' + label);
-        return false;
+        throw new Error('Attempt to reuse label ' + label);
     }
 
     if (tokens.empty()) {
-        console.error('Unfinished labeled statement');
-        return false;
+        throw new Error('Unfinished labeled statement');
     }
 
     const typeToken = tokens.pop();
 
-    let okay = true;
     if (typeToken === '$p') {
-        okay = parsep(label);
+        parsep(label);
     } else if (typeToken === '$e') {
-        okay = parsee(label);
+        parsee(label);
     } else if (typeToken === '$a') {
-        okay = parsea(label);
+        parsea(label);
     } else if (typeToken === '$f') {
-        okay = parsef(label);
+        parsef(label);
     } else {
-        console.error('Unexpected token ' + typeToken + ' encountered');
-        return false;
+        throw new Error('Unexpected token ' + typeToken + ' encountered');
     }
-
-    return okay;
 };
 
 // Parse $d statement. Return true iff okay.
-let parsed = (): boolean => {
+let parsed = (): void => {
     const dvars = new Set<string>();
     let token: string;
 
@@ -862,41 +782,34 @@ let parsed = (): boolean => {
         tokens.pop();
 
         if (!isactivevariable(token)) {
-            console.error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
-            return false;
+            throw new Error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
         }
 
         if (dvars.has(token)) {
-            console.error('$d statement mentions ' + token + ' twice');
-            return false;
+            throw new Error('$d statement mentions ' + token + ' twice');
         }
 
         dvars.add(token);
     }
 
     if (tokens.empty()) {
-        console.error('Unterminated $d statement');
-        return false;
+        throw new Error('Unterminated $d statement');
     }
 
     if (dvars.size < 2) {
-        console.error('Not enough items in $d statement');
-        return false;
+        throw new Error('Not enough items in $d statement');
     }
 
     // Record it
     scopes[scopes.length - 1].disjvars.push(dvars);
 
     tokens.pop(); // Discard $. token
-
-    return true;
 };
 
 // Parse $c statement. Return true iff okay.
-let parsec = (): boolean => {
+let parsec = (): void => {
     if (scopes.length > 1) {
-        console.error('$c statement occurs in inner block');
-        return false;
+        throw new Error('$c statement occurs in inner block');
     }
 
     let token: string;
@@ -906,41 +819,33 @@ let parsec = (): boolean => {
         listempty = false;
 
         if (!ismathsymboltoken(token)) {
-            console.error('Attempt to declare ' + token + ' as a constant');
-            return false;
+            throw new Error('Attempt to declare ' + token + ' as a constant');
         }
         if (variables.has(token)) {
-            console.error('Attempt to redeclare variable ' + token + ' as a constant');
-            return false;
+            throw new Error('Attempt to redeclare variable ' + token + ' as a constant');
         }
         if (labelused(token)) {
-            console.error('Attempt to reuse label ' + token + ' as a constant');
-            return false;
+            throw new Error('Attempt to reuse label ' + token + ' as a constant');
         }
         if (constants.has(token)) {
-            console.error('Attempt to redeclare constant ' + token);
-            return false;
+            throw new Error('Attempt to redeclare constant ' + token);
         }
         constants.add(token);
     }
 
     if (tokens.empty()) {
-        console.error('Unterminated $c statement');
-        return false;
+        throw new Error('Unterminated $c statement');
     }
 
     if (listempty) {
-        console.error('Empty $c statement');
-        return false;
+        throw new Error('Empty $c statement');
     }
 
     tokens.pop(); // Discard $. token
-
-    return true;
 };
 
 // Parse $v statement. Return true iff okay.
-let parsev = (): boolean => {
+let parsev = (): void => {
     let token: string;
     let listempty = true;
     while (!tokens.empty() && (token = tokens.front()) !== '$.') {
@@ -948,95 +853,81 @@ let parsev = (): boolean => {
         listempty = false;
 
         if (!ismathsymboltoken(token)) {
-            console.error('Attempt to declare ' + token + ' as a variable');
-            return false;
+            throw new Error('Attempt to declare ' + token + ' as a variable');
         }
         if (constants.has(token)) {
-            console.error('Attempt to redeclare constant ' + token + ' as a variable');
-            return false;
+            throw new Error('Attempt to redeclare constant ' + token + ' as a variable');
         }
         if (labelused(token)) {
-            console.error('Attempt to reuse label ' + token + ' as a variable');
-            return false;
+            throw new Error('Attempt to reuse label ' + token + ' as a variable');
         }
         const alreadyactive: boolean = isactivevariable(token);
         if (alreadyactive) {
-            console.error('Attempt to redeclare active variable ' + token);
-            return false;
+            throw new Error('Attempt to redeclare active variable ' + token);
         }
         variables.add(token);
         scopes[scopes.length - 1].activevariables.add(token);
     }
 
     if (tokens.empty()) {
-        console.error('Unterminated $v statement');
-        return false;
+        throw new Error('Unterminated $v statement');
     }
 
     if (listempty) {
-        console.error('Empty $v statement');
-        return false;
+        throw new Error('Empty $v statement');
     }
 
     tokens.pop(); // Discard $. token
-
-    return true;
 };
 
 const EXIT_FAILURE = 1;
 
 let main = async (argv: string[]): Promise<number> => {
     try {
-    if (argv.length !== 2) {
-        console.error('Syntax: checkmm <filename>');
-        return EXIT_FAILURE;
-    }
-
-    tokens = await readtokens(argv[1]);
-
-    // Reverse the order of the tokens.  We do this O(n) operation just
-    // once here so that the tokens were added with 'push' O(1) but
-    // can be removed with 'pop' O(1) in the order they were added (first
-    // in first out).  It's completely impractical to use 'shift' or 'unshift'
-    // because they're O(n) operations.
-    tokens.reverse();
-
-    scopes.push(new Scope());
-
-    while (!tokens.empty()) {
-        const token = tokens.pop()!;
-
-        let okay = true;
-
-        if (islabeltoken(token)) {
-            okay = parselabel(token);
-        } else if (token === '$d') {
-            okay = parsed();
-        } else if (token === '${') {
-            scopes.push(new Scope());
-        } else if (token === '$}') {
-            scopes.pop();
-            if (!scopes.length) {
-                console.error('$} without corresponding ${');
-                return EXIT_FAILURE;
-            }
-        } else if (token === '$c') {
-            okay = parsec();
-        } else if (token === '$v') {
-            okay = parsev();
-        } else {
-            console.error('Unexpected token ' + token + ' encountered');
+        if (argv.length !== 2) {
+            console.error('Syntax: checkmm <filename>');
             return EXIT_FAILURE;
         }
-        if (!okay) return EXIT_FAILURE;
-    }
 
-    if (scopes.length > 1) {
-        console.error('${ without corresponding $}');
-        return EXIT_FAILURE;
-    }
+        tokens = await readtokens(argv[1]);
 
-    return 0;
+        // Reverse the order of the tokens.  We do this O(n) operation just
+        // once here so that the tokens were added with 'push' O(1) but
+        // can be removed with 'pop' O(1) in the order they were added (first
+        // in first out).  It's completely impractical to use 'shift' or 'unshift'
+        // because they're O(n) operations.
+        tokens.reverse();
+
+        scopes.push(new Scope());
+
+        while (!tokens.empty()) {
+            const token = tokens.pop()!;
+
+            if (islabeltoken(token)) {
+                parselabel(token);
+            } else if (token === '$d') {
+                parsed();
+            } else if (token === '${') {
+                scopes.push(new Scope());
+            } else if (token === '$}') {
+                scopes.pop();
+                if (!scopes.length) {
+                    throw new Error('$} without corresponding ${');
+                }
+            } else if (token === '$c') {
+                parsec();
+            } else if (token === '$v') {
+                parsev();
+            } else {
+                throw new Error('Unexpected token ' + token + ' encountered');
+            }
+        }
+
+        if (scopes.length > 1) {
+            throw new Error('${ without corresponding $}');
+        }
+
+        return 0;
     } catch (err) {
         if (err instanceof Error) {
             console.error(err.message);
