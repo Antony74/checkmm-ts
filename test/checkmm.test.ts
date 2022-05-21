@@ -58,9 +58,6 @@ describe('checkmm', () => {
 
     describe('nexttoken', () => {
         it('can get the next token', () => {
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
-            const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
             let input = std.stringstream('hello world');
             let token = '';
 
@@ -72,14 +69,16 @@ describe('checkmm', () => {
             expect(token).toEqual('');
             token = checkmm.nexttoken(input);
             expect(token).toEqual('');
-            expect(errorSpy).toBeCalledTimes(0);
 
             input = std.stringstream(String.fromCharCode(127));
-            token = checkmm.nexttoken(input);
-            expect(token).toEqual('');
+            let err;
+            try {
+                token = checkmm.nexttoken(input);
+            } catch (_err) {
+                err = _err;
+            }
 
-            expect(errorSpy).toBeCalledTimes(1);
-            expect(errorSpy).toBeCalledWith('Invalid character read with code 0x7f');
+            expect(err instanceof Error && err.message).toEqual('Invalid character read with code 0x7f');
         });
 
         it('can process a lot of tokens without me getting bored waiting for the tests to finish', () => {
@@ -187,7 +186,7 @@ describe('checkmm', () => {
             const proofnumbers: number[] = checkmm.getproofnumbers(
                 'pm5.32',
                 'ABCDZEZABFZEZFZACFZEZFZDZABGZACGZDPAQTDZERUADUCOUFABCHIAQTJRUAHKUDSUEUBABLACLMN',
-            )!;
+            );
             expect(proofnumbers).toEqual([
                 1, 2, 3, 4, 0, 5, 0, 1, 2, 6, 0, 5, 0, 6, 0, 1, 3, 6, 0, 5, 0, 6, 0, 4, 0, 1, 2, 7, 0, 1, 3, 7, 0, 4,
                 16, 1, 17, 20, 4, 0, 5, 18, 21, 4, 23, 15, 26, 1, 2, 3, 8, 9, 1, 17, 20, 10, 18, 21, 8, 11, 24, 19, 25,
@@ -244,7 +243,7 @@ describe('checkmm', () => {
                     ['|-', 'ph'],
                     ['|-', '(', 'ph', '->', 'ps', ')'],
                 ]),
-            )!;
+            );
 
             expect(result.toArray()).toEqual([
                 ['wff', 'ps'],
@@ -301,7 +300,7 @@ describe('checkmm', () => {
                     ['wff', 'ps'],
                     ['set', 'x'],
                 ]),
-            )!;
+            );
 
             expect(result.toArray()).toEqual([
                 ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
@@ -429,8 +428,8 @@ describe('checkmm', () => {
                 'tt tze tpl tt tt a1 mp mp'
             ).split(' ');
 
-            const result1: boolean = checkmm.verifyregularproof('th1', theorem, proof);
-            expect(result1).toEqual(true);
+            checkmm.verifyregularproof('th1', theorem, proof);
+            // expect verifyregularproof not to throw
         });
     });
 
@@ -442,7 +441,7 @@ describe('checkmm', () => {
             initStateForTh1(tokensModule.createTokenArray());
 
             const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
-            const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH')!;
+            const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
 
             const theorem: Assertion = {
                 hypotheses: ['tt'],
@@ -450,9 +449,8 @@ describe('checkmm', () => {
                 expression: ['|-', 't', '=', 't'],
             };
 
-            const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
+            checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
             expect(spy).toBeCalledTimes(9);
-            expect(result2).toEqual(true);
         });
     });
 
@@ -469,8 +467,8 @@ describe('checkmm', () => {
                 ),
             );
 
-            const okay: boolean = checkmm.parsep('th1');
-            expect(okay).toEqual(true);
+            checkmm.parsep('th1');
+            // expect parsep not to throw
         });
 
         it('can parse $p statements for compressed proofs', () => {
@@ -480,8 +478,8 @@ describe('checkmm', () => {
                 ),
             );
 
-            const okay: boolean = checkmm.parsep('th1');
-            expect(okay).toEqual(true);
+            checkmm.parsep('th1');
+            // expect parsep not to throw
         });
     });
 
@@ -490,7 +488,7 @@ describe('checkmm', () => {
         checkmm.setTokens(tokensModule.createTokenArray(...'0 + = -> ( ) term wff |- $.'.split(' ').reverse()));
         checkmm.setConstants(new Set());
 
-        const okay = checkmm.parsec();
-        expect(okay).toEqual(true);
+        checkmm.parsec();
+        // expect parsec not to throw
     });
 });
