@@ -1167,7 +1167,7 @@ export default {
         verifyassertionref = _verifyassertionref;
     },
     verifyregularproof,
-    setVerifyrefularproof: (_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => boolean) => {
+    setVerifyrefularproof: (_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => void) => {
         verifyregularproof = _verifyregularproof;
     },
     verifycompressedproof,
@@ -1177,28 +1177,28 @@ export default {
             theorem: Assertion,
             labels: string[],
             proofnumbers: number[],
-        ) => boolean,
+        ) => void,
     ) => {
         verifycompressedproof = _verifycompressedproof;
     },
     parsep,
-    setParsep: (_parsep: (label: string) => boolean) => {
+    setParsep: (_parsep: (label: string) => void) => {
         parsep = _parsep;
     },
     parsee,
-    setParsee: (_parsee: (label: string) => boolean) => {
+    setParsee: (_parsee: (label: string) => void) => {
         parsee = _parsee;
     },
     parsea,
-    setParsea: (_parsea: (label: string) => boolean) => {
+    setParsea: (_parsea: (label: string) => void) => {
         parsea = _parsea;
     },
     parsef,
-    setParsef: (_parsef: (label: string) => boolean) => {
+    setParsef: (_parsef: (label: string) => void) => {
         parsef = _parsef;
     },
     parselabel,
-    setParselabel: (_parselabel: (label: string) => boolean) => {
+    setParselabel: (_parselabel: (label: string) => void) => {
         parselabel = _parselabel;
     },
     parsed,
@@ -1206,11 +1206,11 @@ export default {
         parsed = _parsed;
     },
     parsec,
-    setParsec: (_parsec: () => boolean) => {
+    setParsec: (_parsec: () => void) => {
         parsec = _parsec;
     },
     parsev,
-    setParsev: (_parsev: () => boolean) => {
+    setParsev: (_parsev: () => void) => {
         parsev = _parsev;
     },
     main,
