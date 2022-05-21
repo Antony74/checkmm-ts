@@ -1,6 +1,6 @@
 export type Tokens = Pick<Array<string>, 'pop' | 'push' | 'reverse'> & { front: () => string; empty: () => boolean };
 
-class TokensImplmentation extends Array<string> {
+class TokenArray extends Array<string> {
     constructor(...params: string[]) {
         super(...params);
     }
@@ -12,13 +12,13 @@ class TokensImplmentation extends Array<string> {
     }
 }
 
-let createTokens = (...params: string[]): Tokens => {
-    return new TokensImplmentation(...params);
+let createTokenArray = (...params: string[]): Tokens => {
+    return new TokenArray(...params);
 };
 
 export default {
-    createTokens,
-    setCreateTokens: (_createTokens: (...params: string[]) => Tokens) => {
-        createTokens = _createTokens;
+    createTokenArray,
+    setCreateTokenArray: (_createTokenArray: (...params: string[]) => Tokens) => {
+        createTokenArray = _createTokenArray;
     },
 };

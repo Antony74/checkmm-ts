@@ -161,7 +161,7 @@ describe('checkmm', () => {
     describe('readexpression', () => {
         it('can read expressions', () => {
             checkmm.setTokens(
-                tokensModule.createTokens(...'|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' ').reverse()),
+                tokensModule.createTokenArray(...'|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' ').reverse()),
             );
             checkmm.setConstants(new Set(['|-', '(', ')', '->', 'ph', 'ps']));
             const expression = checkmm.readexpression('a', 'ax-1', '$.');
@@ -414,7 +414,7 @@ describe('checkmm', () => {
 
     describe('verifyregularproof', () => {
         it('can verify regular proofs', () => {
-            initStateForTh1(tokensModule.createTokens());
+            initStateForTh1(tokensModule.createTokenArray());
 
             const theorem: Assertion = {
                 hypotheses: ['tt'],
@@ -438,7 +438,7 @@ describe('checkmm', () => {
             const spy = jest.spyOn(checkmm, 'verifyassertionref');
             checkmm.setVerifyassertionref(spy as any);
 
-            initStateForTh1(tokensModule.createTokens());
+            initStateForTh1(tokensModule.createTokenArray());
 
             const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
             const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
@@ -457,7 +457,7 @@ describe('checkmm', () => {
     describe('parsep', () => {
         it('can parse $p statements for regular proofs', () => {
             initStateForTh1(
-                tokensModule.createTokens(
+                tokensModule.createTokenArray(
                     ...(
                         '|- t = t $= tt tze tpl tt weq tt tt weq tt a2 tt tze tpl tt weq tt tze tpl tt weq tt tt weq ' +
                         'wim tt a2 tt tze tpl tt tt a1 mp mp $.'
@@ -473,7 +473,7 @@ describe('checkmm', () => {
 
         it('can parse $p statements for compressed proofs', () => {
             initStateForTh1(
-                tokensModule.createTokens(
+                tokensModule.createTokenArray(
                     ...'|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'.split(' ').reverse(),
                 ),
             );
@@ -485,7 +485,7 @@ describe('checkmm', () => {
 
     it('can parse $c statements', () => {
         checkmm.setScopes([]);
-        checkmm.setTokens(tokensModule.createTokens(...'0 + = -> ( ) term wff |- $.'.split(' ').reverse()));
+        checkmm.setTokens(tokensModule.createTokenArray(...'0 + = -> ( ) term wff |- $.'.split(' ').reverse()));
         checkmm.setConstants(new Set());
 
         checkmm.parsec();

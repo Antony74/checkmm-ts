@@ -45,7 +45,7 @@ type ScopeArray = ArrayLike<Scope> &
         [Symbol.iterator](): IterableIterator<Scope>;
     };
 
-let tokens: Tokens = tokensModule.createTokens();
+let tokens: Tokens = tokensModule.createTokenArray();
 
 let constants = new Set<string>();
 
@@ -175,7 +175,7 @@ let nexttoken = (input: istream): string => {
 const mmfilenames = new Set<string>();
 
 let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens> => {
-    let tokens = parentTokens ?? tokensModule.createTokens();
+    let tokens = parentTokens ?? tokensModule.createTokenArray();
 
     const alreadyencountered: boolean = mmfilenames.has(filename);
     if (alreadyencountered) return tokens;
