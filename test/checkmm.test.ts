@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it, expect, describe, jest } from '@jest/globals';
 import checkmm, { Assertion, Expression, Hypothesis } from '../src/checkmm';
-import std, { createStack, Stack } from '../src/std';
+import { createStack, Stack } from '../src/std';
 import tokensModule, { Tokens } from '../src/tokens';
 
 describe('checkmm', () => {
@@ -58,22 +58,24 @@ describe('checkmm', () => {
 
     describe('nexttoken', () => {
         it('can get the next token', () => {
-            let input = std.stringstream('hello world');
+            checkmm.setData('hello world');
+            checkmm.setDataPosition(0);
             let token = '';
 
-            token = checkmm.nexttoken(input);
+            token = checkmm.nexttoken();
             expect(token).toEqual('hello');
-            token = checkmm.nexttoken(input);
+            token = checkmm.nexttoken();
             expect(token).toEqual('world');
-            token = checkmm.nexttoken(input);
+            token = checkmm.nexttoken();
             expect(token).toEqual('');
-            token = checkmm.nexttoken(input);
+            token = checkmm.nexttoken();
             expect(token).toEqual('');
 
-            input = std.stringstream(String.fromCharCode(127));
+            checkmm.setData(String.fromCharCode(127));
+            checkmm.setDataPosition(0);
             let err;
             try {
-                token = checkmm.nexttoken(input);
+                token = checkmm.nexttoken();
             } catch (_err) {
                 err = _err;
             }
@@ -86,8 +88,9 @@ describe('checkmm', () => {
             const bigString = Array.from({ length: size })
                 .map((_value, index) => index)
                 .join(' ');
-            const input = std.stringstream(bigString);
-            while (checkmm.nexttoken(input).length) {
+            checkmm.setData(bigString);
+            checkmm.setDataPosition(0);
+            while (checkmm.nexttoken().length) {
                 --size;
             }
             expect(size).toEqual(0);
@@ -110,7 +113,8 @@ describe('checkmm', () => {
             $( Prove a simple theorem. $)
             wnew $p wff ( s -> ( r -> p ) ) $= ws wr wp w2 w2 $.`;
 
-            jest.spyOn(std, 'ifstream').mockResolvedValue(std.stringstream(anatomymm));
+            jest.spyOn(checkmm, 'loaddata').mockResolvedValue(anatomymm);
+
             const tokens: Tokens = await checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
             expect(!!tokens).toEqual(true);
         });

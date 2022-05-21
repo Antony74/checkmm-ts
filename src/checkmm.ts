@@ -33,8 +33,10 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-ts/issues
 
+import fs from 'fs';
+import { promisify } from 'util';
 import path from 'path';
-import std, { createStack, Deque, istream, Pair, Stack } from './std';
+import std, { createStack, Deque, Pair, Stack } from './std';
 import tokensModule, { Tokens } from './tokens';
 
 // Restrict ScopeArray to just the Array functionality we actually use.
@@ -152,44 +154,43 @@ let containsonlyupperorq = (token: string): boolean => {
     return true;
 };
 
-let nexttoken = (input: istream): string => {
+let data = '';
+let dataPosition = 0;
+
+let nexttoken = (): string => {
     let ch: string;
     let token = '';
 
     // Skip whitespace
-    while (!!(ch = input.get()) && ismmws(ch)) {}
-    if (input.good()) input.unget();
+    while (!!(ch = data.charAt(dataPosition)) && ismmws(ch)) {}
 
     // Get token
-    while (!!(ch = input.get()) && !ismmws(ch)) {
+    while (!!(ch = data.charAt(dataPosition)) && !ismmws(ch)) {
         if (ch < '!' || ch > '~') {
             throw new Error('Invalid character read with code 0x' + ch.charCodeAt(0).toString(16));
         }
 
         token += ch;
+        ++dataPosition;
     }
 
     return token;
 };
 
+let readFile = async (filename: string): Promise<string> => promisify(fs.readFile)(filename, { encoding: 'utf-8' });
+
 const mmfilenames = new Set<string>();
 
-let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens> => {
-    let tokens = parentTokens ?? tokensModule.createTokenArray();
-
+let loaddata = async (filename: string): Promise<string> => {
     const alreadyencountered: boolean = mmfilenames.has(filename);
-    if (alreadyencountered) return tokens;
+    if (!alreadyencountered) {
+        mmfilenames.add(filename);
 
-    mmfilenames.add(filename);
-
-    let instream: istream | undefined = undefined;
-
-    try {
-        instream = await std.ifstream(filename);
-    } catch (_e) {}
-
-    if (!instream) {
-        throw new Error('Could not open ' + filename);
+        try {
+            data = data.slice(0, dataPosition) + (await readFile(filename)) + data.slice(dataPosition);
+        } catch (_e) {
+            throw new Error('Could not open ' + filename);
+        }
     }
 
     let incomment = false;
@@ -197,7 +198,7 @@ let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens
     let newfilename = '';
 
     let token: string;
-    while ((token = nexttoken(instream)).length) {
+    while ((token = nexttoken()).length) {
         if (incomment) {
             if (token === '$)') {
                 incomment = false;
@@ -234,10 +235,7 @@ let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens
                     throw new Error("Didn't find closing file inclusion delimiter");
                 }
 
-                tokens = await readtokens(newfilename, tokens);
-                infileinclusion = false;
-                newfilename = '';
-                continue;
+                return loaddata(newfilename);
             }
         }
 
@@ -245,12 +243,6 @@ let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens
             infileinclusion = true;
             continue;
         }
-
-        tokens.push(token);
-    }
-
-    if (!instream.eof()) {
-        throw new Error('Error reading from ' + filename);
     }
 
     if (incomment) {
@@ -260,6 +252,55 @@ let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens
     if (infileinclusion) {
         throw new Error('Unfinished file inclusion command');
     }
+
+    return data;
+};
+
+let readtokens = async (filename: string): Promise<Tokens> => {
+    await loaddata(filename);
+    dataPosition = 0;
+
+    let incomment = false;
+    let token = '';
+
+    const tokens: Tokens = {
+        front: () => token,
+        empty: () => !!token,
+        pop: () => {
+            const currentToken = token;
+            while ((token = nexttoken()).length) {
+                if (incomment) {
+                    if (token === '$)') {
+                        incomment = false;
+                        continue;
+                    }
+                    if (token.includes('$(')) {
+                        throw new Error('Characters $( found in a comment');
+                    }
+                    if (token.includes('$)')) {
+                        throw new Error('Characters $) found in a comment');
+                    }
+                    continue;
+                }
+
+                // Not in comment
+                if (token === '$(') {
+                    incomment = true;
+                    continue;
+                }
+
+                if (token === '$[' || token === '$]') {
+                    throw new Error('Unexpected file inclusion');
+                }
+
+                return currentToken;
+            }
+
+            return currentToken;
+        },
+    };
+
+    tokens.pop();
 
     return tokens;
 };
@@ -891,13 +932,6 @@ let main = async (argv: string[]): Promise<number> => {
 
         tokens = await readtokens(argv[1]);
 
-        // Reverse the order of the tokens.  We do this O(n) operation just
-        // once here so that the tokens were added with 'push' O(1) but
-        // can be removed with 'pop' O(1) in the order they were added (first
-        // in first out).  It's completely impractical to use 'shift' or 'unshift'
-        // because they're O(n) operations.
-        tokens.reverse();
-
         scopes.push(new Scope());
 
         while (!tokens.empty()) {
@@ -965,6 +999,14 @@ if (process) {
 }
 
 export default {
+    data,
+    setData: (_data: string) => {
+        data = _data;
+    },
+    dataPosition,
+    setDataPosition: (_dataPosition: number) => {
+        dataPosition = _dataPosition;
+    },
     tokens,
     setTokens: (_tokens: Tokens) => {
         tokens = _tokens;
@@ -1026,8 +1068,16 @@ export default {
         containsonlyupperorq = _containsonlyupperorq;
     },
     nexttoken,
-    setNexttoken: (_nexttoken: (input: istream) => string) => {
+    setNexttoken: (_nexttoken: () => string) => {
         nexttoken = _nexttoken;
+    },
+    readFile,
+    setReadFile: (_readFile: (filename: string) => Promise<string>) => {
+        readFile = _readFile;
+    },
+    loaddata,
+    setLoaddata: (_loaddata: (filename: string) => Promise<string>) => {
+        loaddata = _loaddata;
     },
     readtokens,
     setReadtokens: (_readtokens: (filename: string) => Promise<Tokens>) => {
@@ -1063,12 +1113,7 @@ export default {
     },
     verifycompressedproof,
     setVerifycompressedproof: (
-        _verifycompressedproof: (
-            label: string,
-            theorem: Assertion,
-            labels: string[],
-            proofnumbers: number[],
-        ) => void,
+        _verifycompressedproof: (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]) => void,
     ) => {
         verifycompressedproof = _verifycompressedproof;
     },

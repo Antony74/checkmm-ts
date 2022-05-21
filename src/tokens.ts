@@ -1,4 +1,4 @@
-export type Tokens = Pick<Array<string>, 'pop' | 'push' | 'reverse'> & { front: () => string; empty: () => boolean };
+export type Tokens = { pop: () => string | undefined; front: () => string; empty: () => boolean };
 
 class TokenArray extends Array<string> {
     constructor(...params: string[]) {
