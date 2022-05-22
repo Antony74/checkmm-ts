@@ -162,7 +162,9 @@ let nexttoken = (): string => {
     let token = '';
 
     // Skip whitespace
-    while (!!(ch = data.charAt(dataPosition)) && ismmws(ch)) {}
+    while (!!(ch = data.charAt(dataPosition)) && ismmws(ch)) {
+        ++dataPosition;
+    }
 
     // Get token
     while (!!(ch = data.charAt(dataPosition)) && !ismmws(ch)) {
@@ -257,7 +259,7 @@ let loaddata = async (filename: string): Promise<string> => {
 };
 
 let readtokens = async (filename: string): Promise<Tokens> => {
-    await loaddata(filename);
+    data = await loaddata(filename);
     dataPosition = 0;
 
     let incomment = false;
@@ -265,7 +267,7 @@ let readtokens = async (filename: string): Promise<Tokens> => {
 
     const tokens: Tokens = {
         front: () => token,
-        empty: () => !!token,
+        empty: () => !token,
         pop: () => {
             const currentToken = token;
             while ((token = nexttoken()).length) {

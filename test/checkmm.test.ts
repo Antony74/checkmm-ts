@@ -113,10 +113,16 @@ describe('checkmm', () => {
             $( Prove a simple theorem. $)
             wnew $p wff ( s -> ( r -> p ) ) $= ws wr wp w2 w2 $.`;
 
-            jest.spyOn(checkmm, 'loaddata').mockResolvedValue(anatomymm);
+            const loaddata = checkmm.loaddata;
+            checkmm.setLoaddata(async () => anatomymm);
 
-            const tokens: Tokens = await checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
-            expect(!!tokens).toEqual(true);
+            const tokens: Tokens = await checkmm.readtokens('');
+            expect(tokens.pop()).toEqual('$c');
+            expect(tokens.pop()).toEqual('(');
+            expect(tokens.front()).toEqual(')');
+            expect(tokens.empty()).toEqual(false);
+
+            checkmm.setLoaddata(loaddata);
         });
     });
 
