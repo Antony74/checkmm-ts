@@ -183,13 +183,13 @@ let readFile = async (filename: string): Promise<string> => promisify(fs.readFil
 
 const mmfilenames = new Set<string>();
 
-let loaddata = async (filename: string): Promise<string> => {
+let loaddata = async (filename: string, lastInFileInclusionStart = 0): Promise<string> => {
     const alreadyencountered: boolean = mmfilenames.has(filename);
     if (!alreadyencountered) {
         mmfilenames.add(filename);
 
         try {
-            data = data.slice(0, dataPosition) + (await readFile(filename)) + data.slice(dataPosition);
+            data = data.slice(0, lastInFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
         } catch (_e) {
             throw new Error('Could not open ' + filename);
         }
@@ -237,12 +237,13 @@ let loaddata = async (filename: string): Promise<string> => {
                     throw new Error("Didn't find closing file inclusion delimiter");
                 }
 
-                return loaddata(newfilename);
+                return loaddata(newfilename, lastInFileInclusionStart);
             }
         }
 
         if (token === '$[') {
             infileinclusion = true;
+            lastInFileInclusionStart = dataPosition - 2;
             continue;
         }
     }
