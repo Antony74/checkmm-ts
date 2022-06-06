@@ -7,6 +7,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "performance": "ts-node test/performance.ts set.mm",
     "metamath-test": "ts-node test/metamath-test.ts",
     "set.mm": "ts-node src/checkmm.ts set.mm",
     "start": "ts-node src/checkmm.ts",
