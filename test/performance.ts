@@ -45,13 +45,10 @@ const createAsyncPerformanceMonitor = <RT, Args extends Array<unknown>>(
     };
 };
 
-const { loaddata, main } = checkmm;
+checkmm.loaddata = createAsyncPerformanceMonitor(checkmm.loaddata);
+checkmm.main = createAsyncPerformanceMonitor(checkmm.main);
 
-checkmm.setLoaddata(createAsyncPerformanceMonitor(loaddata));
-const newMain = createAsyncPerformanceMonitor(main);
-checkmm.setMain(newMain);
-
-newMain(process.argv.slice(1)).then(exitCode => {
+checkmm.main(process.argv.slice(1)).then(exitCode => {
     process.exitCode = exitCode;
     console.log(JSON.stringify(timings, null, 2));
 });

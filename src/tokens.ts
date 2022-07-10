@@ -12,13 +12,10 @@ class TokenArray extends Array<string> {
     }
 }
 
-let createTokenArray = (...params: string[]): Tokens => {
+const createTokenArray = (...params: string[]): Tokens => {
     return new TokenArray(...params);
 };
 
 export default {
-    createTokenArray,
-    setCreateTokenArray: (_createTokenArray: (...params: string[]) => Tokens) => {
-        createTokenArray = _createTokenArray;
-    },
+    get createTokenArray() {return createTokenArray},
 };

@@ -1,33 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it, expect, describe, jest } from '@jest/globals';
 import checkmm, { Assertion, Expression, Hypothesis } from '../src/checkmm';
-import { createStack, Stack } from '../src/std';
+import std, { Stack } from '../src/std';
 import tokensModule, { Tokens } from '../src/tokens';
 
 describe('checkmm', () => {
     describe('labelused', () => {
         it('can determine if a label is used', () => {
-            checkmm.setHypotheses(
-                new Map<string, Hypothesis>(
-                    Object.entries({
-                        hello: {
-                            first: ['my', 'hypothesis'],
-                            second: false,
-                        },
-                    }),
-                ),
+            checkmm.hypotheses = new Map<string, Hypothesis>(
+                Object.entries({
+                    hello: {
+                        first: ['my', 'hypothesis'],
+                        second: false,
+                    },
+                }),
             );
 
-            checkmm.setAssertions(
-                new Map<string, Assertion>(
-                    Object.entries({
-                        world: {
-                            hypotheses: [],
-                            disjvars: new Set(),
-                            expression: [],
-                        },
-                    }),
-                ),
+            checkmm.assertions = new Map<string, Assertion>(
+                Object.entries({
+                    world: {
+                        hypotheses: [],
+                        disjvars: new Set(),
+                        expression: [],
+                    },
+                }),
             );
 
             expect(checkmm.labelused('hello')).toEqual(true);
@@ -38,7 +34,7 @@ describe('checkmm', () => {
 
     describe('getfloatinghyp', () => {
         it('can find a floating hypothesis', () => {
-            checkmm.setScopes([
+            checkmm.scopes = [
                 {
                     activevariables: new Set<string>(),
                     activehyp: [],
@@ -49,7 +45,7 @@ describe('checkmm', () => {
                         }),
                     ),
                 },
-            ]);
+            ];
 
             expect(checkmm.getfloatinghyp('hello')).toEqual('world');
             expect(checkmm.getfloatinghyp('other')).toEqual('');
@@ -58,8 +54,8 @@ describe('checkmm', () => {
 
     describe('nexttoken', () => {
         it('can get the next token', () => {
-            checkmm.setData('hello world');
-            checkmm.setDataPosition(0);
+            checkmm.data = 'hello world';
+            checkmm.dataPosition = 0;
             let token = '';
 
             token = checkmm.nexttoken();
@@ -71,8 +67,8 @@ describe('checkmm', () => {
             token = checkmm.nexttoken();
             expect(token).toEqual('');
 
-            checkmm.setData(String.fromCharCode(127));
-            checkmm.setDataPosition(0);
+            checkmm.data = String.fromCharCode(127);
+            checkmm.dataPosition = 0;
             let err;
             try {
                 token = checkmm.nexttoken();
@@ -88,8 +84,8 @@ describe('checkmm', () => {
             const bigString = Array.from({ length: size })
                 .map((_value, index) => index)
                 .join(' ');
-            checkmm.setData(bigString);
-            checkmm.setDataPosition(0);
+            checkmm.data = bigString;
+            checkmm.dataPosition = 0;
             while (checkmm.nexttoken().length) {
                 --size;
             }
@@ -114,7 +110,7 @@ describe('checkmm', () => {
             wnew $p wff ( s -> ( r -> p ) ) $= ws wr wp w2 w2 $.`;
 
             const loaddata = checkmm.loaddata;
-            checkmm.setLoaddata(async () => anatomymm);
+            checkmm.loaddata = async () => anatomymm;
 
             const tokens: Tokens = await checkmm.readtokens('');
             expect(tokens.pop()).toEqual('$c');
@@ -122,28 +118,26 @@ describe('checkmm', () => {
             expect(tokens.front()).toEqual(')');
             expect(tokens.empty()).toEqual(false);
 
-            checkmm.setLoaddata(loaddata);
+            checkmm.loaddata = loaddata;
         });
     });
 
     describe('constructassertion', () => {
         it('can construct assertions with disjoint variables', () => {
-            checkmm.setHypotheses(
-                new Map(
-                    Object.entries({
-                        wph: {
-                            first: ['wff', 'ph'],
-                            second: true,
-                        },
-                        vx: {
-                            first: ['wff', 'x'],
-                            second: true,
-                        },
-                    }),
-                ),
+            checkmm.hypotheses = new Map(
+                Object.entries({
+                    wph: {
+                        first: ['wff', 'ph'],
+                        second: true,
+                    },
+                    vx: {
+                        first: ['wff', 'x'],
+                        second: true,
+                    },
+                }),
             );
 
-            checkmm.setScopes([
+            checkmm.scopes = [
                 {
                     activevariables: new Set<string>(),
                     activehyp: ['wph', 'vx'],
@@ -156,9 +150,9 @@ describe('checkmm', () => {
                     disjvars: [new Set<string>(['ph', 'x'])],
                     floatinghyp: new Map(),
                 },
-            ]);
+            ];
 
-            checkmm.setVariables(new Set<string>(['ps', 'ph', 'x']));
+            checkmm.variables = new Set<string>(['ps', 'ph', 'x']);
 
             const expression = '|- ( ph -> A. x ph )'.split(' ');
             const assertion: Assertion = checkmm.constructassertion('ax-17', expression);
@@ -170,10 +164,10 @@ describe('checkmm', () => {
 
     describe('readexpression', () => {
         it('can read expressions', () => {
-            checkmm.setTokens(
-                tokensModule.createTokenArray(...'|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' ').reverse()),
+            checkmm.tokens = tokensModule.createTokenArray(
+                ...'|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' ').reverse(),
             );
-            checkmm.setConstants(new Set(['|-', '(', ')', '->', 'ph', 'ps']));
+            checkmm.constants = new Set(['|-', '(', ')', '->', 'ph', 'ps']);
             const expression = checkmm.readexpression('a', 'ax-1', '$.');
             expect(expression).toEqual('|- ( ph -> ( ps -> ph ) )'.split(' '));
         });
@@ -207,45 +201,41 @@ describe('checkmm', () => {
 
     describe('verifyassertionref', () => {
         it('can verify a proof step references an assertion', () => {
-            checkmm.setAssertions(
-                new Map(
-                    Object.entries({
-                        'ax-mp': {
-                            hypotheses: ['wph', 'wps', 'min', 'maj'],
-                            disjvars: new Set(),
-                            expression: ['|-', 'ps'],
-                        },
-                    }),
-                ),
+            checkmm.assertions = new Map(
+                Object.entries({
+                    'ax-mp': {
+                        hypotheses: ['wph', 'wps', 'min', 'maj'],
+                        disjvars: new Set(),
+                        expression: ['|-', 'ps'],
+                    },
+                }),
             );
 
-            checkmm.setHypotheses(
-                new Map(
-                    Object.entries({
-                        wph: {
-                            first: ['wff', 'ph'],
-                            second: true,
-                        },
-                        wps: {
-                            first: ['wff', 'ps'],
-                            second: true,
-                        },
-                        min: {
-                            first: ['|-', 'ph'],
-                            second: false,
-                        },
-                        maj: {
-                            first: ['|-', '(', 'ph', '->', 'ps', ')'],
-                            second: false,
-                        },
-                    }),
-                ),
+            checkmm.hypotheses = new Map(
+                Object.entries({
+                    wph: {
+                        first: ['wff', 'ph'],
+                        second: true,
+                    },
+                    wps: {
+                        first: ['wff', 'ps'],
+                        second: true,
+                    },
+                    min: {
+                        first: ['|-', 'ph'],
+                        second: false,
+                    },
+                    maj: {
+                        first: ['|-', '(', 'ph', '->', 'ps', ')'],
+                        second: false,
+                    },
+                }),
             );
 
             const result: Stack<Expression> = checkmm.verifyassertionref(
                 'mpdb',
                 'ax-mp',
-                createStack([
+                std.createStack([
                     ['wff', 'ps'],
                     ['wff', 'ch'],
                     ['wff', 'ph'],
@@ -263,48 +253,44 @@ describe('checkmm', () => {
         });
 
         it('can verify a proof step references an assertion with disjoint variable conditions', () => {
-            checkmm.setAssertions(
-                new Map(
-                    Object.entries({
-                        'ax-17': {
-                            hypotheses: ['wph', 'vx'],
-                            expression: ['|-', '(', 'ph', '->', 'A.', 'x', 'ph', ')'],
-                            disjvars: new Set([{ first: 'ph', second: 'x' }]),
-                        },
-                    }),
-                ),
+            checkmm.assertions = new Map(
+                Object.entries({
+                    'ax-17': {
+                        hypotheses: ['wph', 'vx'],
+                        expression: ['|-', '(', 'ph', '->', 'A.', 'x', 'ph', ')'],
+                        disjvars: new Set([{ first: 'ph', second: 'x' }]),
+                    },
+                }),
             );
 
-            checkmm.setHypotheses(
-                new Map(
-                    Object.entries({
-                        wph: {
-                            first: ['wff', 'ph'],
-                            second: true,
-                        },
-                        vx: {
-                            first: ['set', 'x'],
-                            second: true,
-                        },
-                    }),
-                ),
+            checkmm.hypotheses = new Map(
+                Object.entries({
+                    wph: {
+                        first: ['wff', 'ph'],
+                        second: true,
+                    },
+                    vx: {
+                        first: ['set', 'x'],
+                        second: true,
+                    },
+                }),
             );
 
-            checkmm.setVariables(new Set<string>(['ps', 'x']));
+            checkmm.variables = new Set<string>(['ps', 'x']);
 
-            checkmm.setScopes([
+            checkmm.scopes = [
                 {
                     activehyp: [],
                     activevariables: new Set<string>(),
                     floatinghyp: new Map(),
                     disjvars: [new Set<string>(['ps', 'x'])],
                 },
-            ]);
+            ];
 
             const result: Stack<Expression> = checkmm.verifyassertionref(
                 'a17d',
                 'ax-17',
-                createStack([
+                std.createStack([
                     ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
                     ['wff', 'ph'],
                     ['wff', 'ps'],
@@ -321,90 +307,86 @@ describe('checkmm', () => {
     });
 
     const initStateForTh1 = (tokens: Tokens) => {
-        checkmm.setHypotheses(
-            new Map(
-                Object.entries({
-                    tt: {
-                        first: ['term', 't'],
-                        second: true,
-                    },
-                    tr: {
-                        first: ['term', 'r'],
-                        second: true,
-                    },
-                    ts: {
-                        first: ['term', 's'],
-                        second: true,
-                    },
-                    wp: {
-                        first: ['wff', 'P'],
-                        second: true,
-                    },
-                    wq: {
-                        first: ['wff', 'Q'],
-                        second: true,
-                    },
-                    min: {
-                        first: ['|-', 'P'],
-                        second: false,
-                    },
-                    maj: {
-                        first: '|- ( P -> Q )'.split(' '),
-                        second: false,
-                    },
-                }),
-            ),
+        checkmm.hypotheses = new Map(
+            Object.entries({
+                tt: {
+                    first: ['term', 't'],
+                    second: true,
+                },
+                tr: {
+                    first: ['term', 'r'],
+                    second: true,
+                },
+                ts: {
+                    first: ['term', 's'],
+                    second: true,
+                },
+                wp: {
+                    first: ['wff', 'P'],
+                    second: true,
+                },
+                wq: {
+                    first: ['wff', 'Q'],
+                    second: true,
+                },
+                min: {
+                    first: ['|-', 'P'],
+                    second: false,
+                },
+                maj: {
+                    first: '|- ( P -> Q )'.split(' '),
+                    second: false,
+                },
+            }),
         );
 
-        checkmm.setAssertions(
-            new Map(
-                Object.entries({
-                    tze: {
-                        expression: ['term', '0'],
-                        disjvars: new Set(),
-                        hypotheses: [],
-                    },
-                    tpl: {
-                        expression: ['term', '(', 't', '+', 'r', ')'],
-                        disjvars: new Set(),
-                        hypotheses: ['tt', 'tr'],
-                    },
-                    weq: {
-                        expression: ['wff', 't', '=', 'r'],
-                        disjvars: new Set(),
-                        hypotheses: ['tt', 'tr'],
-                    },
-                    a1: {
-                        expression: '|- ( t = r -> ( t = s -> r = s ) )'.split(' '),
-                        disjvars: new Set(),
-                        hypotheses: ['tt', 'tr', 'ts'],
-                    },
-                    a2: {
-                        expression: ['|-', '(', 't', '+', '0', ')', '=', 't'],
-                        disjvars: new Set(),
-                        hypotheses: ['tt'],
-                    },
-                    mp: {
-                        expression: ['|-', 'Q'],
-                        disjvars: new Set(),
-                        hypotheses: ['wp', 'wq', 'min', 'maj'],
-                    },
-                    wim: {
-                        expression: ['wff', '(', 'P', '->', 'Q', ')'],
-                        disjvars: new Set(),
-                        hypotheses: ['wp', 'wq'],
-                    },
-                }),
-            ),
+        checkmm.assertions = new Map(
+            Object.entries({
+                tze: {
+                    expression: ['term', '0'],
+                    disjvars: new Set(),
+                    hypotheses: [],
+                },
+                tpl: {
+                    expression: ['term', '(', 't', '+', 'r', ')'],
+                    disjvars: new Set(),
+                    hypotheses: ['tt', 'tr'],
+                },
+                weq: {
+                    expression: ['wff', 't', '=', 'r'],
+                    disjvars: new Set(),
+                    hypotheses: ['tt', 'tr'],
+                },
+                a1: {
+                    expression: '|- ( t = r -> ( t = s -> r = s ) )'.split(' '),
+                    disjvars: new Set(),
+                    hypotheses: ['tt', 'tr', 'ts'],
+                },
+                a2: {
+                    expression: ['|-', '(', 't', '+', '0', ')', '=', 't'],
+                    disjvars: new Set(),
+                    hypotheses: ['tt'],
+                },
+                mp: {
+                    expression: ['|-', 'Q'],
+                    disjvars: new Set(),
+                    hypotheses: ['wp', 'wq', 'min', 'maj'],
+                },
+                wim: {
+                    expression: ['wff', '(', 'P', '->', 'Q', ')'],
+                    disjvars: new Set(),
+                    hypotheses: ['wp', 'wq'],
+                },
+            }),
         );
 
-        checkmm.setConstants(new Set(['(', ')', '+', '->', '0', '=', 'term', 'wff', '|-']));
+        checkmm.constants = new Set(['(', ')', '+', '->', '0', '=', 'term', 'wff', '|-']);
 
-        checkmm.setVariables(new Set<string>(['P', 'Q', 'r', 's', 't']));
+        checkmm.variables = new Set<string>(['P', 'Q', 'r', 's', 't']);
 
-        checkmm.setTokens(tokens);
+        checkmm.tokens = tokens;
 
-        checkmm.setScopes([
+        checkmm.scopes = [
             {
                 activevariables: new Set<string>(['P', 'Q', 'r', 's', 't']),
                 activehyp: ['tt', 'tr', 'ts', 'wp', 'wq'],
@@ -419,7 +401,7 @@ describe('checkmm', () => {
                     }),
                 ),
             },
-        ]);
+        ];
     };
 
     describe('verifyregularproof', () => {
@@ -446,7 +428,7 @@ describe('checkmm', () => {
     describe('verifycompressedproof', () => {
         it('can verify compressed proofs', () => {
             const spy = jest.spyOn(checkmm, 'verifyassertionref');
-            checkmm.setVerifyassertionref(spy as any);
+            checkmm.verifyassertionref = spy as any;
 
             initStateForTh1(tokensModule.createTokenArray());
 
@@ -494,9 +476,9 @@ describe('checkmm', () => {
     });
 
     it('can parse $c statements', () => {
-        checkmm.setScopes([]);
-        checkmm.setTokens(tokensModule.createTokenArray(...'0 + = -> ( ) term wff |- $.'.split(' ').reverse()));
-        checkmm.setConstants(new Set());
+        checkmm.scopes = [];
+        checkmm.tokens = tokensModule.createTokenArray(...'0 + = -> ( ) term wff |- $.'.split(' ').reverse());
+        checkmm.constants = new Set();
 
         checkmm.parsec();
         // expect parsec not to throw
