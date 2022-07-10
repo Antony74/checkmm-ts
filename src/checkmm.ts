@@ -36,7 +36,7 @@
 import fs from 'fs';
 import { promisify } from 'util';
 import path from 'path';
-import std, { createStack, Deque, Pair, Stack } from './std';
+import std, { Deque, Pair, Stack } from './std';
 import tokensModule, { Tokens } from './tokens';
 
 // Restrict ScopeArray to just the Array functionality we actually use.
@@ -563,7 +563,7 @@ let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): v
 
 // Verify a compressed proof
 let verifycompressedproof = (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]): void => {
-    let stack: Stack<Expression> = createStack();
+    let stack: Stack<Expression> = std.createStack();
 
     const mandhypt: number = theorem.hypotheses.length;
     const labelt: number = mandhypt + labels.length;

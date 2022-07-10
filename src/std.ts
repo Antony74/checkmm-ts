@@ -35,7 +35,7 @@ export class Vector<T> extends Array<T> {}
 export class Deque<T> extends Array<T> {}
 
 // Simple function for comparing arrays (in C++ STL handles this automatically)
-export let arraysequal = (arr1: Array<unknown>, arr2: Array<unknown>): boolean => {
+let arraysequal = (arr1: Array<unknown>, arr2: Array<unknown>): boolean => {
     if (arr1.length !== arr2.length) {
         return false;
     }
@@ -59,7 +59,7 @@ export interface Stack<T> {
     toArray(): T[];
 }
 
-export let createStack = <T>(arr?: T[]): Stack<T> => {
+let createStack = <T>(arr?: T[]): Stack<T> => {
     let container: T[] = arr ?? [];
 
     return {
