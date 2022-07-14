@@ -27,6 +27,7 @@
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-typescript": "^7.16.7",
     "@jest/globals": "^28.0.2",
+    "@types/moo": "^0.5.5",
     "@types/node": "^17.0.23",
     "@typescript-eslint/eslint-plugin": "^5.23.0",
     "@typescript-eslint/parser": "^5.23.0",
@@ -47,5 +48,7 @@
     "trailingComma": "all",
     "arrowParens": "avoid"
   },
-  "dependencies": {}
+  "dependencies": {
+    "moo": "^0.5.1"
+  }
 }

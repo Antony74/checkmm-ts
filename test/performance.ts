@@ -107,6 +107,7 @@ checkmm.main(process.argv.slice(1)).then(exitCode => {
             `${label1} called ${callCount1} times in ${taken1} seconds.`.padStart(padding, ' ') +
                 `${label2} called ${callCount2} times in ${taken2} seconds.`.padStart(padding, ' '),
         );
-        console.log();
     }
+
+    console.log();
 });

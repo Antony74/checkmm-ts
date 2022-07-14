@@ -34,11 +34,14 @@
 // https://github.com/Antony74/checkmm-ts/issues
 
 import fs from 'fs/promises';
+import moo from 'moo';
 import path from 'path';
 import stdModule, { Deque, Pair, Stack, Std } from './std';
 import tokensModule, { Tokens } from './tokens';
 
 let std = stdModule;
+
+let lexer = moo.compile({ WS: { match: /[ \n\t\f\r]+/, lineBreaks: true }, token: { match: /[!-~]+/ } });
 
 // Restrict ScopeArray to just the Array functionality we actually use.
 // This has no effect, but should make an alternative implmentation a little
@@ -159,25 +162,17 @@ let data = '';
 let dataPosition = 0;
 
 let nexttoken = (): string => {
-    let ch: string;
-    let token = '';
+    let token: moo.Token | undefined;
 
-    // Skip whitespace
-    while (!!(ch = data.charAt(dataPosition)) && ismmws(ch)) {
-        ++dataPosition;
-    }
-
-    // Get token
-    while (!!(ch = data.charAt(dataPosition)) && !ismmws(ch)) {
-        if (ch < '!' || ch > '~') {
-            throw new Error('Invalid character read with code 0x' + ch.charCodeAt(0).toString(16));
+    for (;;) {
+        token = lexer.next();
+        dataPosition += token?.value.length ?? 0;
+        if (token?.type !== 'WS') {
+            break;
         }
-
-        token += ch;
-        ++dataPosition;
     }
 
-    return token;
+    return token?.value ?? '';
 };
 
 let readfile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
@@ -263,6 +258,8 @@ let loaddata = async (filename: string, lastInFileInclusionStart = 0): Promise<s
 let readtokens = async (filename: string): Promise<Tokens> => {
     data = await loaddata(filename);
     dataPosition = 0;
+
+    lexer.reset(data);
 
     let incomment = false;
     let token = '';
@@ -1008,6 +1005,12 @@ export default {
     },
     set std(_std: Std) {
         std = _std;
+    },
+    get lexer() {
+        return lexer;
+    },
+    set lexer(_lexer: moo.Lexer) {
+        lexer = _lexer;
     },
     get data() {
         return data;
