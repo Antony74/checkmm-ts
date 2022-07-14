@@ -49,6 +49,7 @@
     "arrowParens": "avoid"
   },
   "dependencies": {
-    "moo": "^0.5.1"
+    "moo": "^0.5.1",
+    "string.prototype.replaceall": "^1.0.6"
   }
 }

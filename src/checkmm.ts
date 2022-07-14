@@ -38,10 +38,16 @@ import moo from 'moo';
 import path from 'path';
 import stdModule, { Deque, Pair, Stack, Std } from './std';
 import tokensModule, { Tokens } from './tokens';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+require('string.prototype.replaceall').shim();
 
 let std = stdModule;
 
-let lexer = moo.compile({ WS: { match: /[ \n\t\f\r]+/, lineBreaks: true }, token: { match: /[!-~]+/ } });
+let lexer = moo.compile({
+    WS: { match: /[ \t\f]+/},
+    comment: { match: /\$\([ \t\f\r].*?[ \t\f]?\$\)/, },
+    token: { match: /[!-~]+/ },
+});
 
 // Restrict ScopeArray to just the Array functionality we actually use.
 // This has no effect, but should make an alternative implmentation a little
@@ -167,12 +173,25 @@ let nexttoken = (): string => {
     for (;;) {
         token = lexer.next();
         dataPosition += token?.value.length ?? 0;
-        if (token?.type !== 'WS') {
-            break;
+
+        if (token && token.type === 'comment') {
+            const comment = token.value.slice(2, -2);
+            if (comment.includes('$(')) {
+                throw new Error('Characters $( found in a comment');
+            }
+            if (comment.includes('$)')) {
+                throw new Error('Characters $) found in a comment');
+            }
+        }
+
+        if (!token) {
+            return '';
+        }
+
+        if (token.type === 'token') {
+            return token.value;
         }
     }
-
-    return token?.value ?? '';
 };
 
 let readfile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
@@ -191,32 +210,13 @@ let loaddata = async (filename: string, lastInFileInclusionStart = 0): Promise<s
         }
     }
 
-    let incomment = false;
+    lexer.reset(data.replaceAll('\n', ' '.replaceAll('\r', ' ')));
+
     let infileinclusion = false;
     let newfilename = '';
 
     let token: string;
     while ((token = nexttoken()).length) {
-        if (incomment) {
-            if (token === '$)') {
-                incomment = false;
-                continue;
-            }
-            if (token.includes('$(')) {
-                throw new Error('Characters $( found in a comment');
-            }
-            if (token.includes('$)')) {
-                throw new Error('Characters $) found in a comment');
-            }
-            continue;
-        }
-
-        // Not in comment
-        if (token === '$(') {
-            incomment = true;
-            continue;
-        }
-
         if (infileinclusion) {
             if (!newfilename.length) {
                 if (token.includes('$')) {
@@ -244,10 +244,6 @@ let loaddata = async (filename: string, lastInFileInclusionStart = 0): Promise<s
         }
     }
 
-    if (incomment) {
-        throw new Error('Unclosed comment');
-    }
-
     if (infileinclusion) {
         throw new Error('Unfinished file inclusion command');
     }
@@ -259,9 +255,8 @@ let readtokens = async (filename: string): Promise<Tokens> => {
     data = await loaddata(filename);
     dataPosition = 0;
 
-    lexer.reset(data);
-
-    let incomment = false;
+    lexer.reset(data.replaceAll('\n', ' '.replaceAll('\r', ' ')));
+    
     let token = '';
 
     const tokens: Tokens = {
@@ -270,26 +265,6 @@ let readtokens = async (filename: string): Promise<Tokens> => {
         pop: () => {
             const currentToken = token;
             while ((token = nexttoken()).length) {
-                if (incomment) {
-                    if (token === '$)') {
-                        incomment = false;
-                        continue;
-                    }
-                    if (token.includes('$(')) {
-                        throw new Error('Characters $( found in a comment');
-                    }
-                    if (token.includes('$)')) {
-                        throw new Error('Characters $) found in a comment');
-                    }
-                    continue;
-                }
-
-                // Not in comment
-                if (token === '$(') {
-                    incomment = true;
-                    continue;
-                }
-
                 if (token === '$[' || token === '$]') {
                     throw new Error('Unexpected file inclusion');
                 }
