@@ -56,6 +56,7 @@ describe('checkmm', () => {
         it('can get the next token', () => {
             checkmm.data = 'hello world';
             checkmm.dataPosition = 0;
+            checkmm.lexer.reset(checkmm.data);
             let token = '';
 
             token = checkmm.nexttoken();
@@ -69,6 +70,7 @@ describe('checkmm', () => {
 
             checkmm.data = String.fromCharCode(127);
             checkmm.dataPosition = 0;
+            checkmm.lexer.reset(checkmm.data);
             let err;
             try {
                 token = checkmm.nexttoken();
@@ -76,7 +78,7 @@ describe('checkmm', () => {
                 err = _err;
             }
 
-            expect(err instanceof Error && err.message).toEqual('Invalid character read with code 0x7f');
+            expect(err instanceof Error && err.message).toContain('invalid syntax at line 1 col 1:');
         });
 
         it('can process a lot of tokens without me getting bored waiting for the tests to finish', () => {
@@ -86,6 +88,7 @@ describe('checkmm', () => {
                 .join(' ');
             checkmm.data = bigString;
             checkmm.dataPosition = 0;
+            checkmm.lexer.reset(checkmm.data);
             while (checkmm.nexttoken().length) {
                 --size;
             }

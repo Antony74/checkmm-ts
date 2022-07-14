@@ -185,7 +185,9 @@ let loaddata = async (filename: string, lastInFileInclusionStart = 0): Promise<s
         mmfilenames.add(filename);
 
         try {
-            data = data.slice(0, lastInFileInclusionStart) + (await readfile(filename)) + data.slice(dataPosition);
+            const remainingData = (await readfile(filename)) + data.slice(dataPosition);
+            data = data.slice(0, lastInFileInclusionStart) + remainingData;
+            lexer.reset(remainingData);
         } catch (_e) {
             throw new Error('Could not open ' + filename);
         }
