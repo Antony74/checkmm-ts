@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import checkmm from '../src/checkmm';
 import { performance } from 'perf_hooks';
 
@@ -15,11 +16,15 @@ const createPerformanceMonitor = <RT, Args extends Array<unknown>>(fn: (...args:
 
     return (...args: Args): RT => {
         const start = performance.now();
-        const returnValue = fn(...args);
+        const returnValue: any = fn(...args);
         const finish = performance.now();
 
         timings[name].callCount++;
         timings[name].millisecondsTaken += finish - start;
+
+        if (typeof returnValue === 'object' && returnValue.then) {
+            throw new Error(`createPerformanceMonitor called on function ${name} returning promise`);
+        }
 
         return returnValue;
     };
@@ -35,8 +40,13 @@ const createAsyncPerformanceMonitor = <RT, Args extends Array<unknown>>(
 
     return async (...args: Args): Promise<RT> => {
         const start = performance.now();
-        const returnValue = await fn(...args);
+        const promise = fn(...args);
+        const returnValue = await promise;
         const finish = performance.now();
+
+        if (!promise.then) {
+            throw new Error(`createAsyncPerformanceMonitor called on function ${name} not returning a promise`);
+        }
 
         timings[name].callCount++;
         timings[name].millisecondsTaken += finish - start;
@@ -45,8 +55,18 @@ const createAsyncPerformanceMonitor = <RT, Args extends Array<unknown>>(
     };
 };
 
-checkmm.loaddata = createAsyncPerformanceMonitor(checkmm.loaddata);
-checkmm.main = createAsyncPerformanceMonitor(checkmm.main);
+const isKnownAsyncFn = (label: string) =>
+    label === 'loaddata' || label === 'main' || label === 'readfile' || label === 'readtokens';
+
+for (const label in checkmm) {
+    if (typeof (checkmm as any)[label] === 'function') {
+        if (isKnownAsyncFn(label)) {
+            (checkmm as any)[label] = createAsyncPerformanceMonitor((checkmm as any)[label]);
+        } else {
+            (checkmm as any)[label] = createPerformanceMonitor((checkmm as any)[label]);
+        }
+    }
+}
 
 checkmm.main(process.argv.slice(1)).then(exitCode => {
     process.exitCode = exitCode;

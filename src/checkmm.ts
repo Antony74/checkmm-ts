@@ -180,7 +180,7 @@ let nexttoken = (): string => {
     return token;
 };
 
-let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
+let readfile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
 const mmfilenames = new Set<string>();
 
@@ -190,7 +190,7 @@ let loaddata = async (filename: string, lastInFileInclusionStart = 0): Promise<s
         mmfilenames.add(filename);
 
         try {
-            data = data.slice(0, lastInFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
+            data = data.slice(0, lastInFileInclusionStart) + (await readfile(filename)) + data.slice(dataPosition);
         } catch (_e) {
             throw new Error('Could not open ' + filename);
         }
@@ -1117,11 +1117,11 @@ export default {
     set nexttoken(_nexttoken: () => string) {
         nexttoken = _nexttoken;
     },
-    get readFile() {
-        return readFile;
+    get readfile() {
+        return readfile;
     },
-    set readFile(_readFile: (filename: string) => Promise<string>) {
-        readFile = _readFile;
+    set readfile(_readfile: (filename: string) => Promise<string>) {
+        readfile = _readfile;
     },
     get loaddata() {
         return loaddata;
@@ -1170,7 +1170,7 @@ export default {
     get verifyregularproof() {
         return verifyregularproof;
     },
-    set verifyrefularproof(_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => void) {
+    set verifyregularproof(_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => void) {
         verifyregularproof = _verifyregularproof;
     },
     get verifycompressedproof() {
