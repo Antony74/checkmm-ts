@@ -2,3 +2,4 @@ node_modules
 set.mm
 dist
 test/metamath-test
+performance.txt
