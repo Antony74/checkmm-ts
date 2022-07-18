@@ -34,8 +34,11 @@
 // https://github.com/Antony74/checkmm-ts/issues
 
 import path from 'path';
-import std, { createStack, Deque, istream, Pair, Stack } from './std';
-import tokensModule, { Tokens } from './tokens';
+import stdModuleImport, { Deque, istream, Pair, Stack, Std } from './std';
+import { createTokenArray as createTokenArrayImport, Tokens } from './tokens';
+
+let std: Std = stdModuleImport;
+let createTokenArray = createTokenArrayImport;
 
 // Restrict ScopeArray to just the Array functionality we actually use.
 // This has no effect, but should make an alternative implmentation a little
@@ -45,7 +48,7 @@ type ScopeArray = ArrayLike<Scope> &
         [Symbol.iterator](): IterableIterator<Scope>;
     };
 
-let tokens: Tokens = tokensModule.createTokenArray();
+let tokens: Tokens = createTokenArray();
 
 let constants = new Set<string>();
 
@@ -174,11 +177,9 @@ let nexttoken = (input: istream): string => {
 
 const mmfilenames = new Set<string>();
 
-let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens> => {
-    let tokens = parentTokens ?? tokensModule.createTokenArray();
-
+let readtokens = async (filename: string): Promise<void> => {
     const alreadyencountered: boolean = mmfilenames.has(filename);
-    if (alreadyencountered) return tokens;
+    if (alreadyencountered) return;
 
     mmfilenames.add(filename);
 
@@ -234,7 +235,7 @@ let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens
                     throw new Error("Didn't find closing file inclusion delimiter");
                 }
 
-                tokens = await readtokens(newfilename, tokens);
+                await readtokens(newfilename);
                 infileinclusion = false;
                 newfilename = '';
                 continue;
@@ -260,8 +261,6 @@ let readtokens = async (filename: string, parentTokens?: Tokens): Promise<Tokens
     if (infileinclusion) {
         throw new Error('Unfinished file inclusion command');
     }
-
-    return tokens;
 };
 
 // Construct an Assertion from an Expression. That is, determine the
@@ -494,7 +493,7 @@ let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expres
 // Verify a regular proof. The "proof" argument should be a non-empty sequence
 // of valid labels. Return true iff the proof is correct.
 let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): void => {
-    let stack: Stack<Expression> = std.createStack();
+    let stack: Stack<Expression> = std.createstack();
 
     for (const proofstep of proof) {
         // If step is a hypothesis, just push it onto the stack.
@@ -519,7 +518,7 @@ let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): v
 
 // Verify a compressed proof
 let verifycompressedproof = (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]): void => {
-    let stack: Stack<Expression> = createStack();
+    let stack: Stack<Expression> = std.createstack();
 
     const mandhypt: number = theorem.hypotheses.length;
     const labelt: number = mandhypt + labels.length;
@@ -889,7 +888,7 @@ let main = async (argv: string[]): Promise<number> => {
             return EXIT_FAILURE;
         }
 
-        tokens = await readtokens(argv[1]);
+        await readtokens(argv[1]);
 
         // Reverse the order of the tokens.  We do this O(n) operation just
         // once here so that the tokens were added with 'push' O(1) but
@@ -965,147 +964,218 @@ if (process) {
 }
 
 export default {
-    tokens,
-    setTokens: (_tokens: Tokens) => {
+    get std() {
+        return std;
+    },
+    set std(_std: Std) {
+        std = _std;
+    },
+    get createTokenArray() {
+        return createTokenArray;
+    },
+    set createTokenArray(_createTokenArray: () => Tokens) {
+        createTokenArray = _createTokenArray;
+    },
+    get tokens() {
+        return tokens;
+    },
+    set tokens(_tokens: Tokens) {
         tokens = _tokens;
     },
-    constants,
-    setConstants: (_constants: Set<string>) => {
+    get constants() {
+        return constants;
+    },
+    set constants(_constants: Set<string>) {
         constants = _constants;
     },
-    hypotheses,
-    setHypotheses: (_hypotheses: Map<string, Hypothesis>) => {
+    get hypotheses() {
+        return hypotheses;
+    },
+    set hypotheses(_hypotheses: Map<string, Hypothesis>) {
         hypotheses = _hypotheses;
     },
-    variables,
-    setVariables: (_variables: Set<string>) => {
+    get variables() {
+        return variables;
+    },
+    set variables(_variables: Set<string>) {
         variables = _variables;
     },
-    assertions,
-    setAssertions: (_assertions: Map<string, Assertion>) => {
+    get assertions() {
+        return assertions;
+    },
+    set assertions(_assertions: Map<string, Assertion>) {
         assertions = _assertions;
     },
-    scopes,
-    setScopes: (_scopes: ScopeArray) => {
+    get scopes() {
+        return scopes;
+    },
+    set scopes(_scopes: ScopeArray) {
         scopes = _scopes;
     },
-    labelused,
-    setLabelused: (_labelused: (label: string) => boolean) => {
+    get labelused() {
+        return labelused;
+    },
+    set labelused(_labelused: (label: string) => boolean) {
         labelused = _labelused;
     },
-    getfloatinghyp,
-    setGetfloatinghyp: (_getfloatinghyp: (vari: string) => string) => {
+    get getfloatinghyp() {
+        return getfloatinghyp;
+    },
+    set getfloatinghyp(_getfloatinghyp: (vari: string) => string) {
         getfloatinghyp = _getfloatinghyp;
     },
-    isactivevariable,
-    setIsactivevariable: (_isactivevariable: (str: string) => boolean) => {
+    get isactivevariable() {
+        return isactivevariable;
+    },
+    set isactivevariable(_isactivevariable: (str: string) => boolean) {
         isactivevariable = _isactivevariable;
     },
-    isactivehyp,
-    setIsactivehyp: (_isactivehyp: (str: string) => boolean) => {
+    get isactivehyp() {
+        return isactivehyp;
+    },
+    set isactivehyp(_isactivehyp: (str: string) => boolean) {
         isactivehyp = _isactivehyp;
     },
-    isdvr,
-    setIsdvr: (_isdvr: (var1: string, var2: string) => boolean) => {
+    get isdvr() {
+        return isdvr;
+    },
+    set isdvr(_isdvr: (var1: string, var2: string) => boolean) {
         isdvr = _isdvr;
     },
-    ismmws,
-    setIsmmws: (_ismmws: (ch: string) => boolean) => {
+    get ismmws() {
+        return ismmws;
+    },
+    set ismmws(_ismmws: (ch: string) => boolean) {
         ismmws = _ismmws;
     },
-    islabeltoken,
-    setIslabeltoken: (_islabeltoken: (token: string) => boolean) => {
+    get islabeltoken() {
+        return islabeltoken;
+    },
+    set islabeltoken(_islabeltoken: (token: string) => boolean) {
         islabeltoken = _islabeltoken;
     },
-    ismathsymboltoken,
-    setIsmathsymboltoken: (_ismathsymboltoken: (token: string) => boolean) => {
+    get ismathsymboltoken() {
+        return ismathsymboltoken;
+    },
+    set ismathsymboltoken(_ismathsymboltoken: (token: string) => boolean) {
         ismathsymboltoken = _ismathsymboltoken;
     },
-    containsonlyupperorq,
-    setContainsonlyupperorq: (_containsonlyupperorq: (token: string) => boolean) => {
+    get containsonlyupperorq() {
+        return containsonlyupperorq;
+    },
+    set containsonlyupperorq(_containsonlyupperorq: (token: string) => boolean) {
         containsonlyupperorq = _containsonlyupperorq;
     },
-    nexttoken,
-    setNexttoken: (_nexttoken: (input: istream) => string) => {
+    get nexttoken() {
+        return nexttoken;
+    },
+    set nexttoken(_nexttoken: (input: istream) => string) {
         nexttoken = _nexttoken;
     },
-    readtokens,
-    setReadtokens: (_readtokens: (filename: string) => Promise<Tokens>) => {
+    get readtokens() {
+        return readtokens;
+    },
+    set readtokens(_readtokens: (filename: string) => Promise<void>) {
         readtokens = _readtokens;
     },
-    constructassertion,
-    setConstructassertion: (_constructassertion: (label: string, exp: Expression) => Assertion) => {
+    get constructassertion() {
+        return constructassertion;
+    },
+    set constructassertion(_constructassertion: (label: string, exp: Expression) => Assertion) {
         constructassertion = _constructassertion;
     },
-    readexpression,
-    setReadexpression: (_readexpression: (stattype: string, label: string, terminator: string) => Expression) => {
+    get readexpression() {
+        return readexpression;
+    },
+    set readexpression(_readexpression: (stattype: string, label: string, terminator: string) => Expression) {
         readexpression = _readexpression;
     },
-    makesubstitution,
-    setMakesubstitution: (
-        _makesubstitution: (original: Expression, substmap: Map<string, Expression>) => Expression,
-    ) => {
+    get makesubstitution() {
+        return makesubstitution;
+    },
+    set makesubstitution(_makesubstitution: (original: Expression, substmap: Map<string, Expression>) => Expression) {
         makesubstitution = _makesubstitution;
     },
-    getproofnumbers,
-    setGetproofnumbers: (_getproofnumbers: (label: string, proof: string) => number[]) => {
+    get getproofnumbers() {
+        return getproofnumbers;
+    },
+    set getproofnumbers(_getproofnumbers: (label: string, proof: string) => number[]) {
         getproofnumbers = _getproofnumbers;
     },
-    verifyassertionref,
-    setVerifyassertionref: (
+    get verifyassertionref() {
+        return verifyassertionref;
+    },
+    set verifyassertionref(
         _verifyassertionref: (thlabel: string, reflabel: string, stack: Stack<Expression>) => Stack<Expression>,
-    ) => {
+    ) {
         verifyassertionref = _verifyassertionref;
     },
-    verifyregularproof,
-    setVerifyrefularproof: (_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => void) => {
+    get verifyregularproof() {
+        return verifyregularproof;
+    },
+    set verifyregularproof(_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => void) {
         verifyregularproof = _verifyregularproof;
     },
-    verifycompressedproof,
-    setVerifycompressedproof: (
-        _verifycompressedproof: (
-            label: string,
-            theorem: Assertion,
-            labels: string[],
-            proofnumbers: number[],
-        ) => void,
-    ) => {
+    get verifycompressedproof() {
+        return verifycompressedproof;
+    },
+    set verifycompressedproof(
+        _verifycompressedproof: (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]) => void,
+    ) {
         verifycompressedproof = _verifycompressedproof;
     },
-    parsep,
-    setParsep: (_parsep: (label: string) => void) => {
+    get parsep() {
+        return parsep;
+    },
+    set parsep(_parsep: (label: string) => void) {
         parsep = _parsep;
     },
-    parsee,
-    setParsee: (_parsee: (label: string) => void) => {
+    get parsee() {
+        return parsee;
+    },
+    set parsee(_parsee: (label: string) => void) {
         parsee = _parsee;
     },
-    parsea,
-    setParsea: (_parsea: (label: string) => void) => {
+    get parsea() {
+        return parsea;
+    },
+    set parsea(_parsea: (label: string) => void) {
         parsea = _parsea;
     },
-    parsef,
-    setParsef: (_parsef: (label: string) => void) => {
+    get parsef() {
+        return parsef;
+    },
+    set parsef(_parsef: (label: string) => void) {
         parsef = _parsef;
     },
-    parselabel,
-    setParselabel: (_parselabel: (label: string) => void) => {
+    get parselabel() {
+        return parselabel;
+    },
+    set parselabel(_parselabel: (label: string) => void) {
         parselabel = _parselabel;
     },
-    parsed,
-    setParsed: (_parsed: () => boolean) => {
+    get parsed() {
+        return parsed;
+    },
+    set parsed(_parsed: () => void) {
         parsed = _parsed;
     },
-    parsec,
-    setParsec: (_parsec: () => void) => {
+    get parsec() {
+        return parsec;
+    },
+    set parsec(_parsec: () => void) {
         parsec = _parsec;
     },
-    parsev,
-    setParsev: (_parsev: () => void) => {
+    get parsev() {
+        return parsev;
+    },
+    set parsev(_parsev: () => void) {
         parsev = _parsev;
     },
-    main,
-    setMain: (_main: (argv: string[]) => Promise<number>) => {
+    get main() {
+        return main;
+    },
+    set main(_main: (argv: string[]) => Promise<number>) {
         main = _main;
     },
 };
