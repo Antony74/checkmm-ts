@@ -5,6 +5,13 @@ import std, { Stack } from '../src/std';
 import { createTokenArray, Tokens } from '../src/tokens';
 
 describe('checkmm', () => {
+    it('exposes a number of properties, each has both a getter and a setter', () => {
+        for (const label in checkmm) {
+            const prop = (checkmm as any)[label]; // Test getter, will error if there isn't one
+            (checkmm as any)[label] = prop; // Test setter, will error if there isn't one
+        }
+    });
+
     describe('labelused', () => {
         it('can determine if a label is used', () => {
             checkmm.hypotheses = new Map<string, Hypothesis>(
