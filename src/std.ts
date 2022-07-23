@@ -39,38 +39,6 @@ export interface Pair<T1, T2> {
 export class Vector<T> extends Array<T> {}
 export class Deque<T> extends Array<T> {}
 
-export interface istream {
-    get(): string;
-    good(): boolean;
-    unget(): void;
-    eof(): boolean;
-    fail(): boolean;
-}
-
-const stringstream = (str: string): istream => {
-    let index = 0;
-
-    const stream: istream = {
-        get: (): string => {
-            const ch = str.charAt(index);
-            ++index;
-            return ch;
-        },
-        good: (): boolean => true,
-        unget: (): void => {
-            --index;
-        },
-        eof: (): boolean => index >= stringstream.length,
-        fail: (): boolean => false,
-    };
-
-    return stream;
-};
-
-const ifstream = async (filename: string): Promise<istream> => {
-    return stringstream(await readFile(filename, { encoding: 'utf-8' }));
-};
-
 // Simple function for comparing arrays (in C++ STL handles this automatically)
 const arraysequal = (arr1: Array<unknown>, arr2: Array<unknown>): boolean => {
     if (arr1.length !== arr2.length) {
@@ -118,8 +86,6 @@ export interface Std {
     isupper: (s: string) => boolean;
     isalnum: (s: string) => boolean;
     set_intersection: <T>(s1: Set<T>, s2: Set<T>) => Set<T>;
-    stringstream: (str: string) => istream;
-    ifstream: (filename: string) => Promise<istream>;
     arraysequal: (arr1: unknown[], arr2: unknown[]) => boolean;
     createstack: <T>(arr?: T[]) => Stack<T>;
 }
@@ -128,8 +94,6 @@ const std: Std = {
     isupper,
     isalnum,
     set_intersection,
-    stringstream,
-    ifstream,
     arraysequal,
     createstack,
 };

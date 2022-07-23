@@ -33,8 +33,9 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-ts/issues
 
+import fs from 'fs/promises';
 import path from 'path';
-import stdModuleImport, { Deque, istream, Pair, Stack, Std } from './std';
+import stdModuleImport, { Deque, Pair, Stack, Std } from './std';
 import { createTokenArray as createTokenArrayImport, Tokens } from './tokens';
 
 let std: Std = stdModuleImport;
@@ -48,6 +49,8 @@ type ScopeArray = ArrayLike<Scope> &
         [Symbol.iterator](): IterableIterator<Scope>;
     };
 
+let data = '';
+let dataPosition = 0;
 let tokens: Tokens = createTokenArray();
 
 let constants = new Set<string>();
@@ -155,41 +158,42 @@ let containsonlyupperorq = (token: string): boolean => {
     return true;
 };
 
-let nexttoken = (input: istream): string => {
+let nexttoken = (): string => {
     let ch: string;
     let token = '';
 
     // Skip whitespace
-    while (!!(ch = input.get()) && ismmws(ch)) {}
-    if (input.good()) input.unget();
+    while (!!(ch = data.charAt(dataPosition)) && ismmws(ch)) {
+        ++dataPosition;
+    }
 
     // Get token
-    while (!!(ch = input.get()) && !ismmws(ch)) {
+    while (!!(ch = data.charAt(dataPosition)) && !ismmws(ch)) {
         if (ch < '!' || ch > '~') {
             throw new Error('Invalid character read with code 0x' + ch.charCodeAt(0).toString(16));
         }
 
         token += ch;
+        ++dataPosition;
     }
 
     return token;
 };
 
+let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
+
 const mmfilenames = new Set<string>();
 
-let readtokens = async (filename: string): Promise<void> => {
+let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise<void> => {
     const alreadyencountered: boolean = mmfilenames.has(filename);
     if (alreadyencountered) return;
 
     mmfilenames.add(filename);
 
-    let instream: istream | undefined = undefined;
-
     try {
-        instream = await std.ifstream(filename);
-    } catch (_e) {}
-
-    if (!instream) {
+        data = data.slice(0, lastInFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
+        dataPosition = lastInFileInclusionStart;
+    } catch (_e) {
         throw new Error('Could not open ' + filename);
     }
 
@@ -198,7 +202,7 @@ let readtokens = async (filename: string): Promise<void> => {
     let newfilename = '';
 
     let token: string;
-    while ((token = nexttoken(instream)).length) {
+    while ((token = nexttoken()).length) {
         if (incomment) {
             if (token === '$)') {
                 incomment = false;
@@ -235,7 +239,7 @@ let readtokens = async (filename: string): Promise<void> => {
                     throw new Error("Didn't find closing file inclusion delimiter");
                 }
 
-                await readtokens(newfilename);
+                await readtokens(newfilename, lastInFileInclusionStart);
                 infileinclusion = false;
                 newfilename = '';
                 continue;
@@ -244,14 +248,11 @@ let readtokens = async (filename: string): Promise<void> => {
 
         if (token === '$[') {
             infileinclusion = true;
+            lastInFileInclusionStart = dataPosition - 2;
             continue;
         }
 
         tokens.push(token);
-    }
-
-    if (!instream.eof()) {
-        throw new Error('Error reading from ' + filename);
     }
 
     if (incomment) {
@@ -964,6 +965,24 @@ if (process) {
 }
 
 export default {
+    get data() {
+        return data;
+    },
+    set data(_data: string) {
+        data = _data;
+    },
+    get dataPosition() {
+        return dataPosition;
+    },
+    set dataPosition(_dataPosition: number) {
+        dataPosition = _dataPosition;
+    },
+    get readFile() {
+        return readFile;
+    },
+    set readFile(_readFile: (filename: string) => Promise<string>) {
+        readFile = _readFile;
+    },
     get std() {
         return std;
     },
@@ -1069,7 +1088,7 @@ export default {
     get nexttoken() {
         return nexttoken;
     },
-    set nexttoken(_nexttoken: (input: istream) => string) {
+    set nexttoken(_nexttoken: () => string) {
         nexttoken = _nexttoken;
     },
     get readtokens() {

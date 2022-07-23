@@ -61,22 +61,25 @@ describe('checkmm', () => {
 
     describe('nexttoken', () => {
         it('can get the next token', () => {
-            let input = std.stringstream('hello world');
+            checkmm.data = 'hello world';
+            checkmm.dataPosition = 0;
             let token = '';
 
-            token = checkmm.nexttoken(input);
+            token = checkmm.nexttoken();
             expect(token).toEqual('hello');
-            token = checkmm.nexttoken(input);
+            token = checkmm.nexttoken();
             expect(token).toEqual('world');
-            token = checkmm.nexttoken(input);
+            token = checkmm.nexttoken();
             expect(token).toEqual('');
-            token = checkmm.nexttoken(input);
+            token = checkmm.nexttoken();
             expect(token).toEqual('');
 
-            input = std.stringstream(String.fromCharCode(127));
+            checkmm.data = String.fromCharCode(127);
+            checkmm.dataPosition = 0;
+
             let err;
             try {
-                token = checkmm.nexttoken(input);
+                token = checkmm.nexttoken();
             } catch (_err) {
                 err = _err;
             }
@@ -86,11 +89,11 @@ describe('checkmm', () => {
 
         it('can process a lot of tokens without me getting bored waiting for the tests to finish', () => {
             let size = 100000;
-            const bigString = Array.from({ length: size })
+            checkmm.data = Array.from({ length: size })
                 .map((_value, index) => index)
                 .join(' ');
-            const input = std.stringstream(bigString);
-            while (checkmm.nexttoken(input).length) {
+            checkmm.dataPosition = 0;
+            while (checkmm.nexttoken().length) {
                 --size;
             }
             expect(size).toEqual(0);
@@ -113,7 +116,7 @@ describe('checkmm', () => {
             $( Prove a simple theorem. $)
             wnew $p wff ( s -> ( r -> p ) ) $= ws wr wp w2 w2 $.`;
 
-            jest.spyOn(std, 'ifstream').mockResolvedValue(std.stringstream(anatomymm));
+            checkmm.readFile = () => Promise.resolve(anatomymm);
             await checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
             expect(!!checkmm.tokens).toEqual(true);
         });
