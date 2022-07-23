@@ -33,19 +33,25 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-ts/issues
 
+import fs from 'fs/promises';
 import path from 'path';
-import std, { createStack, Deque, istream, Pair, Stack } from './std';
+import stdModuleImport, { Deque, Pair, Stack, Std } from './std';
+import { createTokenArray as createTokenArrayImport, Tokens } from './tokens';
 
-// These type-statements just restrict normal Array functionality to what we actually
-// use.  As such they have no effect, but should make an alternative implementation
-// a little easier if we ever want to pass in something besides an array.
-type TokenArray = ArrayLike<string> & Pick<Array<string>, 'pop' | 'push' | 'reverse'>;
+let std: Std = stdModuleImport;
+let createTokenArray = createTokenArrayImport;
+
+// Restrict ScopeArray to just the Array functionality we actually use.
+// This has no effect, but should make an alternative implmentation a little
+// easier to write if we ever want to pass in something besides an array.
 type ScopeArray = ArrayLike<Scope> &
     Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
         [Symbol.iterator](): IterableIterator<Scope>;
     };
 
-let tokens: TokenArray = [];
+let data = '';
+let dataPosition = 0;
+let tokens: Tokens = createTokenArray();
 
 let constants = new Set<string>();
 
@@ -152,46 +158,43 @@ let containsonlyupperorq = (token: string): boolean => {
     return true;
 };
 
-let nexttoken = (input: istream): string => {
+let nexttoken = (): string => {
     let ch: string;
     let token = '';
 
     // Skip whitespace
-    while (!!(ch = input.get()) && ismmws(ch)) {}
-    if (input.good()) input.unget();
+    while (!!(ch = data.charAt(dataPosition)) && ismmws(ch)) {
+        ++dataPosition;
+    }
 
     // Get token
-    while (!!(ch = input.get()) && !ismmws(ch)) {
+    while (!!(ch = data.charAt(dataPosition)) && !ismmws(ch)) {
         if (ch < '!' || ch > '~') {
-            console.error('Invalid character read with code 0x' + ch.charCodeAt(0).toString(16));
-            return '';
+            throw new Error('Invalid character read with code 0x' + ch.charCodeAt(0).toString(16));
         }
 
         token += ch;
+        ++dataPosition;
     }
-
-    if (!input.eof() && input.fail()) return '';
 
     return token;
 };
 
-const mmfilenames = new Set<string>();
+let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
-let readtokens = async (filename: string): Promise<boolean> => {
-    const alreadyencountered: boolean = mmfilenames.has(filename);
-    if (alreadyencountered) return true;
+let mmfilenamesalreadyencountered = new Set<string>();
 
-    mmfilenames.add(filename);
+let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise<void> => {
+    const alreadyencountered: boolean = mmfilenamesalreadyencountered.has(filename);
+    if (alreadyencountered) return;
 
-    let instream: istream | undefined = undefined;
+    mmfilenamesalreadyencountered.add(filename);
 
     try {
-        instream = await std.ifstream(filename);
-    } catch (_e) {}
-
-    if (!instream) {
-        console.error('Could not open ' + filename);
-        return false;
+        data = data.slice(0, lastInFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
+        dataPosition = lastInFileInclusionStart;
+    } catch (_e) {
+        throw new Error('Could not open ' + filename);
     }
 
     let incomment = false;
@@ -199,19 +202,17 @@ let readtokens = async (filename: string): Promise<boolean> => {
     let newfilename = '';
 
     let token: string;
-    while ((token = nexttoken(instream)).length) {
+    while ((token = nexttoken()).length) {
         if (incomment) {
             if (token === '$)') {
                 incomment = false;
                 continue;
             }
             if (token.includes('$(')) {
-                console.error('Characters $( found in a comment');
-                return false;
+                throw new Error('Characters $( found in a comment');
             }
             if (token.includes('$)')) {
-                console.error('Characters $) found in a comment');
-                return false;
+                throw new Error('Characters $) found in a comment');
             }
             continue;
         }
@@ -225,8 +226,7 @@ let readtokens = async (filename: string): Promise<boolean> => {
         if (infileinclusion) {
             if (!newfilename.length) {
                 if (token.includes('$')) {
-                    console.error('Filename ' + token + ' contains a $');
-                    return false;
+                    throw new Error('Filename ' + token + ' contains a $');
                 }
                 if (path) {
                     newfilename = path.normalize(path.join(path.dirname(filename), token));
@@ -236,12 +236,10 @@ let readtokens = async (filename: string): Promise<boolean> => {
                 continue;
             } else {
                 if (token !== '$]') {
-                    console.error("Didn't find closing file inclusion delimiter");
-                    return false;
+                    throw new Error("Didn't find closing file inclusion delimiter");
                 }
 
-                const okay: boolean = await readtokens(newfilename);
-                if (!okay) return false;
+                await readtokens(newfilename, lastInFileInclusionStart);
                 infileinclusion = false;
                 newfilename = '';
                 continue;
@@ -250,28 +248,20 @@ let readtokens = async (filename: string): Promise<boolean> => {
 
         if (token === '$[') {
             infileinclusion = true;
+            lastInFileInclusionStart = dataPosition - 2;
             continue;
         }
 
         tokens.push(token);
     }
 
-    if (!instream.eof()) {
-        if (instream.fail()) console.error('Error reading from ' + filename);
-        return false;
-    }
-
     if (incomment) {
-        console.error('Unclosed comment');
-        return false;
+        throw new Error('Unclosed comment');
     }
 
     if (infileinclusion) {
-        console.error('Unfinished file inclusion command');
-        return false;
+        throw new Error('Unfinished file inclusion command');
     }
-
-    return true;
 };
 
 // Construct an Assertion from an Expression. That is, determine the
@@ -327,19 +317,17 @@ let constructassertion = (label: string, exp: Expression): Assertion => {
 };
 
 // Read an expression from the token stream. Returns true iff okay.
-let readexpression = (stattype: string, label: string, terminator: string): Expression | undefined => {
-    if (!tokens.length) {
-        console.error('Unfinished $' + stattype + ' statement ' + label);
-        return undefined;
+let readexpression = (stattype: string, label: string, terminator: string): Expression => {
+    if (tokens.empty()) {
+        throw new Error('Unfinished $' + stattype + ' statement ' + label);
     }
 
-    const type = tokens[tokens.length - 1];
+    const type = tokens.front();
 
     if (!constants.has(type)) {
-        console.error(
+        throw new Error(
             'First symbol in $' + stattype + ' statement ' + label + ' is ' + type + ' which is not a constant',
         );
-        return undefined;
     }
 
     tokens.pop();
@@ -348,11 +336,11 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
 
     let token: string;
 
-    while (tokens.length && (token = tokens[tokens.length - 1]) !== terminator) {
+    while (!tokens.empty() && (token = tokens.front()) !== terminator) {
         tokens.pop();
 
         if (!constants.has(token) && !getfloatinghyp(token).length) {
-            console.error(
+            throw new Error(
                 'In $' +
                     stattype +
                     ' statement ' +
@@ -362,15 +350,13 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
                     ' found which is not a constant or variable in an' +
                     ' active $f statement',
             );
-            return undefined;
         }
 
         exp.push(token);
     }
 
-    if (!tokens.length) {
-        console.error('Unfinished $' + stattype + ' statement ' + label);
-        return undefined;
+    if (tokens.empty()) {
+        throw new Error('Unfinished $' + stattype + ' statement ' + label);
     }
 
     tokens.pop(); // Discard terminator token
@@ -397,7 +383,7 @@ let makesubstitution = (original: Expression, substmap: Map<string, Expression>)
 
 // Get the raw numbers from compressed proof format.
 // The letter Z is translated as 0.
-let getproofnumbers = (label: string, proof: string): number[] | undefined => {
+let getproofnumbers = (label: string, proof: string): number[] => {
     const proofnumbers: number[] = [];
     let num = 0;
     let justgotnum = false;
@@ -406,8 +392,7 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
             const addval: number = item.charCodeAt(0) - ('A'.charCodeAt(0) - 1);
 
             if (num > Number.MAX_SAFE_INTEGER / 20 || 20 * num > Number.MAX_SAFE_INTEGER - addval) {
-                console.error('Overflow computing numbers in compressed proof of ' + label);
-                return undefined;
+                throw new Error('Overflow computing numbers in compressed proof of ' + label);
             }
 
             proofnumbers.push(20 * num + addval);
@@ -417,8 +402,7 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
             const addval: number = item.charCodeAt(0) - 'T'.charCodeAt(0);
 
             if (num > Number.MAX_SAFE_INTEGER / 5 || 5 * num > Number.MAX_SAFE_INTEGER - addval) {
-                console.error('Overflow computing numbers in compressed proof of ' + label);
-                return undefined;
+                throw new Error('Overflow computing numbers in compressed proof of ' + label);
             }
 
             num = 5 * num + addval;
@@ -426,8 +410,7 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
         } // It must be Z
         else {
             if (!justgotnum) {
-                console.error('Stray Z found in compressed proof of ' + label);
-                return undefined;
+                throw new Error('Stray Z found in compressed proof of ' + label);
             }
 
             proofnumbers.push(0);
@@ -436,8 +419,7 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
     }
 
     if (num !== 0) {
-        console.error('Compressed proof of theorem ' + label + ' ends in unfinished number');
-        return undefined;
+        throw new Error('Compressed proof of theorem ' + label + ' ends in unfinished number');
     }
 
     return proofnumbers;
@@ -445,15 +427,10 @@ let getproofnumbers = (label: string, proof: string): number[] | undefined => {
 
 // Subroutine for proof verification. Verify a proof step referencing an
 // assertion (i.e., not a hypothesis).
-let verifyassertionref = (
-    thlabel: string,
-    reflabel: string,
-    stack: Stack<Expression>,
-): Stack<Expression> | undefined => {
+let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expression>): Stack<Expression> => {
     const assertion = assertions.get(reflabel)!;
     if (stack.size() < assertion.hypotheses.length) {
-        console.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
-        return undefined;
+        throw new Error('In proof of theorem ' + thlabel + ' not enough items found on stack');
     }
 
     const base = stack.size() - assertion.hypotheses.length;
@@ -467,8 +444,7 @@ let verifyassertionref = (
         if (hypothesis.second) {
             // Floating hypothesis of the referenced assertion
             if (hypothesis.first[0] !== stack.at(base + i)[0]) {
-                console.error('In proof of theorem ' + thlabel + ' unification failed');
-                return undefined;
+                throw new Error('In proof of theorem ' + thlabel + ' unification failed');
             }
             const subst: Expression = stack.at(base + i).slice(1);
             substitutions.set(hypothesis.first[1], subst);
@@ -476,8 +452,7 @@ let verifyassertionref = (
             // Essential hypothesis
             const dest = makesubstitution(hypothesis.first, substitutions);
             if (!std.arraysequal(dest, stack.at(base + i))) {
-                console.error('In proof of theorem ' + thlabel + ' unification failed');
-                return undefined;
+                throw new Error('In proof of theorem ' + thlabel + ' unification failed');
             }
         }
     }
@@ -503,8 +478,7 @@ let verifyassertionref = (
         for (const exp1item of exp1vars) {
             for (const exp2item of exp2vars) {
                 if (!isdvr(exp1item, exp2item)) {
-                    console.error('In proof of theorem ' + thlabel + ' disjoint variable restriction violated');
-                    return undefined;
+                    throw new Error('In proof of theorem ' + thlabel + ' disjoint variable restriction violated');
                 }
             }
         }
@@ -519,8 +493,8 @@ let verifyassertionref = (
 
 // Verify a regular proof. The "proof" argument should be a non-empty sequence
 // of valid labels. Return true iff the proof is correct.
-let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): boolean => {
-    let stack: Stack<Expression> = std.createStack();
+let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): void => {
+    let stack: Stack<Expression> = std.createstack();
 
     for (const proofstep of proof) {
         // If step is a hypothesis, just push it onto the stack.
@@ -531,26 +505,21 @@ let verifyregularproof = (label: string, theorem: Assertion, proof: string[]): b
         }
 
         // It must be an axiom or theorem
-        stack = verifyassertionref(label, proofstep, stack)!;
-        if (stack === undefined) return false;
+        stack = verifyassertionref(label, proofstep, stack);
     }
 
     if (stack.size() !== 1) {
-        console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
-        return false;
+        throw new Error('Proof of theorem ' + label + ' does not end with only one item on the stack');
     }
 
     if (!std.arraysequal(stack.at(0), theorem.expression)) {
-        console.error('Proof of theorem ' + label + ' proves wrong statement');
-        return false;
+        throw new Error('Proof of theorem ' + label + ' proves wrong statement');
     }
-
-    return true;
 };
 
 // Verify a compressed proof
-let verifycompressedproof = (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]): boolean => {
-    let stack: Stack<Expression> = createStack();
+let verifycompressedproof = (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]): void => {
+    let stack: Stack<Expression> = std.createstack();
 
     const mandhypt: number = theorem.hypotheses.length;
     const labelt: number = mandhypt + labels.length;
@@ -578,13 +547,11 @@ let verifycompressedproof = (label: string, theorem: Assertion, labels: string[]
             }
 
             // It must be an axiom or theorem
-            stack = verifyassertionref(label, proofstep, stack)!;
-            if (stack === undefined) return false;
+            stack = verifyassertionref(label, proofstep, stack);
         } // Must refer to saved step
         else {
             if (item > labelt + savedsteps.length) {
-                console.error('Number in compressed proof of ' + label + ' is too high');
-                return false;
+                throw new Error('Number in compressed proof of ' + label + ' is too high');
             }
 
             stack.push(savedsteps[item - labelt - 1]);
@@ -592,36 +559,27 @@ let verifycompressedproof = (label: string, theorem: Assertion, labels: string[]
     }
 
     if (stack.size() !== 1) {
-        console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
-        return false;
+        throw new Error('Proof of theorem ' + label + ' does not end with only one item on the stack');
     }
 
     if (!std.arraysequal(stack.at(0), theorem.expression)) {
-        console.error('Proof of theorem ' + label + ' proves wrong statement');
-        return false;
+        throw new Error('Proof of theorem ' + label + ' proves wrong statement');
     }
-
-    return true;
 };
 
 // Parse $p statement. Return true iff okay.
-let parsep = (label: string): boolean => {
-    const newtheorem: Expression = readexpression('p', label, '$=')!;
-
-    if (!newtheorem) {
-        return false;
-    }
+let parsep = (label: string): void => {
+    const newtheorem: Expression = readexpression('p', label, '$=');
 
     const assertion: Assertion = constructassertion(label, newtheorem);
 
     // Now for the proof
 
-    if (!tokens.length) {
-        console.error('Unfinished $p statement ' + label);
-        return false;
+    if (tokens.empty()) {
+        throw new Error('Unfinished $p statement ' + label);
     }
 
-    if (tokens[tokens.length - 1] === '(') {
+    if (tokens.front() === '(') {
         // Compressed proof
         tokens.pop();
 
@@ -630,28 +588,24 @@ let parsep = (label: string): boolean => {
         const labels: string[] = [];
         let token: string;
 
-        while (tokens.length && (token = tokens[tokens.length - 1]) !== ')') {
+        while (!tokens.empty() && (token = tokens.front()) !== ')') {
             tokens.pop();
             labels.push(token);
             if (token === label) {
-                console.error('Proof of theorem ' + label + ' refers to itself');
-                return false;
+                throw new Error('Proof of theorem ' + label + ' refers to itself');
             } else if (assertion.hypotheses.find(_token => _token === token)) {
-                console.error(
+                throw new Error(
                     'Compressed proof of theorem ' + label + ' has mandatory hypothesis ' + token + ' in label list',
                 );
-                return false;
             } else if (!assertions.has(token) && !isactivehyp(token)) {
-                console.error(
+                throw new Error(
                     'Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement',
                 );
-                return false;
             }
         }
 
-        if (!tokens.length) {
-            console.error('Unfinished $p statement ' + label);
-            return false;
+        if (tokens.empty()) {
+            throw new Error('Unfinished $p statement ' + label);
         }
 
         tokens.pop(); // Discard ) token
@@ -659,151 +613,120 @@ let parsep = (label: string): boolean => {
         // Get proof steps
 
         let proof = '';
-        while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+        while (!tokens.empty() && (token = tokens.front()) !== '$.') {
             tokens.pop();
 
             proof += token;
             if (!containsonlyupperorq(token)) {
-                console.error('Bogus character found in compressed proof of ' + label);
-                return false;
+                throw new Error('Bogus character found in compressed proof of ' + label);
             }
         }
 
-        if (!tokens.length) {
-            console.error('Unfinished $p statement ' + label);
-            return false;
+        if (tokens.empty()) {
+            throw new Error('Unfinished $p statement ' + label);
         }
 
         if (!proof.length) {
-            console.error('Theorem ' + label + ' has no proof');
-            return false;
+            throw new Error('Theorem ' + label + ' has no proof');
         }
 
         tokens.pop(); // Discard $. token
 
         if (proof.includes('?')) {
             console.error('Warning: Proof of theorem ' + label + ' is incomplete');
-            return true; // Continue processing file
+            return; // Continue processing file
         }
 
-        const proofnumbers: number[] = getproofnumbers(label, proof)!;
-        if (!proofnumbers) return false;
+        const proofnumbers: number[] = getproofnumbers(label, proof);
 
-        const okay: boolean = verifycompressedproof(label, assertion, labels, proofnumbers);
-        if (!okay) return false;
+        verifycompressedproof(label, assertion, labels, proofnumbers);
     } else {
         // Regular (uncompressed proof)
         const proof: string[] = [];
         let incomplete = false;
         let token: string;
-        while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+        while (!tokens.empty() && (token = tokens.front()) !== '$.') {
             tokens.pop();
             proof.push(token);
             if (token === '?') incomplete = true;
             else if (token === label) {
-                console.error('Proof of theorem ' + label + ' refers to itself');
-                return false;
+                throw new Error('Proof of theorem ' + label + ' refers to itself');
             } else if (!assertions.has(token) && !isactivehyp(token)) {
-                console.error(
+                throw new Error(
                     'Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement',
                 );
-                return false;
             }
         }
 
-        if (!tokens.length) {
-            console.error('Unfinished $p statement ' + label);
-            return false;
+        if (tokens.empty()) {
+            throw new Error('Unfinished $p statement ' + label);
         }
 
         if (!proof.length) {
-            console.error('Theorem ' + label + ' has no proof');
-            return false;
+            throw new Error('Theorem ' + label + ' has no proof');
         }
 
         tokens.pop(); // Discard $. token
 
         if (incomplete) {
-            console.error('Warning: Proof of theorem ' + label + ' is incomplete');
-            return true; // Continue processing file
+            throw new Error('Warning: Proof of theorem ' + label + ' is incomplete');
         }
 
-        const okay: boolean = verifyregularproof(label, assertion, proof);
-        if (!okay) return false;
+        verifyregularproof(label, assertion, proof);
     }
-
-    return true;
 };
 
 // Parse $e statement. Return true iff okay.
-let parsee = (label: string): boolean => {
-    const newhyp: Expression = readexpression('e', label, '$.')!;
-    if (!newhyp) {
-        return false;
-    }
+let parsee = (label: string): void => {
+    const newhyp: Expression = readexpression('e', label, '$.');
 
     // Create new essential hypothesis
     hypotheses.set(label, { first: newhyp, second: false });
     scopes[scopes.length - 1].activehyp.push(label);
-
-    return true;
 };
 
 // Parse $a statement. Return true iff okay.
-let parsea = (label: string): boolean => {
+let parsea = (label: string): void => {
     const newaxiom = readexpression('a', label, '$.');
-    if (!newaxiom) {
-        return false;
-    }
-
     constructassertion(label, newaxiom);
-
-    return true;
 };
 
 // Parse $f statement. Return true iff okay.
-let parsef = (label: string): boolean => {
-    if (!tokens.length) {
-        console.error('Unfinished $f statement' + label);
-        return false;
+let parsef = (label: string): void => {
+    if (tokens.empty()) {
+        throw new Error('Unfinished $f statement' + label);
     }
 
-    const typeToken = tokens[tokens.length - 1];
+    const typeToken = tokens.front();
 
     if (!constants.has(typeToken)) {
-        console.error('First symbol in $f statement ' + label + ' is ' + typeToken + ' which is not a constant');
-        return false;
+        throw new Error('First symbol in $f statement ' + label + ' is ' + typeToken + ' which is not a constant');
     }
 
     tokens.pop();
 
-    if (!tokens.length) {
-        console.error('Unfinished $f statement ' + label);
-        return false;
+    if (tokens.empty()) {
+        throw new Error('Unfinished $f statement ' + label);
     }
 
-    const variable = tokens[tokens.length - 1];
+    const variable = tokens.front();
     if (!isactivevariable(variable)) {
-        console.error(
+        throw new Error(
             'Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable',
         );
-        return false;
     }
     if (getfloatinghyp(variable).length) {
-        console.error('The variable ' + variable + ' appears in a second $f statement ' + label);
-        return false;
+        throw new Error('The variable ' + variable + ' appears in a second $f statement ' + label);
     }
 
     tokens.pop();
 
-    if (!tokens.length) {
-        console.error('Unfinished $f statement' + label);
-        return false;
+    if (tokens.empty()) {
+        throw new Error('Unfinished $f statement' + label);
     }
 
-    if (tokens[tokens.length - 1] !== '$.') {
-        console.error('Expected end of $f statement ' + label + ' but found ' + tokens[tokens.length - 1]);
-        return false;
+    if (tokens.front() !== '$.') {
+        throw new Error('Expected end of $f statement ' + label + ' but found ' + tokens.front());
     }
 
     tokens.pop(); // Discard $. token
@@ -815,235 +738,204 @@ let parsef = (label: string): boolean => {
     hypotheses.set(label, { first: newhyp, second: true });
     scopes[scopes.length - 1].activehyp.push(label);
     scopes[scopes.length - 1].floatinghyp.set(variable, label);
-
-    return true;
 };
 
 // Parse labeled statement. Return true iff okay.
-let parselabel = (label: string): boolean => {
+let parselabel = (label: string): void => {
     if (constants.has(label)) {
-        console.error('Attempt to reuse constant ' + label + ' as a label');
-        return false;
+        throw new Error('Attempt to reuse constant ' + label + ' as a label');
     }
 
     if (variables.has(label)) {
-        console.error('Attempt to reuse variable ' + label + ' as a label');
-        return false;
+        throw new Error('Attempt to reuse variable ' + label + ' as a label');
     }
 
     if (labelused(label)) {
-        console.error('Attempt to reuse label ' + label);
-        return false;
+        throw new Error('Attempt to reuse label ' + label);
     }
 
-    if (!tokens.length) {
-        console.error('Unfinished labeled statement');
-        return false;
+    if (tokens.empty()) {
+        throw new Error('Unfinished labeled statement');
     }
 
     const typeToken = tokens.pop();
 
-    let okay = true;
     if (typeToken === '$p') {
-        okay = parsep(label);
+        parsep(label);
     } else if (typeToken === '$e') {
-        okay = parsee(label);
+        parsee(label);
     } else if (typeToken === '$a') {
-        okay = parsea(label);
+        parsea(label);
     } else if (typeToken === '$f') {
-        okay = parsef(label);
+        parsef(label);
     } else {
-        console.error('Unexpected token ' + typeToken + ' encountered');
-        return false;
+        throw new Error('Unexpected token ' + typeToken + ' encountered');
     }
-
-    return okay;
 };
 
 // Parse $d statement. Return true iff okay.
-let parsed = (): boolean => {
+let parsed = (): void => {
     const dvars = new Set<string>();
     let token: string;
 
-    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
         tokens.pop();
 
         if (!isactivevariable(token)) {
-            console.error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
-            return false;
+            throw new Error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
         }
 
         if (dvars.has(token)) {
-            console.error('$d statement mentions ' + token + ' twice');
-            return false;
+            throw new Error('$d statement mentions ' + token + ' twice');
         }
 
         dvars.add(token);
     }
 
-    if (!tokens.length) {
-        console.error('Unterminated $d statement');
-        return false;
+    if (tokens.empty()) {
+        throw new Error('Unterminated $d statement');
     }
 
     if (dvars.size < 2) {
-        console.error('Not enough items in $d statement');
-        return false;
+        throw new Error('Not enough items in $d statement');
     }
 
     // Record it
     scopes[scopes.length - 1].disjvars.push(dvars);
 
     tokens.pop(); // Discard $. token
-
-    return true;
 };
 
 // Parse $c statement. Return true iff okay.
-let parsec = (): boolean => {
+let parsec = (): void => {
     if (scopes.length > 1) {
-        console.error('$c statement occurs in inner block');
-        return false;
+        throw new Error('$c statement occurs in inner block');
     }
 
     let token: string;
     let listempty = true;
-    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
         tokens.pop();
         listempty = false;
 
         if (!ismathsymboltoken(token)) {
-            console.error('Attempt to declare ' + token + ' as a constant');
-            return false;
+            throw new Error('Attempt to declare ' + token + ' as a constant');
         }
         if (variables.has(token)) {
-            console.error('Attempt to redeclare variable ' + token + ' as a constant');
-            return false;
+            throw new Error('Attempt to redeclare variable ' + token + ' as a constant');
         }
         if (labelused(token)) {
-            console.error('Attempt to reuse label ' + token + ' as a constant');
-            return false;
+            throw new Error('Attempt to reuse label ' + token + ' as a constant');
         }
         if (constants.has(token)) {
-            console.error('Attempt to redeclare constant ' + token);
-            return false;
+            throw new Error('Attempt to redeclare constant ' + token);
         }
         constants.add(token);
     }
 
-    if (!tokens.length) {
-        console.error('Unterminated $c statement');
-        return false;
+    if (tokens.empty()) {
+        throw new Error('Unterminated $c statement');
     }
 
     if (listempty) {
-        console.error('Empty $c statement');
-        return false;
+        throw new Error('Empty $c statement');
     }
 
     tokens.pop(); // Discard $. token
-
-    return true;
 };
 
 // Parse $v statement. Return true iff okay.
-let parsev = (): boolean => {
+let parsev = (): void => {
     let token: string;
     let listempty = true;
-    while (tokens.length && (token = tokens[tokens.length - 1]) !== '$.') {
+    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
         tokens.pop();
         listempty = false;
 
         if (!ismathsymboltoken(token)) {
-            console.error('Attempt to declare ' + token + ' as a variable');
-            return false;
+            throw new Error('Attempt to declare ' + token + ' as a variable');
         }
         if (constants.has(token)) {
-            console.error('Attempt to redeclare constant ' + token + ' as a variable');
-            return false;
+            throw new Error('Attempt to redeclare constant ' + token + ' as a variable');
         }
         if (labelused(token)) {
-            console.error('Attempt to reuse label ' + token + ' as a variable');
-            return false;
+            throw new Error('Attempt to reuse label ' + token + ' as a variable');
         }
         const alreadyactive: boolean = isactivevariable(token);
         if (alreadyactive) {
-            console.error('Attempt to redeclare active variable ' + token);
-            return false;
+            throw new Error('Attempt to redeclare active variable ' + token);
         }
         variables.add(token);
         scopes[scopes.length - 1].activevariables.add(token);
     }
 
-    if (!tokens.length) {
-        console.error('Unterminated $v statement');
-        return false;
+    if (tokens.empty()) {
+        throw new Error('Unterminated $v statement');
     }
 
     if (listempty) {
-        console.error('Empty $v statement');
-        return false;
+        throw new Error('Empty $v statement');
     }
 
     tokens.pop(); // Discard $. token
-
-    return true;
 };
 
 const EXIT_FAILURE = 1;
 
 let main = async (argv: string[]): Promise<number> => {
-    if (argv.length !== 2) {
-        console.error('Syntax: checkmm <filename>');
-        return EXIT_FAILURE;
-    }
-
-    const okay = await readtokens(argv[1]);
-    if (!okay) return EXIT_FAILURE;
-
-    // Reverse the order of the tokens.  We do this O(n) operation just
-    // once here so that the tokens were added with 'push' O(1) but
-    // can be removed with 'pop' O(1) in the order they were added (first
-    // in first out).  It's completely impractical to use 'shift' or 'unshift'
-    // because they're O(n) operations.
-    tokens.reverse();
-
-    scopes.push(new Scope());
-
-    while (tokens.length) {
-        const token = tokens.pop()!;
-
-        let okay = true;
-
-        if (islabeltoken(token)) {
-            okay = parselabel(token);
-        } else if (token === '$d') {
-            okay = parsed();
-        } else if (token === '${') {
-            scopes.push(new Scope());
-        } else if (token === '$}') {
-            scopes.pop();
-            if (!scopes.length) {
-                console.error('$} without corresponding ${');
-                return EXIT_FAILURE;
-            }
-        } else if (token === '$c') {
-            okay = parsec();
-        } else if (token === '$v') {
-            okay = parsev();
-        } else {
-            console.error('Unexpected token ' + token + ' encountered');
+    try {
+        if (argv.length !== 2) {
+            console.error('Syntax: checkmm <filename>');
             return EXIT_FAILURE;
         }
-        if (!okay) return EXIT_FAILURE;
-    }
 
-    if (scopes.length > 1) {
-        console.error('${ without corresponding $}');
+        await readtokens(argv[1]);
+
+        // Reverse the order of the tokens.  We do this O(n) operation just
+        // once here so that the tokens were added with 'push' O(1) but
+        // can be removed with 'pop' O(1) in the order they were added (first
+        // in first out).  It's completely impractical to use 'shift' or 'unshift'
+        // because they're O(n) operations.
+        tokens.reverse();
+
+        scopes.push(new Scope());
+
+        while (!tokens.empty()) {
+            const token = tokens.pop()!;
+
+            if (islabeltoken(token)) {
+                parselabel(token);
+            } else if (token === '$d') {
+                parsed();
+            } else if (token === '${') {
+                scopes.push(new Scope());
+            } else if (token === '$}') {
+                scopes.pop();
+                if (!scopes.length) {
+                    throw new Error('$} without corresponding ${');
+                }
+            } else if (token === '$c') {
+                parsec();
+            } else if (token === '$v') {
+                parsev();
+            } else {
+                throw new Error('Unexpected token ' + token + ' encountered');
+            }
+        }
+
+        if (scopes.length > 1) {
+            throw new Error('${ without corresponding $}');
+        }
+
+        return 0;
+    } catch (err) {
+        if (err instanceof Error) {
+            console.error(err.message);
+        } else {
+            console.error(err);
+        }
         return EXIT_FAILURE;
     }
-
-    return 0;
 };
 
 // Are we being run as a cli program or a library?
@@ -1073,147 +965,242 @@ if (process) {
 }
 
 export default {
-    tokens,
-    setTokens: (_tokens: TokenArray) => {
+    get data() {
+        return data;
+    },
+    set data(_data: string) {
+        data = _data;
+    },
+    get dataPosition() {
+        return dataPosition;
+    },
+    set dataPosition(_dataPosition: number) {
+        dataPosition = _dataPosition;
+    },
+    get readFile() {
+        return readFile;
+    },
+    set readFile(_readFile: (filename: string) => Promise<string>) {
+        readFile = _readFile;
+    },
+    get std() {
+        return std;
+    },
+    set std(_std: Std) {
+        std = _std;
+    },
+    get createTokenArray() {
+        return createTokenArray;
+    },
+    set createTokenArray(_createTokenArray: () => Tokens) {
+        createTokenArray = _createTokenArray;
+    },
+    get tokens() {
+        return tokens;
+    },
+    set tokens(_tokens: Tokens) {
         tokens = _tokens;
     },
-    constants,
-    setConstants: (_constants: Set<string>) => {
+    get constants() {
+        return constants;
+    },
+    set constants(_constants: Set<string>) {
         constants = _constants;
     },
-    hypotheses,
-    setHypotheses: (_hypotheses: Map<string, Hypothesis>) => {
+    get hypotheses() {
+        return hypotheses;
+    },
+    set hypotheses(_hypotheses: Map<string, Hypothesis>) {
         hypotheses = _hypotheses;
     },
-    variables,
-    setVariables: (_variables: Set<string>) => {
+    get variables() {
+        return variables;
+    },
+    set variables(_variables: Set<string>) {
         variables = _variables;
     },
-    assertions,
-    setAssertions: (_assertions: Map<string, Assertion>) => {
+    get assertions() {
+        return assertions;
+    },
+    set assertions(_assertions: Map<string, Assertion>) {
         assertions = _assertions;
     },
-    scopes,
-    setScopes: (_scopes: ScopeArray) => {
+    get scopes() {
+        return scopes;
+    },
+    set scopes(_scopes: ScopeArray) {
         scopes = _scopes;
     },
-    labelused,
-    setLabelused: (_labelused: (label: string) => boolean) => {
+    get labelused() {
+        return labelused;
+    },
+    set labelused(_labelused: (label: string) => boolean) {
         labelused = _labelused;
     },
-    getfloatinghyp,
-    setGetfloatinghyp: (_getfloatinghyp: (vari: string) => string) => {
+    get getfloatinghyp() {
+        return getfloatinghyp;
+    },
+    set getfloatinghyp(_getfloatinghyp: (vari: string) => string) {
         getfloatinghyp = _getfloatinghyp;
     },
-    isactivevariable,
-    setIsactivevariable: (_isactivevariable: (str: string) => boolean) => {
+    get isactivevariable() {
+        return isactivevariable;
+    },
+    set isactivevariable(_isactivevariable: (str: string) => boolean) {
         isactivevariable = _isactivevariable;
     },
-    isactivehyp,
-    setIsactivehyp: (_isactivehyp: (str: string) => boolean) => {
+    get isactivehyp() {
+        return isactivehyp;
+    },
+    set isactivehyp(_isactivehyp: (str: string) => boolean) {
         isactivehyp = _isactivehyp;
     },
-    isdvr,
-    setIsdvr: (_isdvr: (var1: string, var2: string) => boolean) => {
+    get isdvr() {
+        return isdvr;
+    },
+    set isdvr(_isdvr: (var1: string, var2: string) => boolean) {
         isdvr = _isdvr;
     },
-    ismmws,
-    setIsmmws: (_ismmws: (ch: string) => boolean) => {
+    get ismmws() {
+        return ismmws;
+    },
+    set ismmws(_ismmws: (ch: string) => boolean) {
         ismmws = _ismmws;
     },
-    islabeltoken,
-    setIslabeltoken: (_islabeltoken: (token: string) => boolean) => {
+    get islabeltoken() {
+        return islabeltoken;
+    },
+    set islabeltoken(_islabeltoken: (token: string) => boolean) {
         islabeltoken = _islabeltoken;
     },
-    ismathsymboltoken,
-    setIsmathsymboltoken: (_ismathsymboltoken: (token: string) => boolean) => {
+    get ismathsymboltoken() {
+        return ismathsymboltoken;
+    },
+    set ismathsymboltoken(_ismathsymboltoken: (token: string) => boolean) {
         ismathsymboltoken = _ismathsymboltoken;
     },
-    containsonlyupperorq,
-    setContainsonlyupperorq: (_containsonlyupperorq: (token: string) => boolean) => {
+    get containsonlyupperorq() {
+        return containsonlyupperorq;
+    },
+    set containsonlyupperorq(_containsonlyupperorq: (token: string) => boolean) {
         containsonlyupperorq = _containsonlyupperorq;
     },
-    nexttoken,
-    setNexttoken: (_nexttoken: (input: istream) => string) => {
+    get nexttoken() {
+        return nexttoken;
+    },
+    set nexttoken(_nexttoken: () => string) {
         nexttoken = _nexttoken;
     },
-    readtokens,
-    setReadtokens: (_readtokens: (filename: string) => Promise<boolean>) => {
+    get mmfilenamesalreadyencountered() {
+        return mmfilenamesalreadyencountered;
+    },
+    set mmfilenamesalreadyencountered(_mmfilenamesalreadyencountered: Set<string>) {
+        mmfilenamesalreadyencountered = _mmfilenamesalreadyencountered;
+    },
+    get readtokens() {
+        return readtokens;
+    },
+    set readtokens(_readtokens: (filename: string) => Promise<void>) {
         readtokens = _readtokens;
     },
-    constructassertion,
-    setConstructassertion: (_constructassertion: (label: string, exp: Expression) => Assertion) => {
+    get constructassertion() {
+        return constructassertion;
+    },
+    set constructassertion(_constructassertion: (label: string, exp: Expression) => Assertion) {
         constructassertion = _constructassertion;
     },
-    readexpression,
-    setReadexpression: (_readexpression: (stattype: string, label: string, terminator: string) => Expression) => {
+    get readexpression() {
+        return readexpression;
+    },
+    set readexpression(_readexpression: (stattype: string, label: string, terminator: string) => Expression) {
         readexpression = _readexpression;
     },
-    makesubstitution,
-    setMakesubstitution: (
-        _makesubstitution: (original: Expression, substmap: Map<string, Expression>) => Expression,
-    ) => {
+    get makesubstitution() {
+        return makesubstitution;
+    },
+    set makesubstitution(_makesubstitution: (original: Expression, substmap: Map<string, Expression>) => Expression) {
         makesubstitution = _makesubstitution;
     },
-    getproofnumbers,
-    setGetproofnumbers: (_getproofnumbers: (label: string, proof: string) => number[]) => {
+    get getproofnumbers() {
+        return getproofnumbers;
+    },
+    set getproofnumbers(_getproofnumbers: (label: string, proof: string) => number[]) {
         getproofnumbers = _getproofnumbers;
     },
-    verifyassertionref,
-    setVerifyassertionref: (
+    get verifyassertionref() {
+        return verifyassertionref;
+    },
+    set verifyassertionref(
         _verifyassertionref: (thlabel: string, reflabel: string, stack: Stack<Expression>) => Stack<Expression>,
-    ) => {
+    ) {
         verifyassertionref = _verifyassertionref;
     },
-    verifyregularproof,
-    setVerifyrefularproof: (_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => boolean) => {
+    get verifyregularproof() {
+        return verifyregularproof;
+    },
+    set verifyregularproof(_verifyregularproof: (label: string, theorem: Assertion, proof: string[]) => void) {
         verifyregularproof = _verifyregularproof;
     },
-    verifycompressedproof,
-    setVerifycompressedproof: (
-        _verifycompressedproof: (
-            label: string,
-            theorem: Assertion,
-            labels: string[],
-            proofnumbers: number[],
-        ) => boolean,
-    ) => {
+    get verifycompressedproof() {
+        return verifycompressedproof;
+    },
+    set verifycompressedproof(
+        _verifycompressedproof: (label: string, theorem: Assertion, labels: string[], proofnumbers: number[]) => void,
+    ) {
         verifycompressedproof = _verifycompressedproof;
     },
-    parsep,
-    setParsep: (_parsep: (label: string) => boolean) => {
+    get parsep() {
+        return parsep;
+    },
+    set parsep(_parsep: (label: string) => void) {
         parsep = _parsep;
     },
-    parsee,
-    setParsee: (_parsee: (label: string) => boolean) => {
+    get parsee() {
+        return parsee;
+    },
+    set parsee(_parsee: (label: string) => void) {
         parsee = _parsee;
     },
-    parsea,
-    setParsea: (_parsea: (label: string) => boolean) => {
+    get parsea() {
+        return parsea;
+    },
+    set parsea(_parsea: (label: string) => void) {
         parsea = _parsea;
     },
-    parsef,
-    setParsef: (_parsef: (label: string) => boolean) => {
+    get parsef() {
+        return parsef;
+    },
+    set parsef(_parsef: (label: string) => void) {
         parsef = _parsef;
     },
-    parselabel,
-    setParselabel: (_parselabel: (label: string) => boolean) => {
+    get parselabel() {
+        return parselabel;
+    },
+    set parselabel(_parselabel: (label: string) => void) {
         parselabel = _parselabel;
     },
-    parsed,
-    setParsed: (_parsed: () => boolean) => {
+    get parsed() {
+        return parsed;
+    },
+    set parsed(_parsed: () => void) {
         parsed = _parsed;
     },
-    parsec,
-    setParsec: (_parsec: () => boolean) => {
+    get parsec() {
+        return parsec;
+    },
+    set parsec(_parsec: () => void) {
         parsec = _parsec;
     },
-    parsev,
-    setParsev: (_parsev: () => boolean) => {
+    get parsev() {
+        return parsev;
+    },
+    set parsev(_parsev: () => void) {
         parsev = _parsev;
     },
-    main,
-    setMain: (_main: (argv: string[]) => Promise<number>) => {
+    get main() {
+        return main;
+    },
+    set main(_main: (argv: string[]) => Promise<number>) {
         main = _main;
     },
 };

@@ -1,6 +1,6 @@
 {
   "name": "checkmm",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "",
   "main": "dist/checkmm.js",
   "bin": "cli.js",
@@ -10,6 +10,7 @@
     "metamath-test": "ts-node test/metamath-test.ts",
     "set.mm": "ts-node src/checkmm.ts set.mm",
     "start": "ts-node src/checkmm.ts",
+    "time": "npm run build && time node cli.js set.mm",
     "test": "jest"
   },
   "repository": {

@@ -5,7 +5,7 @@ const readFile = promisify(fs.readFile);
 
 // checkmm uses a little bit of C++'s Standard Template Library.  Simulate it.
 
-let isupper = (s: string): boolean => {
+const isupper = (s: string): boolean => {
     if (/[^A-Z]/.test(s)) {
         return false;
     } else {
@@ -13,7 +13,7 @@ let isupper = (s: string): boolean => {
     }
 };
 
-let isalnum = (s: string): boolean => {
+const isalnum = (s: string): boolean => {
     if (/[^a-zA-Z0-9]/.test(s)) {
         return false;
     } else {
@@ -21,7 +21,7 @@ let isalnum = (s: string): boolean => {
     }
 };
 
-let set_intersection = <T>(s1: Set<T>, s2: Set<T>): Set<T> => {
+const set_intersection = <T>(s1: Set<T>, s2: Set<T>): Set<T> => {
     const s3 = new Set<T>();
     s1.forEach((value: T) => {
         if (s2.has(value)) {
@@ -39,40 +39,8 @@ export interface Pair<T1, T2> {
 export class Vector<T> extends Array<T> {}
 export class Deque<T> extends Array<T> {}
 
-export interface istream {
-    get(): string;
-    good(): boolean;
-    unget(): void;
-    eof(): boolean;
-    fail(): boolean;
-}
-
-let stringstream = (str: string): istream => {
-    let index = 0;
-
-    const stream: istream = {
-        get: (): string => {
-            const ch = str.charAt(index);
-            ++index;
-            return ch;
-        },
-        good: (): boolean => true,
-        unget: (): void => {
-            --index;
-        },
-        eof: (): boolean => index >= stringstream.length,
-        fail: (): boolean => false,
-    };
-
-    return stream;
-};
-
-let ifstream = async (filename: string): Promise<istream> => {
-    return stringstream(await readFile(filename, { encoding: 'utf-8' }));
-};
-
 // Simple function for comparing arrays (in C++ STL handles this automatically)
-export let arraysequal = (arr1: Array<unknown>, arr2: Array<unknown>): boolean => {
+const arraysequal = (arr1: Array<unknown>, arr2: Array<unknown>): boolean => {
     if (arr1.length !== arr2.length) {
         return false;
     }
@@ -96,7 +64,7 @@ export interface Stack<T> {
     toArray(): T[];
 }
 
-export let createStack = <T>(arr?: T[]): Stack<T> => {
+const createstack = <T>(arr?: T[]): Stack<T> => {
     let container: T[] = arr ?? [];
 
     return {
@@ -114,33 +82,21 @@ export let createStack = <T>(arr?: T[]): Stack<T> => {
     };
 };
 
-export default {
+export interface Std {
+    isupper: (s: string) => boolean;
+    isalnum: (s: string) => boolean;
+    set_intersection: <T>(s1: Set<T>, s2: Set<T>) => Set<T>;
+    arraysequal: (arr1: unknown[], arr2: unknown[]) => boolean;
+    createstack: <T>(arr?: T[]) => Stack<T>;
+}
+
+const std: Std = {
     isupper,
-    setIsupper: (_isupper: (s: string) => boolean) => {
-        isupper = _isupper;
-    },
     isalnum,
-    setIsalum: (_isalum: (s: string) => boolean) => {
-        isalnum = _isalum;
-    },
     set_intersection,
-    setSet_intersection: (_set_intersection: <T>(s1: Set<T>, s2: Set<T>) => Set<T>) => {
-        set_intersection = _set_intersection;
-    },
-    stringstream,
-    setStringstream: (_stringstream: (str: string) => istream) => {
-        stringstream = _stringstream;
-    },
-    ifstream,
-    setIfstream: (_ifstream: (filename: string) => Promise<istream>) => {
-        ifstream = _ifstream;
-    },
     arraysequal,
-    setArraysequal: (_arraysequal: (arr1: unknown[], arr2: unknown[]) => boolean) => {
-        arraysequal = _arraysequal;
-    },
-    createStack,
-    setCreateStack: (_createStack: <T>() => T) => {
-        createStack = _createStack;
-    },
+    createstack,
 };
+
+export default std;
+
