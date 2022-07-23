@@ -182,13 +182,13 @@ let nexttoken = (): string => {
 
 let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
-const mmfilenames = new Set<string>();
+let mmfilenamesalreadyencountered = new Set<string>();
 
 let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise<void> => {
-    const alreadyencountered: boolean = mmfilenames.has(filename);
+    const alreadyencountered: boolean = mmfilenamesalreadyencountered.has(filename);
     if (alreadyencountered) return;
 
-    mmfilenames.add(filename);
+    mmfilenamesalreadyencountered.add(filename);
 
     try {
         data = data.slice(0, lastInFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
@@ -1090,6 +1090,12 @@ export default {
     },
     set nexttoken(_nexttoken: () => string) {
         nexttoken = _nexttoken;
+    },
+    get mmfilenamesalreadyencountered() {
+        return mmfilenamesalreadyencountered;
+    },
+    set mmfilenamesalreadyencountered(_mmfilenamesalreadyencountered: Set<string>) {
+        mmfilenamesalreadyencountered = _mmfilenamesalreadyencountered;
     },
     get readtokens() {
         return readtokens;
