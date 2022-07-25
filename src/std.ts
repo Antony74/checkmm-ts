@@ -1,8 +1,3 @@
-import fs from 'fs';
-import { promisify } from 'util';
-
-const readFile = promisify(fs.readFile);
-
 // checkmm uses a little bit of C++'s Standard Template Library.  Simulate it.
 
 const isupper = (s: string): boolean => {
