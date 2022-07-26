@@ -200,6 +200,42 @@ let readcomment = (): string => {
     throw new Error('Unclosed comment');
 };
 
+let nexttokenskipcomments = (): string => {
+    let token = '';
+    while ((token = nexttoken()).length && token === '$(') {
+        readcomment();
+    }
+
+    return token;
+};
+
+// let readfileinclusion = (filename: string): string => {
+//     let newfilename = '';
+//     let token: string;
+
+//     while ((token = nexttokenskipcomments()).length) {
+//         if (!newfilename.length) {
+//             if (token.includes('$')) {
+//                 throw new Error('Filename ' + token + ' contains a $');
+//             }
+//             if (path) {
+//                 newfilename = path.normalize(path.join(path.dirname(filename), token));
+//             } else {
+//                 newfilename = token;
+//             }
+//             continue;
+//         } else {
+//             if (token !== '$]') {
+//                 throw new Error("Didn't find closing file inclusion delimiter");
+//             }
+
+//             return newfilename;
+//         }
+//     }
+
+//     throw new Error('Unfinished file inclusion command');
+// };
+
 let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
 let mmfilenamesalreadyencountered = new Set<string>();
@@ -221,12 +257,7 @@ let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise
     let newfilename = '';
 
     let token: string;
-    while ((token = nexttoken()).length) {
-        if (token === '$(') {
-            readcomment();
-            continue;
-        }
-
+    while ((token = nexttokenskipcomments()).length) {
         if (infileinclusion) {
             if (!newfilename.length) {
                 if (token.includes('$')) {
@@ -1105,6 +1136,12 @@ export default {
     },
     set readcomment(_readcomment: () => string) {
         readcomment = _readcomment;
+    },
+    get nexttokenskipcomments() {
+        return nexttokenskipcomments;
+    },
+    set nexttokenskipcomments(_nexttokenskipcomments: () => string) {
+        nexttokenskipcomments = _nexttokenskipcomments;
     },
     get readtokens() {
         return readtokens;
