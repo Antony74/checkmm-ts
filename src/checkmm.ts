@@ -880,6 +880,37 @@ let parsev = (): void => {
     tokens.pop(); // Discard $. token
 };
 
+let processtokens = () => {
+    scopes.push(new Scope());
+
+    while (!tokens.empty()) {
+        const token = tokens.pop()!;
+
+        if (islabeltoken(token)) {
+            parselabel(token);
+        } else if (token === '$d') {
+            parsed();
+        } else if (token === '${') {
+            scopes.push(new Scope());
+        } else if (token === '$}') {
+            scopes.pop();
+            if (!scopes.length) {
+                throw new Error('$} without corresponding ${');
+            }
+        } else if (token === '$c') {
+            parsec();
+        } else if (token === '$v') {
+            parsev();
+        } else {
+            throw new Error('Unexpected token ' + token + ' encountered');
+        }
+    }
+
+    if (scopes.length > 1) {
+        throw new Error('${ without corresponding $}');
+    }
+};
+
 const EXIT_FAILURE = 1;
 
 let main = async (argv: string[]): Promise<number> => {
@@ -898,35 +929,7 @@ let main = async (argv: string[]): Promise<number> => {
         // because they're O(n) operations.
         tokens.reverse();
 
-        scopes.push(new Scope());
-
-        while (!tokens.empty()) {
-            const token = tokens.pop()!;
-
-            if (islabeltoken(token)) {
-                parselabel(token);
-            } else if (token === '$d') {
-                parsed();
-            } else if (token === '${') {
-                scopes.push(new Scope());
-            } else if (token === '$}') {
-                scopes.pop();
-                if (!scopes.length) {
-                    throw new Error('$} without corresponding ${');
-                }
-            } else if (token === '$c') {
-                parsec();
-            } else if (token === '$v') {
-                parsev();
-            } else {
-                throw new Error('Unexpected token ' + token + ' encountered');
-            }
-        }
-
-        if (scopes.length > 1) {
-            throw new Error('${ without corresponding $}');
-        }
-
+        processtokens();
         return 0;
     } catch (err) {
         if (err instanceof Error) {
@@ -1196,6 +1199,12 @@ export default {
     },
     set parsev(_parsev: () => void) {
         parsev = _parsev;
+    },
+    get processtokens() {
+        return processtokens;
+    },
+    set processtokens(_processtokens) {
+        processtokens = _processtokens;
     },
     get main() {
         return main;
