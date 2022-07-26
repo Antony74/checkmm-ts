@@ -209,32 +209,32 @@ let nexttokenskipcomments = (): string => {
     return token;
 };
 
-// let readfileinclusion = (filename: string): string => {
-//     let newfilename = '';
-//     let token: string;
+let readfileinclusion = (filename: string): string => {
+    let newfilename = '';
+    let token: string;
 
-//     while ((token = nexttokenskipcomments()).length) {
-//         if (!newfilename.length) {
-//             if (token.includes('$')) {
-//                 throw new Error('Filename ' + token + ' contains a $');
-//             }
-//             if (path) {
-//                 newfilename = path.normalize(path.join(path.dirname(filename), token));
-//             } else {
-//                 newfilename = token;
-//             }
-//             continue;
-//         } else {
-//             if (token !== '$]') {
-//                 throw new Error("Didn't find closing file inclusion delimiter");
-//             }
+    while ((token = nexttokenskipcomments()).length) {
+        if (!newfilename.length) {
+            if (token.includes('$')) {
+                throw new Error('Filename ' + token + ' contains a $');
+            }
+            if (path) { // ideally do this somewhere else
+                newfilename = path.normalize(path.join(path.dirname(filename), token));
+            } else {
+                newfilename = token;
+            }
+            continue;
+        } else {
+            if (token !== '$]') {
+                throw new Error("Didn't find closing file inclusion delimiter");
+            }
 
-//             return newfilename;
-//         }
-//     }
+            return newfilename;
+        }
+    }
 
-//     throw new Error('Unfinished file inclusion command');
-// };
+    throw new Error('Unfinished file inclusion command');
+};
 
 let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
@@ -253,45 +253,15 @@ let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise
         throw new Error('Could not open ' + filename);
     }
 
-    let infileinclusion = false;
-    let newfilename = '';
-
     let token: string;
     while ((token = nexttokenskipcomments()).length) {
-        if (infileinclusion) {
-            if (!newfilename.length) {
-                if (token.includes('$')) {
-                    throw new Error('Filename ' + token + ' contains a $');
-                }
-                if (path) {
-                    newfilename = path.normalize(path.join(path.dirname(filename), token));
-                } else {
-                    newfilename = token;
-                }
-                continue;
-            } else {
-                if (token !== '$]') {
-                    throw new Error("Didn't find closing file inclusion delimiter");
-                }
-
-                await readtokens(newfilename, lastInFileInclusionStart);
-                infileinclusion = false;
-                newfilename = '';
-                continue;
-            }
-        }
-
         if (token === '$[') {
-            infileinclusion = true;
-            lastInFileInclusionStart = dataPosition - 2;
+            const newfilename = readfileinclusion(filename);
+            await readtokens(newfilename, dataPosition - 2);
             continue;
         }
 
         tokens.push(token);
-    }
-
-    if (infileinclusion) {
-        throw new Error('Unfinished file inclusion command');
     }
 };
 
@@ -1142,6 +1112,12 @@ export default {
     },
     set nexttokenskipcomments(_nexttokenskipcomments: () => string) {
         nexttokenskipcomments = _nexttokenskipcomments;
+    },
+    get readfileinclusion() {
+        return readfileinclusion;
+    },
+    set readfileinclusion(_readfileinclusion: (filename: string) => string) {
+        readfileinclusion = _readfileinclusion;
     },
     get readtokens() {
         return readtokens;
