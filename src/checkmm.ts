@@ -180,6 +180,26 @@ let nexttoken = (): string => {
     return token;
 };
 
+let readcomment = (): string => {
+    const commentStartPosition = dataPosition;
+
+    let token: string;
+    while ((token = nexttoken()).length) {
+        if (token === '$)') {
+            return data.slice(commentStartPosition, dataPosition - 2);
+        }
+
+        if (token.includes('$(')) {
+            throw new Error('Characters $( found in a comment');
+        }
+        if (token.includes('$)')) {
+            throw new Error('Characters $) found in a comment');
+        }
+    }
+
+    throw new Error('Unclosed comment');
+};
+
 let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
 let mmfilenamesalreadyencountered = new Set<string>();
@@ -197,29 +217,13 @@ let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise
         throw new Error('Could not open ' + filename);
     }
 
-    let incomment = false;
     let infileinclusion = false;
     let newfilename = '';
 
     let token: string;
     while ((token = nexttoken()).length) {
-        if (incomment) {
-            if (token === '$)') {
-                incomment = false;
-                continue;
-            }
-            if (token.includes('$(')) {
-                throw new Error('Characters $( found in a comment');
-            }
-            if (token.includes('$)')) {
-                throw new Error('Characters $) found in a comment');
-            }
-            continue;
-        }
-
-        // Not in comment
         if (token === '$(') {
-            incomment = true;
+            readcomment();
             continue;
         }
 
@@ -253,10 +257,6 @@ let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise
         }
 
         tokens.push(token);
-    }
-
-    if (incomment) {
-        throw new Error('Unclosed comment');
     }
 
     if (infileinclusion) {
@@ -1099,6 +1099,12 @@ export default {
     },
     set mmfilenamesalreadyencountered(_mmfilenamesalreadyencountered: Set<string>) {
         mmfilenamesalreadyencountered = _mmfilenamesalreadyencountered;
+    },
+    get readcomment() {
+        return readcomment;
+    },
+    set readcomment(_readcomment: () => string) {
+        readcomment = _readcomment;
     },
     get readtokens() {
         return readtokens;
