@@ -241,14 +241,14 @@ let readtokenstofileinclusion = (): FileInclusion | undefined => {
     let token: string;
     while ((token = nexttokenskipcomments()).length) {
         if (token === '$[') {
+            const startPosition = dataPosition - 2;
             const filename = readfileinclusion();
-            return {startPosition: dataPosition - 2, filename}
+            return { startPosition, filename };
         }
 
         tokens.push(token);
     }
-
-}
+};
 
 let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
@@ -267,23 +267,17 @@ let readtokens = async (filename: string, lastFileInclusionStart = 0): Promise<v
         throw new Error('Could not open ' + filename);
     }
 
-    let token: string;
-    while ((token = nexttokenskipcomments()).length) {
-        if (token === '$[') {
-            const fileInclusionStart = dataPosition - 2;
-            let newfilename = readfileinclusion();
-
+    for (;;) {
+        const fileInclusion = readtokenstofileinclusion();
+        if (fileInclusion) {
             if (path) {
-                newfilename = path.normalize(path.join(path.dirname(filename), newfilename));
-            } else {
-                newfilename = token;
+                fileInclusion.filename = path.normalize(path.join(path.dirname(filename), fileInclusion.filename));
             }
 
-            await readtokens(newfilename, fileInclusionStart);
-            continue;
+            await readtokens(fileInclusion.filename, fileInclusion.startPosition);
+        } else {
+            break;
         }
-
-        tokens.push(token);
     }
 };
 
@@ -1002,6 +996,12 @@ export default {
     },
     set dataPosition(_dataPosition: number) {
         dataPosition = _dataPosition;
+    },
+    get readtokenstofileinclusion() {
+        return readtokenstofileinclusion;
+    },
+    set readtokenstofileinclusion(_readtokenstofileinclusion: () => FileInclusion | undefined) {
+        readtokenstofileinclusion = _readtokenstofileinclusion;
     },
     get readFile() {
         return readFile;
