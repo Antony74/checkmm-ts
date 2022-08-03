@@ -232,40 +232,37 @@ let readfileinclusion = (): string => {
     throw new Error('Unfinished file inclusion command');
 };
 
-// export interface FileInclusion {
-//     startPosition: number;
-//     filename: string;
-// }
+export interface FileInclusion {
+    startPosition: number;
+    filename: string;
+}
 
-// let readtokenstofileinclusion = (filename: string): FileInclusion => {
-//     let token: string;
-//     while ((token = nexttokenskipcomments()).length) {
-//         if (token === '$[') {
-//             const newfilename = readfileinclusion(filename);
-//             return {startPosition: dataPosition - 2, filename: newfilename}
+let readtokenstofileinclusion = (): FileInclusion | undefined => {
+    let token: string;
+    while ((token = nexttokenskipcomments()).length) {
+        if (token === '$[') {
+            const filename = readfileinclusion();
+            return {startPosition: dataPosition - 2, filename}
+        }
 
-//             await readtokens(newfilename, dataPosition - 2);
-//             continue;
-//         }
+        tokens.push(token);
+    }
 
-//         tokens.push(token);
-//     }
-
-// }
+}
 
 let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
 let mmfilenamesalreadyencountered = new Set<string>();
 
-let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise<void> => {
+let readtokens = async (filename: string, lastFileInclusionStart = 0): Promise<void> => {
     const alreadyencountered: boolean = mmfilenamesalreadyencountered.has(filename);
     if (alreadyencountered) return;
 
     mmfilenamesalreadyencountered.add(filename);
 
     try {
-        data = data.slice(0, lastInFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
-        dataPosition = lastInFileInclusionStart;
+        data = data.slice(0, lastFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
+        dataPosition = lastFileInclusionStart;
     } catch (_e) {
         throw new Error('Could not open ' + filename);
     }
@@ -273,6 +270,7 @@ let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise
     let token: string;
     while ((token = nexttokenskipcomments()).length) {
         if (token === '$[') {
+            const fileInclusionStart = dataPosition - 2;
             let newfilename = readfileinclusion();
 
             if (path) {
@@ -281,7 +279,7 @@ let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise
                 newfilename = token;
             }
 
-            await readtokens(newfilename, dataPosition - 2);
+            await readtokens(newfilename, fileInclusionStart);
             continue;
         }
 
