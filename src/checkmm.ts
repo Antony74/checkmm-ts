@@ -279,15 +279,6 @@ let readtokens = async (filename: string, lastFileInclusionStart = 0): Promise<v
             break;
         }
     }
-
-    if (lastFileInclusionStart === 0) {
-        // Reverse the order of the tokens.  We do this O(n) operation just
-        // once here so that the tokens were added with 'push' O(1) but
-        // can be removed with 'pop' O(1) in the order they were added (first
-        // in first out).  It's completely impractical to use 'shift' or 'unshift'
-        // because they're O(n) operations.
-        tokens.reverse();
-    }
 };
 
 // Construct an Assertion from an Expression. That is, determine the
@@ -907,6 +898,13 @@ let parsev = (): void => {
 };
 
 let processtokens = () => {
+    // Reverse the order of the tokens.  We do this O(n) operation just
+    // once here so that the tokens were added with 'push' O(1) but
+    // can be removed with 'pop' O(1) in the order they were added (first
+    // in first out).  It's completely impractical to use 'shift' or 'unshift'
+    // because they're O(n) operations.
+    tokens.reverse();
+
     scopes.push(new Scope());
 
     while (!tokens.empty()) {
