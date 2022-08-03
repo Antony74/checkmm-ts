@@ -16,9 +16,14 @@ export declare class Scope {
     disjvars: Set<string>[];
     floatinghyp: Map<string, string>;
 }
+export interface FileInclusion {
+    startPosition: number;
+    filename: string;
+}
 declare const _default: {
     data: string;
     dataPosition: number;
+    readtokenstofileinclusion: () => FileInclusion | undefined;
     readFile: (filename: string) => Promise<string>;
     std: Std;
     createTokenArray: () => Tokens;
@@ -39,6 +44,9 @@ declare const _default: {
     containsonlyupperorq: (token: string) => boolean;
     nexttoken: () => string;
     mmfilenamesalreadyencountered: Set<string>;
+    readcomment: () => string;
+    nexttokenskipcomments: () => string;
+    readfileinclusion: () => string;
     readtokens: (filename: string) => Promise<void>;
     constructassertion: (label: string, exp: Expression) => Assertion;
     readexpression: (stattype: string, label: string, terminator: string) => Expression;
@@ -55,6 +63,7 @@ declare const _default: {
     parsed: () => void;
     parsec: () => void;
     parsev: () => void;
+    processtokens: () => void;
     main: (argv: string[]) => Promise<number>;
 };
 export default _default;

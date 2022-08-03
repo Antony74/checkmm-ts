@@ -168,78 +168,85 @@ let nexttoken = () => {
     }
     return token;
 };
+let readcomment = () => {
+    const commentStartPosition = dataPosition;
+    let token;
+    while ((token = nexttoken()).length) {
+        if (token === '$)') {
+            return data.slice(commentStartPosition, dataPosition - 2);
+        }
+        if (token.includes('$(')) {
+            throw new Error('Characters $( found in a comment');
+        }
+        if (token.includes('$)')) {
+            throw new Error('Characters $) found in a comment');
+        }
+    }
+    throw new Error('Unclosed comment');
+};
+let nexttokenskipcomments = () => {
+    let token = '';
+    while ((token = nexttoken()).length && token === '$(') {
+        readcomment();
+    }
+    return token;
+};
+let readfileinclusion = () => {
+    let newfilename = '';
+    let token;
+    while ((token = nexttokenskipcomments()).length) {
+        if (!newfilename.length) {
+            if (token.includes('$')) {
+                throw new Error('Filename ' + token + ' contains a $');
+            }
+            newfilename = token;
+            continue;
+        }
+        else {
+            if (token !== '$]') {
+                throw new Error("Didn't find closing file inclusion delimiter");
+            }
+            return newfilename;
+        }
+    }
+    throw new Error('Unfinished file inclusion command');
+};
+let readtokenstofileinclusion = () => {
+    let token;
+    while ((token = nexttokenskipcomments()).length) {
+        if (token === '$[') {
+            const startPosition = dataPosition - 2;
+            const filename = readfileinclusion();
+            return { startPosition, filename };
+        }
+        tokens.push(token);
+    }
+};
 let readFile = (filename) => __awaiter(void 0, void 0, void 0, function* () { return promises_1.default.readFile(filename, { encoding: 'utf-8' }); });
 let mmfilenamesalreadyencountered = new Set();
-let readtokens = (filename, lastInFileInclusionStart = 0) => __awaiter(void 0, void 0, void 0, function* () {
+let readtokens = (filename, lastFileInclusionStart = 0) => __awaiter(void 0, void 0, void 0, function* () {
     const alreadyencountered = mmfilenamesalreadyencountered.has(filename);
     if (alreadyencountered)
         return;
     mmfilenamesalreadyencountered.add(filename);
     try {
-        data = data.slice(0, lastInFileInclusionStart) + (yield readFile(filename)) + data.slice(dataPosition);
-        dataPosition = lastInFileInclusionStart;
+        data = data.slice(0, lastFileInclusionStart) + (yield readFile(filename)) + data.slice(dataPosition);
+        dataPosition = lastFileInclusionStart;
     }
     catch (_e) {
         throw new Error('Could not open ' + filename);
     }
-    let incomment = false;
-    let infileinclusion = false;
-    let newfilename = '';
-    let token;
-    while ((token = nexttoken()).length) {
-        if (incomment) {
-            if (token === '$)') {
-                incomment = false;
-                continue;
+    for (;;) {
+        const fileInclusion = readtokenstofileinclusion();
+        if (fileInclusion) {
+            if (path_1.default) {
+                fileInclusion.filename = path_1.default.normalize(path_1.default.join(path_1.default.dirname(filename), fileInclusion.filename));
             }
-            if (token.includes('$(')) {
-                throw new Error('Characters $( found in a comment');
-            }
-            if (token.includes('$)')) {
-                throw new Error('Characters $) found in a comment');
-            }
-            continue;
+            yield readtokens(fileInclusion.filename, fileInclusion.startPosition);
         }
-        // Not in comment
-        if (token === '$(') {
-            incomment = true;
-            continue;
+        else {
+            break;
         }
-        if (infileinclusion) {
-            if (!newfilename.length) {
-                if (token.includes('$')) {
-                    throw new Error('Filename ' + token + ' contains a $');
-                }
-                if (path_1.default) {
-                    newfilename = path_1.default.normalize(path_1.default.join(path_1.default.dirname(filename), token));
-                }
-                else {
-                    newfilename = token;
-                }
-                continue;
-            }
-            else {
-                if (token !== '$]') {
-                    throw new Error("Didn't find closing file inclusion delimiter");
-                }
-                yield readtokens(newfilename, lastInFileInclusionStart);
-                infileinclusion = false;
-                newfilename = '';
-                continue;
-            }
-        }
-        if (token === '$[') {
-            infileinclusion = true;
-            lastInFileInclusionStart = dataPosition - 2;
-            continue;
-        }
-        tokens.push(token);
-    }
-    if (incomment) {
-        throw new Error('Unclosed comment');
-    }
-    if (infileinclusion) {
-        throw new Error('Unfinished file inclusion command');
     }
 });
 // Construct an Assertion from an Expression. That is, determine the
@@ -744,6 +751,39 @@ let parsev = () => {
     }
     tokens.pop(); // Discard $. token
 };
+let processtokens = () => {
+    scopes.push(new Scope());
+    while (!tokens.empty()) {
+        const token = tokens.pop();
+        if (islabeltoken(token)) {
+            parselabel(token);
+        }
+        else if (token === '$d') {
+            parsed();
+        }
+        else if (token === '${') {
+            scopes.push(new Scope());
+        }
+        else if (token === '$}') {
+            scopes.pop();
+            if (!scopes.length) {
+                throw new Error('$} without corresponding ${');
+            }
+        }
+        else if (token === '$c') {
+            parsec();
+        }
+        else if (token === '$v') {
+            parsev();
+        }
+        else {
+            throw new Error('Unexpected token ' + token + ' encountered');
+        }
+    }
+    if (scopes.length > 1) {
+        throw new Error('${ without corresponding $}');
+    }
+};
 const EXIT_FAILURE = 1;
 let main = (argv) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -758,37 +798,7 @@ let main = (argv) => __awaiter(void 0, void 0, void 0, function* () {
         // in first out).  It's completely impractical to use 'shift' or 'unshift'
         // because they're O(n) operations.
         tokens.reverse();
-        scopes.push(new Scope());
-        while (!tokens.empty()) {
-            const token = tokens.pop();
-            if (islabeltoken(token)) {
-                parselabel(token);
-            }
-            else if (token === '$d') {
-                parsed();
-            }
-            else if (token === '${') {
-                scopes.push(new Scope());
-            }
-            else if (token === '$}') {
-                scopes.pop();
-                if (!scopes.length) {
-                    throw new Error('$} without corresponding ${');
-                }
-            }
-            else if (token === '$c') {
-                parsec();
-            }
-            else if (token === '$v') {
-                parsev();
-            }
-            else {
-                throw new Error('Unexpected token ' + token + ' encountered');
-            }
-        }
-        if (scopes.length > 1) {
-            throw new Error('${ without corresponding $}');
-        }
+        processtokens();
         return 0;
     }
     catch (err) {
@@ -833,6 +843,12 @@ exports.default = {
     },
     set dataPosition(_dataPosition) {
         dataPosition = _dataPosition;
+    },
+    get readtokenstofileinclusion() {
+        return readtokenstofileinclusion;
+    },
+    set readtokenstofileinclusion(_readtokenstofileinclusion) {
+        readtokenstofileinclusion = _readtokenstofileinclusion;
     },
     get readFile() {
         return readFile;
@@ -954,6 +970,24 @@ exports.default = {
     set mmfilenamesalreadyencountered(_mmfilenamesalreadyencountered) {
         mmfilenamesalreadyencountered = _mmfilenamesalreadyencountered;
     },
+    get readcomment() {
+        return readcomment;
+    },
+    set readcomment(_readcomment) {
+        readcomment = _readcomment;
+    },
+    get nexttokenskipcomments() {
+        return nexttokenskipcomments;
+    },
+    set nexttokenskipcomments(_nexttokenskipcomments) {
+        nexttokenskipcomments = _nexttokenskipcomments;
+    },
+    get readfileinclusion() {
+        return readfileinclusion;
+    },
+    set readfileinclusion(_readfileinclusion) {
+        readfileinclusion = _readfileinclusion;
+    },
     get readtokens() {
         return readtokens;
     },
@@ -1049,6 +1083,12 @@ exports.default = {
     },
     set parsev(_parsev) {
         parsev = _parsev;
+    },
+    get processtokens() {
+        return processtokens;
+    },
+    set processtokens(_processtokens) {
+        processtokens = _processtokens;
     },
     get main() {
         return main;
