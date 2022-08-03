@@ -209,7 +209,7 @@ let nexttokenskipcomments = (): string => {
     return token;
 };
 
-let readfileinclusion = (filename: string): string => {
+let readfileinclusion = (): string => {
     let newfilename = '';
     let token: string;
 
@@ -218,11 +218,7 @@ let readfileinclusion = (filename: string): string => {
             if (token.includes('$')) {
                 throw new Error('Filename ' + token + ' contains a $');
             }
-            if (path) { // ideally do this somewhere else
-                newfilename = path.normalize(path.join(path.dirname(filename), token));
-            } else {
-                newfilename = token;
-            }
+            newfilename = token;
             continue;
         } else {
             if (token !== '$]') {
@@ -235,6 +231,27 @@ let readfileinclusion = (filename: string): string => {
 
     throw new Error('Unfinished file inclusion command');
 };
+
+// export interface FileInclusion {
+//     startPosition: number;
+//     filename: string;
+// }
+
+// let readtokenstofileinclusion = (filename: string): FileInclusion => {
+//     let token: string;
+//     while ((token = nexttokenskipcomments()).length) {
+//         if (token === '$[') {
+//             const newfilename = readfileinclusion(filename);
+//             return {startPosition: dataPosition - 2, filename: newfilename}
+
+//             await readtokens(newfilename, dataPosition - 2);
+//             continue;
+//         }
+
+//         tokens.push(token);
+//     }
+
+// }
 
 let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
 
@@ -256,7 +273,14 @@ let readtokens = async (filename: string, lastInFileInclusionStart = 0): Promise
     let token: string;
     while ((token = nexttokenskipcomments()).length) {
         if (token === '$[') {
-            const newfilename = readfileinclusion(filename);
+            let newfilename = readfileinclusion();
+
+            if (path) {
+                newfilename = path.normalize(path.join(path.dirname(filename), newfilename));
+            } else {
+                newfilename = token;
+            }
+
             await readtokens(newfilename, dataPosition - 2);
             continue;
         }
@@ -1116,7 +1140,7 @@ export default {
     get readfileinclusion() {
         return readfileinclusion;
     },
-    set readfileinclusion(_readfileinclusion: (filename: string) => string) {
+    set readfileinclusion(_readfileinclusion: () => string) {
         readfileinclusion = _readfileinclusion;
     },
     get readtokens() {
