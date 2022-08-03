@@ -46,20 +46,24 @@ const main = async (): Promise<number> => {
         }
     }
 
-    if (stats) {
-        const { stdout, stderr } = await exec('git pull', {
-            cwd: repoPath,
-        });
+    const updateFromRepo = false;
 
-        console.log(stdout);
-        console.log(stderr);
-    } else {
-        const { stdout, stderr } = await exec('git clone https://github.com/david-a-wheeler/metamath-test.git', {
-            cwd: __dirname,
-        });
+    if (updateFromRepo) {
+        if (stats) {
+            const { stdout, stderr } = await exec('git pull', {
+                cwd: repoPath,
+            });
 
-        console.log(stdout);
-        console.log(stderr);
+            console.log(stdout);
+            console.log(stderr);
+        } else {
+            const { stdout, stderr } = await exec('git clone https://github.com/david-a-wheeler/metamath-test.git', {
+                cwd: __dirname,
+            });
+
+            console.log(stdout);
+            console.log(stderr);
+        }
     }
 
     const filenames = await readdir(repoPath);
