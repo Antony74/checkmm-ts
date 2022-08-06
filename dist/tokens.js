@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTokenArray = void 0;
+exports.createTokenArray = exports.TokenArray = void 0;
 class TokenArray extends Array {
     constructor(...params) {
         super(...params);
@@ -12,6 +12,7 @@ class TokenArray extends Array {
         return !this.length;
     }
 }
+exports.TokenArray = TokenArray;
 const createTokenArray = (...params) => {
     return new TokenArray(...params);
 };
