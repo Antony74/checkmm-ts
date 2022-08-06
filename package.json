@@ -8,6 +8,7 @@
         "build": "tsc",
         "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
         "metamath-test": "ts-node test/metamath-test.ts",
+        "metamath-test-no-update": "ts-node test/metamath-test.ts --no-update",
         "set.mm": "ts-node src/checkmm.ts set.mm",
         "start": "ts-node src/checkmm.ts",
         "time": "npm run build && time node cli.js set.mm",

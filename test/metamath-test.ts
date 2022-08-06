@@ -34,6 +34,8 @@ const parseFilename = (filename: string): ParsedFilename => {
 };
 
 const main = async (): Promise<number> => {
+    const updateFromRepo = process.argv.filter(value => value === '--no-update').length === 0;
+
     const repoPath = path.join(__dirname, 'metamath-test');
     let stats: fs.Stats | undefined = undefined;
 
@@ -45,8 +47,6 @@ const main = async (): Promise<number> => {
             return 1;
         }
     }
-
-    const updateFromRepo = false;
 
     if (updateFromRepo) {
         if (stats) {
