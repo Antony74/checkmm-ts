@@ -44,7 +44,7 @@ let createTokenArray = createTokenArrayImport;
 // Restrict ScopeArray to just the Array functionality we actually use.
 // This has no effect, but should make an alternative implmentation a little
 // easier to write if we ever want to pass in something besides an array.
-type ScopeArray = ArrayLike<Scope> &
+export type ScopeArray = ArrayLike<Scope> &
     Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
         [Symbol.iterator](): IterableIterator<Scope>;
     };
@@ -1244,7 +1244,7 @@ export default {
     get processtokens() {
         return processtokens;
     },
-    set processtokens(_processtokens) {
+    set processtokens(_processtokens: () => void) {
         processtokens = _processtokens;
     },
     get main() {
