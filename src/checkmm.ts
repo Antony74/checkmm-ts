@@ -35,8 +35,19 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import stdModuleImport, { Deque, Pair, Stack, Std } from './std';
-import { createTokenArray as createTokenArrayImport, Tokens } from './tokens';
+import stdModuleImport, { Deque as DequeImport, Pair as PairImport, Stack as StackImport, Std } from './std';
+
+import {
+    createTokenArray as createTokenArrayImport,
+    TokenArray as TokenArrayImport,
+    Tokens as TokensImport,
+} from './tokens';
+
+export type TokenArray = TokenArrayImport;
+export type Tokens = TokensImport;
+export type Deque<T> = DequeImport<T>;
+export type Pair<T1, T2> = PairImport<T1, T2>;
+export type Stack<T> = StackImport<T>;
 
 let std: Std = stdModuleImport;
 let createTokenArray = createTokenArrayImport;
