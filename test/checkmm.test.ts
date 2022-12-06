@@ -1,10 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { it, expect, describe, jest } from '@jest/globals';
+import { it, expect, describe, jest, beforeEach } from '@jest/globals';
 import checkmm, { Assertion, Expression, Hypothesis } from '../src/checkmm';
 import std, { Stack } from '../src/std';
 import { createTokenArray, Tokens } from '../src/tokens';
+import { getCheckmmState, setCheckmmState } from '../src/state';
 
 describe('checkmm', () => {
+    const initialState = getCheckmmState();
+
+    beforeEach(() => {
+        setCheckmmState(initialState);
+    });
+
     it('exposes a number of properties, each has both a getter and a setter', () => {
         for (const label in checkmm) {
             const prop = (checkmm as any)[label]; // Test getter, will error if there isn't one
@@ -474,9 +481,7 @@ describe('checkmm', () => {
     });
 
     it('can parse $c statements', () => {
-        checkmm.scopes = [];
         checkmm.tokens = createTokenArray(...'0 + = -> ( ) term wff |- $.'.split(' ').reverse());
-        checkmm.constants = new Set();
 
         checkmm.parsec();
         // expect parsec not to throw
