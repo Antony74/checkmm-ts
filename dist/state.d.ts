@@ -1,38 +1,14 @@
-import { Deque as DequeImport, Pair as PairImport, Stack as StackImport, Std } from './std';
-import { TokenArray as TokenArrayImport, Tokens as TokensImport } from './tokens';
-export declare type TokenArray = TokenArrayImport;
-export declare type Tokens = TokensImport;
-export declare type Deque<T> = DequeImport<T>;
-export declare type Pair<T1, T2> = PairImport<T1, T2>;
-export declare type Stack<T> = StackImport<T>;
-export declare type ScopeArray = ArrayLike<Scope> & Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
-    [Symbol.iterator](): IterableIterator<Scope>;
-};
-export declare type Expression = Array<string>;
-export declare type Hypothesis = Pair<Expression, boolean>;
-export declare class Assertion {
-    hypotheses: Deque<string>;
-    disjvars: Set<Pair<string, string>>;
-    expression: Expression;
-}
-export declare class Scope {
-    activevariables: Set<string>;
-    activehyp: string[];
-    disjvars: Set<string>[];
-    floatinghyp: Map<string, string>;
-}
-export interface FileInclusion {
-    startPosition: number;
-    filename: string;
-}
-declare const _default: {
+import { Assertion, Expression, FileInclusion, Hypothesis, ScopeArray } from './checkmm';
+import { Std, Stack } from './std';
+import { Tokens } from './tokens';
+interface CheckmmState {
     data: string;
     dataPosition: number;
     readtokenstofileinclusion: () => FileInclusion | undefined;
     readFile: (filename: string) => Promise<string>;
     std: Std;
     createTokenArray: () => Tokens;
-    tokens: TokensImport;
+    tokens: Tokens;
     constants: Set<string>;
     hypotheses: Map<string, Hypothesis>;
     variables: Set<string>;
@@ -70,5 +46,7 @@ declare const _default: {
     parsev: () => void;
     processtokens: () => void;
     main: (argv: string[]) => Promise<number>;
-};
-export default _default;
+}
+export declare const getCheckmmState: () => CheckmmState;
+export declare const setCheckmmState: (state: Partial<CheckmmState>) => void;
+export {};
