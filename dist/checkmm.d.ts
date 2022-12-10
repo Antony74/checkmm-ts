@@ -1,10 +1,6 @@
-import { Deque as DequeImport, Pair as PairImport, Stack as StackImport, Std } from './std';
-import { TokenArray as TokenArrayImport, Tokens as TokensImport } from './tokens';
-export declare type TokenArray = TokenArrayImport;
-export declare type Tokens = TokensImport;
-export declare type Deque<T> = DequeImport<T>;
-export declare type Pair<T1, T2> = PairImport<T1, T2>;
-export declare type Stack<T> = StackImport<T>;
+import { Deque, Pair, Stack, Std } from './std';
+import { TokenArray, Tokens } from './tokens';
+export { Deque, Pair, Stack, TokenArray, Tokens };
 export declare type ScopeArray = ArrayLike<Scope> & Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
     [Symbol.iterator](): IterableIterator<Scope>;
 };
@@ -32,7 +28,7 @@ declare const _default: {
     readFile: (filename: string) => Promise<string>;
     std: Std;
     createTokenArray: () => Tokens;
-    tokens: TokensImport;
+    tokens: Tokens;
     constants: Set<string>;
     hypotheses: Map<string, Hypothesis>;
     variables: Set<string>;
