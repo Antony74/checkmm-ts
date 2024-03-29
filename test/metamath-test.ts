@@ -22,14 +22,9 @@ const parseFilename = (filename: string): ParsedFilename => {
 
     const expectedPass: boolean = last.match('bad[1-9]*') ? false : true;
 
-    // This test is a special case.  It is meant to fail but doesn't
-    // follow the pattern of other fails.
-    // https://github.com/david-a-wheeler/metamath-test/issues/3
-    const normalPassCriteria: boolean = filename !== 'set-dist.mm';
-
     return {
         isMM: ext === 'mm',
-        expectedPass: normalPassCriteria && expectedPass,
+        expectedPass,
     };
 };
 
