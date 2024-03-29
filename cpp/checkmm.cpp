@@ -607,7 +607,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
     }
 
     // Remove hypotheses from stack
-    stack->resize(base);
+    stack->erase(stack->begin() + base, stack->end());
 
     // Verify disjoint variable conditions
     for (std::set<std::pair<std::string, std::string> >::const_iterator
