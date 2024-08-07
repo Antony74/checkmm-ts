@@ -77,7 +77,9 @@ const main = async (): Promise<number> => {
                     console.log(stderr);
                 }
                 okay = true;
-            } catch (e) {}
+            } catch (_e) {
+                // continue and handle error below
+            }
 
             if (okay === false && expectedPass === true) {
                 console.error('Expected pass but failed');
