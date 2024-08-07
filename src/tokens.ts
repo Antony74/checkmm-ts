@@ -15,4 +15,3 @@ export class TokenArray extends Array<string> {
 export const createTokenArray = (...params: string[]): Tokens => {
     return new TokenArray(...params);
 };
-
