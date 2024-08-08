@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { it, expect, describe, jest, beforeEach } from '@jest/globals';
 import checkmm, { Assertion, Expression, Hypothesis } from '../src/checkmm';
-import std, { Stack } from '../src/std';
-import { createTokenArray, Tokens } from '../src/tokens';
+import std, { createEmptyQueue, Queue, Stack } from '../src/std';
 import { getCheckmmState, setCheckmmState } from '../src/state';
+
+const createTokenQueue = (...arr: string[]) => {
+    const q = createEmptyQueue<string>();
+    arr.forEach(item => q.pushBack(item));
+    return q;
+};
 
 describe('checkmm', () => {
     const initialState = getCheckmmState();
@@ -171,7 +176,7 @@ describe('checkmm', () => {
 
     describe('readexpression', () => {
         it('can read expressions', () => {
-            checkmm.tokens = createTokenArray(...'|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' ').reverse());
+            checkmm.tokens = createTokenQueue(...'|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' '));
             checkmm.constants = new Set(['|-', '(', ')', '->', 'ph', 'ps']);
             const expression = checkmm.readexpression('a', 'ax-1', '$.');
             expect(expression).toEqual('|- ( ph -> ( ps -> ph ) )'.split(' '));
@@ -311,7 +316,7 @@ describe('checkmm', () => {
         });
     });
 
-    const initStateForTh1 = (tokens: Tokens) => {
+    const initStateForTh1 = (tokens: Queue<string>) => {
         checkmm.hypotheses = new Map(
             Object.entries({
                 tt: {
@@ -411,7 +416,7 @@ describe('checkmm', () => {
 
     describe('verifyregularproof', () => {
         it('can verify regular proofs', () => {
-            initStateForTh1(createTokenArray());
+            initStateForTh1(createTokenQueue());
 
             const theorem: Assertion = {
                 hypotheses: ['tt'],
@@ -435,7 +440,7 @@ describe('checkmm', () => {
             const spy = jest.spyOn(checkmm, 'verifyassertionref');
             checkmm.verifyassertionref = spy as any;
 
-            initStateForTh1(createTokenArray());
+            initStateForTh1(createTokenQueue());
 
             const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
             const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
@@ -454,13 +459,11 @@ describe('checkmm', () => {
     describe('parsep', () => {
         it('can parse $p statements for regular proofs', () => {
             initStateForTh1(
-                createTokenArray(
+                createTokenQueue(
                     ...(
                         '|- t = t $= tt tze tpl tt weq tt tt weq tt a2 tt tze tpl tt weq tt tze tpl tt weq tt tt weq ' +
                         'wim tt a2 tt tze tpl tt tt a1 mp mp $.'
-                    )
-                        .split(' ')
-                        .reverse(),
+                    ).split(' '),
                 ),
             );
 
@@ -470,9 +473,7 @@ describe('checkmm', () => {
 
         it('can parse $p statements for compressed proofs', () => {
             initStateForTh1(
-                createTokenArray(
-                    ...'|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'.split(' ').reverse(),
-                ),
+                createTokenQueue(...'|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'.split(' ')),
             );
 
             checkmm.parsep('th1');
@@ -481,7 +482,7 @@ describe('checkmm', () => {
     });
 
     it('can parse $c statements', () => {
-        checkmm.tokens = createTokenArray(...'0 + = -> ( ) term wff |- $.'.split(' ').reverse());
+        checkmm.tokens = createTokenQueue(...'0 + = -> ( ) term wff |- $.'.split(' '));
 
         checkmm.parsec();
         // expect parsec not to throw

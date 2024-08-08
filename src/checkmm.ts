@@ -35,14 +35,11 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import stdModuleImport, { Deque, Pair, Stack, Std } from './std';
+import stdModuleImport, { createEmptyQueue, Pair, Queue, Stack, Std } from './std';
 
-import { createTokenArray as createTokenArrayImport, TokenArray, Tokens } from './tokens';
-
-export { Deque, Pair, Stack, TokenArray, Tokens };
+export { Pair, Queue, Stack };
 
 let std: Std = stdModuleImport;
-let createTokenArray = createTokenArrayImport;
 
 // Restrict ScopeArray to just the Array functionality we actually use.
 // This has no effect, but should make an alternative implmentation a little
@@ -54,7 +51,7 @@ export type ScopeArray = ArrayLike<Scope> &
 
 let data = '';
 let dataPosition = 0;
-let tokens: Tokens = createTokenArray();
+let tokens: Queue<string> = createEmptyQueue();
 
 let constants = new Set<string>();
 
@@ -71,7 +68,7 @@ let variables = new Set<string>();
 // An axiom or a theorem.
 export class Assertion {
     // Hypotheses of this axiom or theorem.
-    hypotheses: Deque<string> = [];
+    hypotheses: Array<string> = [];
     disjvars: Set<Pair<string, string>> = new Set<Pair<string, string>>();
     // Statement of axiom or theorem.
     expression: Expression = [];
@@ -249,7 +246,7 @@ let readtokenstofileinclusion = (): FileInclusion | undefined => {
             return { startPosition, filename };
         }
 
-        tokens.push(token);
+        tokens.pushBack(token);
     }
 };
 
@@ -342,7 +339,7 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
         throw new Error('Unfinished $' + stattype + ' statement ' + label);
     }
 
-    const type = tokens.front();
+    const type = tokens.front()!;
 
     if (!constants.has(type)) {
         throw new Error(
@@ -350,14 +347,14 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
         );
     }
 
-    tokens.pop();
+    tokens.popFront();
 
     const exp: Expression = [type];
 
     let token: string;
 
-    while (!tokens.empty() && (token = tokens.front()) !== terminator) {
-        tokens.pop();
+    while (!tokens.empty() && (token = tokens.front()!) !== terminator) {
+        tokens.popFront();
 
         if (!constants.has(token) && !getfloatinghyp(token).length) {
             throw new Error(
@@ -379,7 +376,7 @@ let readexpression = (stattype: string, label: string, terminator: string): Expr
         throw new Error('Unfinished $' + stattype + ' statement ' + label);
     }
 
-    tokens.pop(); // Discard terminator token
+    tokens.popFront(); // Discard terminator token
 
     return exp;
 };
@@ -601,15 +598,15 @@ let parsep = (label: string): void => {
 
     if (tokens.front() === '(') {
         // Compressed proof
-        tokens.pop();
+        tokens.popFront();
 
         // Get labels
 
         const labels: string[] = [];
         let token: string;
 
-        while (!tokens.empty() && (token = tokens.front()) !== ')') {
-            tokens.pop();
+        while (!tokens.empty() && (token = tokens.front()!) !== ')') {
+            tokens.popFront();
             labels.push(token);
             if (token === label) {
                 throw new Error('Proof of theorem ' + label + ' refers to itself');
@@ -628,13 +625,13 @@ let parsep = (label: string): void => {
             throw new Error('Unfinished $p statement ' + label);
         }
 
-        tokens.pop(); // Discard ) token
+        tokens.popFront(); // Discard ) token
 
         // Get proof steps
 
         let proof = '';
-        while (!tokens.empty() && (token = tokens.front()) !== '$.') {
-            tokens.pop();
+        while (!tokens.empty() && (token = tokens.front()!) !== '$.') {
+            tokens.popFront();
 
             proof += token;
             if (!containsonlyupperorq(token)) {
@@ -650,7 +647,7 @@ let parsep = (label: string): void => {
             throw new Error('Theorem ' + label + ' has no proof');
         }
 
-        tokens.pop(); // Discard $. token
+        tokens.popFront(); // Discard $. token
 
         if (proof.includes('?')) {
             console.error('Warning: Proof of theorem ' + label + ' is incomplete');
@@ -665,8 +662,8 @@ let parsep = (label: string): void => {
         const proof: string[] = [];
         let incomplete = false;
         let token: string;
-        while (!tokens.empty() && (token = tokens.front()) !== '$.') {
-            tokens.pop();
+        while (!tokens.empty() && (token = tokens.front()!) !== '$.') {
+            tokens.popFront();
             proof.push(token);
             if (token === '?') incomplete = true;
             else if (token === label) {
@@ -686,7 +683,7 @@ let parsep = (label: string): void => {
             throw new Error('Theorem ' + label + ' has no proof');
         }
 
-        tokens.pop(); // Discard $. token
+        tokens.popFront(); // Discard $. token
 
         if (incomplete) {
             throw new Error('Warning: Proof of theorem ' + label + ' is incomplete');
@@ -717,19 +714,19 @@ let parsef = (label: string): void => {
         throw new Error('Unfinished $f statement' + label);
     }
 
-    const typeToken = tokens.front();
+    const typeToken = tokens.front()!;
 
     if (!constants.has(typeToken)) {
         throw new Error('First symbol in $f statement ' + label + ' is ' + typeToken + ' which is not a constant');
     }
 
-    tokens.pop();
+    tokens.popFront();
 
     if (tokens.empty()) {
         throw new Error('Unfinished $f statement ' + label);
     }
 
-    const variable = tokens.front();
+    const variable = tokens.front()!;
     if (!isactivevariable(variable)) {
         throw new Error(
             'Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable',
@@ -739,7 +736,7 @@ let parsef = (label: string): void => {
         throw new Error('The variable ' + variable + ' appears in a second $f statement ' + label);
     }
 
-    tokens.pop();
+    tokens.popFront();
 
     if (tokens.empty()) {
         throw new Error('Unfinished $f statement' + label);
@@ -749,7 +746,7 @@ let parsef = (label: string): void => {
         throw new Error('Expected end of $f statement ' + label + ' but found ' + tokens.front());
     }
 
-    tokens.pop(); // Discard $. token
+    tokens.popFront(); // Discard $. token
 
     // Create new floating hypothesis
     const newhyp: Expression = [];
@@ -778,7 +775,7 @@ let parselabel = (label: string): void => {
         throw new Error('Unfinished labeled statement');
     }
 
-    const typeToken = tokens.pop();
+    const typeToken = tokens.popFront();
 
     if (typeToken === '$p') {
         parsep(label);
@@ -798,8 +795,8 @@ let parsed = (): void => {
     const dvars = new Set<string>();
     let token: string;
 
-    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
-        tokens.pop();
+    while (!tokens.empty() && (token = tokens.front()!) !== '$.') {
+        tokens.popFront();
 
         if (!isactivevariable(token)) {
             throw new Error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
@@ -823,7 +820,7 @@ let parsed = (): void => {
     // Record it
     scopes[scopes.length - 1].disjvars.push(dvars);
 
-    tokens.pop(); // Discard $. token
+    tokens.popFront(); // Discard $. token
 };
 
 // Parse $c statement. Return true iff okay.
@@ -834,8 +831,8 @@ let parsec = (): void => {
 
     let token: string;
     let listempty = true;
-    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
-        tokens.pop();
+    while (!tokens.empty() && (token = tokens.front()!) !== '$.') {
+        tokens.popFront();
         listempty = false;
 
         if (!ismathsymboltoken(token)) {
@@ -861,15 +858,15 @@ let parsec = (): void => {
         throw new Error('Empty $c statement');
     }
 
-    tokens.pop(); // Discard $. token
+    tokens.popFront(); // Discard $. token
 };
 
 // Parse $v statement. Return true iff okay.
 let parsev = (): void => {
     let token: string;
     let listempty = true;
-    while (!tokens.empty() && (token = tokens.front()) !== '$.') {
-        tokens.pop();
+    while (!tokens.empty() && (token = tokens.front()!) !== '$.') {
+        tokens.popFront();
         listempty = false;
 
         if (!ismathsymboltoken(token)) {
@@ -897,21 +894,14 @@ let parsev = (): void => {
         throw new Error('Empty $v statement');
     }
 
-    tokens.pop(); // Discard $. token
+    tokens.popFront(); // Discard $. token
 };
 
 let processtokens = () => {
-    // Reverse the order of the tokens.  We do this O(n) operation just
-    // once here so that the tokens were added with 'push' O(1) but
-    // can be removed with 'pop' O(1) in the order they were added (first
-    // in first out).  It's completely impractical to use 'shift' or 'unshift'
-    // because they're O(n) operations.
-    tokens.reverse();
-
     scopes.push(new Scope());
 
     while (!tokens.empty()) {
-        const token = tokens.pop()!;
+        const token = tokens.popFront()!;
 
         if (islabeltoken(token)) {
             parselabel(token);
@@ -1018,16 +1008,10 @@ export default {
     set std(_std: Std) {
         std = _std;
     },
-    get createTokenArray() {
-        return createTokenArray;
-    },
-    set createTokenArray(_createTokenArray: () => Tokens) {
-        createTokenArray = _createTokenArray;
-    },
     get tokens() {
         return tokens;
     },
-    set tokens(_tokens: Tokens) {
+    set tokens(_tokens: Queue<string>) {
         tokens = _tokens;
     },
     get constants() {

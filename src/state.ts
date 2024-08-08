@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import checkmm, { Assertion, Expression, FileInclusion, Hypothesis, ScopeArray } from './checkmm';
 import { Std, Stack } from './std';
-import { Tokens } from './tokens';
 
 interface CheckmmState {
     data: string;
@@ -9,8 +8,6 @@ interface CheckmmState {
     readtokenstofileinclusion: () => FileInclusion | undefined;
     readFile: (filename: string) => Promise<string>;
     std: Std;
-    createTokenArray: () => Tokens;
-    tokens: Tokens;
     constants: Set<string>;
     hypotheses: Map<string, Hypothesis>;
     variables: Set<string>;
