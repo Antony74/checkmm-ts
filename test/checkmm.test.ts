@@ -4,6 +4,7 @@ import checkmm, { Assertion, Expression, Hypothesis } from '../src/checkmm';
 import std, { Stack } from '../src/std';
 import { createTokenArray, Tokens } from '../src/tokens';
 import { getCheckmmState, setCheckmmState } from '../src/state';
+import { createReverseStoredArray } from '../src/reverseStoredArray';
 
 describe('checkmm', () => {
     const initialState = getCheckmmState();
@@ -33,7 +34,7 @@ describe('checkmm', () => {
             checkmm.assertions = new Map<string, Assertion>(
                 Object.entries({
                     world: {
-                        hypotheses: [],
+                        hypotheses: createReverseStoredArray(),
                         disjvars: new Set(),
                         expression: [],
                     },
@@ -163,7 +164,7 @@ describe('checkmm', () => {
 
             const expression = '|- ( ph -> A. x ph )'.split(' ');
             const assertion: Assertion = checkmm.constructassertion('ax-17', expression);
-            expect(assertion.hypotheses).toEqual(['wph', 'vx']);
+            expect(assertion.hypotheses.toArray()).toEqual(['wph', 'vx']);
             expect(assertion.disjvars).toEqual(new Set([{ first: 'ph', second: 'x' }]));
             expect(assertion.expression).toEqual(expression);
         });
@@ -209,7 +210,7 @@ describe('checkmm', () => {
             checkmm.assertions = new Map(
                 Object.entries({
                     'ax-mp': {
-                        hypotheses: ['wph', 'wps', 'min', 'maj'],
+                        hypotheses: createReverseStoredArray(['wph', 'wps', 'min', 'maj']),
                         disjvars: new Set(),
                         expression: ['|-', 'ps'],
                     },
@@ -261,7 +262,7 @@ describe('checkmm', () => {
             checkmm.assertions = new Map(
                 Object.entries({
                     'ax-17': {
-                        hypotheses: ['wph', 'vx'],
+                        hypotheses: createReverseStoredArray(['wph', 'vx']),
                         expression: ['|-', '(', 'ph', '->', 'A.', 'x', 'ph', ')'],
                         disjvars: new Set([{ first: 'ph', second: 'x' }]),
                     },
@@ -350,37 +351,37 @@ describe('checkmm', () => {
                 tze: {
                     expression: ['term', '0'],
                     disjvars: new Set(),
-                    hypotheses: [],
+                    hypotheses: createReverseStoredArray(),
                 },
                 tpl: {
                     expression: ['term', '(', 't', '+', 'r', ')'],
                     disjvars: new Set(),
-                    hypotheses: ['tt', 'tr'],
+                    hypotheses: createReverseStoredArray(['tt', 'tr']),
                 },
                 weq: {
                     expression: ['wff', 't', '=', 'r'],
                     disjvars: new Set(),
-                    hypotheses: ['tt', 'tr'],
+                    hypotheses: createReverseStoredArray(['tt', 'tr']),
                 },
                 a1: {
                     expression: '|- ( t = r -> ( t = s -> r = s ) )'.split(' '),
                     disjvars: new Set(),
-                    hypotheses: ['tt', 'tr', 'ts'],
+                    hypotheses: createReverseStoredArray(['tt', 'tr', 'ts']),
                 },
                 a2: {
                     expression: ['|-', '(', 't', '+', '0', ')', '=', 't'],
                     disjvars: new Set(),
-                    hypotheses: ['tt'],
+                    hypotheses: createReverseStoredArray(['tt']),
                 },
                 mp: {
                     expression: ['|-', 'Q'],
                     disjvars: new Set(),
-                    hypotheses: ['wp', 'wq', 'min', 'maj'],
+                    hypotheses: createReverseStoredArray(['wp', 'wq', 'min', 'maj']),
                 },
                 wim: {
                     expression: ['wff', '(', 'P', '->', 'Q', ')'],
                     disjvars: new Set(),
-                    hypotheses: ['wp', 'wq'],
+                    hypotheses: createReverseStoredArray(['wp', 'wq']),
                 },
             }),
         );
@@ -414,7 +415,7 @@ describe('checkmm', () => {
             initStateForTh1(createTokenArray());
 
             const theorem: Assertion = {
-                hypotheses: ['tt'],
+                hypotheses: createReverseStoredArray(['tt']),
                 disjvars: new Set(),
                 expression: ['|-', 't', '=', 't'],
             };
@@ -441,7 +442,7 @@ describe('checkmm', () => {
             const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
 
             const theorem: Assertion = {
-                hypotheses: ['tt'],
+                hypotheses: createReverseStoredArray(['tt']),
                 disjvars: new Set(),
                 expression: ['|-', 't', '=', 't'],
             };

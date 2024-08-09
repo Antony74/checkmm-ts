@@ -38,6 +38,7 @@ import path from 'path';
 import stdModuleImport, { Deque, Pair, Stack, Std } from './std';
 
 import { createTokenArray as createTokenArrayImport, TokenArray, Tokens } from './tokens';
+import { createReverseStoredArray, ReverseStoredArray } from './reverseStoredArray';
 
 export { Deque, Pair, Stack, TokenArray, Tokens };
 
@@ -71,7 +72,7 @@ let variables = new Set<string>();
 // An axiom or a theorem.
 export class Assertion {
     // Hypotheses of this axiom or theorem.
-    hypotheses: Deque<string> = [];
+    hypotheses: ReverseStoredArray<string> = createReverseStoredArray();
     disjvars: Set<Pair<string, string>> = new Set<Pair<string, string>>();
     // Statement of axiom or theorem.
     expression: Expression = [];
@@ -460,7 +461,7 @@ let verifyassertionref = (thlabel: string, reflabel: string, stack: Stack<Expres
     // Determine substitutions and check that we can unify
 
     for (let i = 0; i < assertion.hypotheses.length; ++i) {
-        const hypothesis: Hypothesis = hypotheses.get(assertion.hypotheses[i])!;
+        const hypothesis: Hypothesis = hypotheses.get(assertion.hypotheses.at(i))!;
         if (hypothesis.second) {
             // Floating hypothesis of the referenced assertion
             if (hypothesis.first[0] !== stack.at(base + i)[0]) {
@@ -554,7 +555,7 @@ let verifycompressedproof = (label: string, theorem: Assertion, labels: string[]
 
         // If step is a mandatory hypothesis, just push it onto the stack.
         if (item <= mandhypt) {
-            stack.push(hypotheses.get(theorem.hypotheses[item - 1])!.first);
+            stack.push(hypotheses.get(theorem.hypotheses.at(item - 1))!.first);
         } else if (item <= labelt) {
             const proofstep: string = labels[item - mandhypt - 1];
 
