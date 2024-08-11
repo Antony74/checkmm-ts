@@ -36,7 +36,6 @@ export class Vector<T> extends Array<T> {}
 export type Queue<T> = {
     pushBack: (t: T) => void;
     popFront: () => T;
-    back: () => T;
     front: () => T;
     size: () => number;
     empty: () => boolean;
@@ -45,7 +44,6 @@ export type Queue<T> = {
 type QueueItem<T> = {
     t: T;
     prev: QueueItem<T> | undefined;
-    next: QueueItem<T> | undefined;
 };
 
 export const createEmptyQueue = <T>(): Queue<T> => {
@@ -55,7 +53,7 @@ export const createEmptyQueue = <T>(): Queue<T> => {
 
     const queue: Queue<T> = {
         pushBack: (t: T) => {
-            const queueItem = { t, prev: undefined, next: back };
+            const queueItem = { t, prev: undefined };
             if (back !== undefined) {
                 back.prev = queueItem;
             }
@@ -73,18 +71,9 @@ export const createEmptyQueue = <T>(): Queue<T> => {
                 front = result.prev;
                 if (front === undefined) {
                     back = undefined;
-                } else {
-                    front.next = undefined;
                 }
                 --size;
                 return result.t;
-            }
-        },
-        back: () => {
-            if (back === undefined) {
-                throw new Error(`back falled on empty queue`);
-            } else {
-                return back.t;
             }
         },
         front: () => {

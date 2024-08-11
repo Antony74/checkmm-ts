@@ -26,7 +26,6 @@ describe('Queue', () => {
         q.pushBack('Hello there');
         expect(q.size()).toEqual(1);
         expect(q.front()).toEqual('Hello there');
-        expect(q.back()).toEqual('Hello there');
     });
 
     it('can popFront a one item queue', () => {
@@ -45,6 +44,5 @@ describe('Queue', () => {
         expect(q.size()).toEqual(1);
         expect(result).toEqual('Hello there');
         expect(q.front()).toEqual('General Kenobi');
-        expect(q.back()).toEqual('General Kenobi');
     });
 });
