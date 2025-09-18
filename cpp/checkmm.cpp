@@ -51,7 +51,7 @@ inline bool ismmws(char const ch)
     return ch == ' ' || ch == '\n' || ch == '\t' || ch == '\f' || ch == '\r';
 }
 
-class MMData {
+class MMTokens {
 private:
 
     std::vector<char> m_data;
@@ -59,7 +59,7 @@ private:
 
 public:
 
-    MMData() : m_pos(-1) {}
+    MMTokens() : m_pos(0) {}
 
     const int getPosition() const {
         return m_pos;
@@ -110,27 +110,25 @@ public:
     }
 
     void reset() {
-        m_pos = -1;
+        m_pos = 0;
     }
 
-    const char * currentToken() const {
+    const char * front() const {
         return m_pos < m_data.size() ? &m_data[m_pos] : nullptr;
     }
 
-    const char * nextToken() {
-        if (m_pos == -1) {
-            m_pos = 0;
-        } else {
-            while (m_pos < m_data.size() && m_data[m_pos] != '\0') {
-                ++m_pos;
-            }
+    const char * pop() {
+        const char * result = front();
 
-            while (m_pos < m_data.size() && m_data[m_pos] == '\0') {
-                ++m_pos;
-            }
+        while (m_pos < m_data.size() && m_data[m_pos] != '\0') {
+            ++m_pos;
         }
 
-        return currentToken();
+        while (m_pos < m_data.size() && m_data[m_pos] == '\0') {
+            ++m_pos;
+        }
+
+        return result;
     }
 
 private:
@@ -152,7 +150,7 @@ private:
     }
 };
 
-MMData mmData;
+MMTokens mmData;
 
 std::queue<std::string> tokens;
 
@@ -338,7 +336,7 @@ bool readtokens(std::string const filename)
 
     // mmData.loadFile(filename, 0);
 
-    // while (const char * token = mmData.nextToken()) {
+    // while (const char * token = mmData.pop()) {
     //     printf("%s\n", token);
     // }
 
