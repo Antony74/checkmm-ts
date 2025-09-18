@@ -94,4 +94,3 @@ const std: Std = {
 };
 
 export default std;
-

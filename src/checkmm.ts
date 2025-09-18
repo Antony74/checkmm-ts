@@ -613,7 +613,7 @@ let parsep = (label: string): void => {
             labels.push(token);
             if (token === label) {
                 throw new Error('Proof of theorem ' + label + ' refers to itself');
-            } else if (assertion.hypotheses.find(_token => _token === token)) {
+            } else if (assertion.hypotheses.find((_token: string) => _token === token)) {
                 throw new Error(
                     'Compressed proof of theorem ' + label + ' has mandatory hypothesis ' + token + ' in label list',
                 );

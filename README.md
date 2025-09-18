@@ -35,10 +35,9 @@ There are module exports which should make checkmm easy and fun to hack, but bea
 
 For general information about Metamath please see http://us.metamath.org
 
-This is a port to TypeScript.  The original C++ program was written by Eric Schmidt and can be found here:
+This is a port to TypeScript. The original C++ program was written by Eric Schmidt and can be found here:
 
 http://us.metamath.org/other.html#checkmm
-
 
 # Licence
 

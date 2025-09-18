@@ -44,6 +44,116 @@
 #include <vector>
 #include <utility>
 
+// Determine if a character is white space in Metamath.
+inline bool ismmws(char const ch)
+{
+    // This doesn't include \v ("vertical tab"), as the spec omits it.
+    return ch == ' ' || ch == '\n' || ch == '\t' || ch == '\f' || ch == '\r';
+}
+
+class MMData {
+private:
+
+    std::vector<char> m_data;
+    int m_pos;
+
+public:
+
+    MMData() : m_pos(-1) {}
+
+    const int getPosition() const {
+        return m_pos;
+    }
+
+    const bool loadFile(const std::string & filename, const int pos) {
+        std::ifstream file(filename, std::ios::binary | std::ios::ate); // open at end
+        if (!file) {
+            std::cerr << "Error opening " << filename << std::endl;
+            return false;
+        }
+
+        std::streamsize fileSize = file.tellg();
+        file.seekg(0, std::ios::beg); // go back to start
+
+        const int existingSize = m_data.size();
+        m_data.resize(existingSize + fileSize);
+
+        std::copy(&m_data[pos], &m_data[existingSize], &m_data[pos + fileSize]);
+
+        const bool result = !!file.read(&m_data[pos], fileSize);
+
+        if (!result) {
+            std::cerr << "Error reading from " << filename << std::endl;
+        }
+
+        zeroWhitespace(fileSize);
+
+        return result;
+    }
+
+    const bool saveFile(const std::string & filename) { // For testing
+        whitespaceZeros();
+
+        std::ofstream file(filename);
+        if (!file) {
+            std::cerr << "Could not open file for writing" << std::endl;
+            return false;
+        }
+
+        file.write(m_data.data(), m_data.size());
+        if (!file) {
+            std::cerr <<"Error writing to file"  << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    void reset() {
+        m_pos = -1;
+    }
+
+    const char * currentToken() const {
+        return m_pos < m_data.size() ? &m_data[m_pos] : nullptr;
+    }
+
+    const char * nextToken() {
+        if (m_pos == -1) {
+            m_pos = 0;
+        } else {
+            while (m_pos < m_data.size() && m_data[m_pos] != '\0') {
+                ++m_pos;
+            }
+
+            while (m_pos < m_data.size() && m_data[m_pos] == '\0') {
+                ++m_pos;
+            }
+        }
+
+        return currentToken();
+    }
+
+private:
+
+    void zeroWhitespace(const int length) {
+        for (int index = m_pos; index < m_pos + length; ++index) {
+            if (ismmws(m_data[index])) {
+                m_data[index] = '\0';
+            }
+        } 
+    }
+
+    void whitespaceZeros() { // For testing
+        for (int index = 0; index < m_data.size(); ++index) {
+            if (m_data[index] == '\0') {
+                m_data[index] = ' ';
+            }
+        } 
+    }
+};
+
+MMData mmData;
+
 std::queue<std::string> tokens;
 
 std::set<std::string> constants;
@@ -150,13 +260,6 @@ bool isdvr(std::string var1, std::string var2)
     return false;
 }
 
-// Determine if a character is white space in Metamath.
-inline bool ismmws(char const ch)
-{
-    // This doesn't include \v ("vertical tab"), as the spec omits it.
-    return ch == ' ' || ch == '\n' || ch == '\t' || ch == '\f' || ch == '\r';
-}
-
 // Determine if a token is a label token.
 bool islabeltoken(std::string const token)
 {
@@ -232,6 +335,14 @@ bool readtokens(std::string const filename)
         std::cerr << "Could not open " << filename << std::endl;
         return false;
     }
+
+    // mmData.loadFile(filename, 0);
+
+    // while (const char * token = mmData.nextToken()) {
+    //     printf("%s\n", token);
+    // }
+
+    // mmData.saveFile(filename + '2');
 
     bool incomment(false);
     bool infileinclusion(false);
