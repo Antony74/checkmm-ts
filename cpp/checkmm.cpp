@@ -59,7 +59,7 @@ private:
 
 public:
 
-    MMData() : m_pos(0) {}
+    MMData() : m_pos(-1) {}
 
     const int getPosition() const {
         return m_pos;
@@ -109,9 +109,8 @@ public:
         return true;
     }
 
-    const char * firstToken() {
-        m_pos = 0;
-        return m_data.size() ? &m_data[0] : nullptr;
+    void reset() {
+        m_pos = -1;
     }
 
     const char * currentToken() const {
@@ -119,12 +118,16 @@ public:
     }
 
     const char * nextToken() {
-        while (m_pos < m_data.size() && m_data[m_pos] != '\0') {
-            ++m_pos;
-        }
+        if (m_pos == -1) {
+            m_pos = 0;
+        } else {
+            while (m_pos < m_data.size() && m_data[m_pos] != '\0') {
+                ++m_pos;
+            }
 
-        while (m_pos < m_data.size() && m_data[m_pos] == '\0') {
-            ++m_pos;
+            while (m_pos < m_data.size() && m_data[m_pos] == '\0') {
+                ++m_pos;
+            }
         }
 
         return currentToken();
@@ -335,9 +338,8 @@ bool readtokens(std::string const filename)
 
     // mmData.loadFile(filename, 0);
 
-    // while (mmData.currentToken()) {
-    //     printf("%s\n", mmData.currentToken());
-    //     mmData.nextToken();
+    // while (const char * token = mmData.nextToken()) {
+    //     printf("%s\n", token);
     // }
 
     // mmData.saveFile(filename + '2');
