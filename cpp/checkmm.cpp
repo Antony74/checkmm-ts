@@ -65,7 +65,7 @@ public:
         return m_pos;
     }
 
-    const bool loadFile(const std::string & filename, const int pos) {
+    const bool loadFile(const std::string & filename, const int inclusionStartPos, const int inclusionEndPos) {
         std::ifstream file(filename, std::ios::binary | std::ios::ate); // open at end
         if (!file) {
             std::cerr << "Error opening " << filename << std::endl;
@@ -76,17 +76,18 @@ public:
         file.seekg(0, std::ios::beg); // go back to start
 
         const int existingSize = m_data.size();
-        m_data.resize(existingSize + fileSize);
+        m_data.resize(existingSize + fileSize + inclusionStartPos - inclusionEndPos);
 
-        std::copy(&m_data[pos], &m_data[existingSize], &m_data[pos + fileSize]);
+        std::copy(&m_data[inclusionEndPos], &m_data[existingSize], &m_data[inclusionStartPos + fileSize]);
 
-        const bool result = !!file.read(&m_data[pos], fileSize);
+        const bool result = !!file.read(&m_data[inclusionStartPos], fileSize);
 
         if (!result) {
             std::cerr << "Error reading from " << filename << std::endl;
         }
 
         zeroWhitespace(fileSize);
+        validateCharset(fileSize);
 
         return result;
     }
@@ -139,6 +140,22 @@ private:
                 m_data[index] = '\0';
             }
         } 
+    }
+
+    bool validateCharset(const int length) {
+        for (int index = m_pos; index < m_pos + length; ++index) {
+            const char ch = m_data[m_pos];
+
+            if (ch < '!' || ch > '~')
+            {
+                std::cerr << "Invalid character read with code 0x";
+                std::cerr << std::hex << (unsigned int)(unsigned char)ch
+                        << std::endl;
+                return false;
+            }
+        }
+
+        return true;
     }
 
     void whitespaceZeros() { // For testing
@@ -334,7 +351,7 @@ bool readtokens(std::string const filename)
         return false;
     }
 
-    // mmData.loadFile(filename, 0);
+    // mmData.loadFile(filename, 0, 0);
 
     // while (const char * token = mmData.pop()) {
     //     printf("%s\n", token);
