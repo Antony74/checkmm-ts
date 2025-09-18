@@ -1,4 +1,4 @@
-export declare type Tokens = Pick<Array<string>, 'pop' | 'push' | 'reverse'> & {
+export type Tokens = Pick<Array<string>, 'pop' | 'push' | 'reverse'> & {
     front: () => string;
     empty: () => boolean;
 };

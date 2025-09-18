@@ -1,11 +1,11 @@
 import { Deque, Pair, Stack, Std } from './std';
 import { TokenArray, Tokens } from './tokens';
 export { Deque, Pair, Stack, TokenArray, Tokens };
-export declare type ScopeArray = ArrayLike<Scope> & Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
+export type ScopeArray = ArrayLike<Scope> & Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
     [Symbol.iterator](): IterableIterator<Scope>;
 };
-export declare type Expression = Array<string>;
-export declare type Hypothesis = Pair<Expression, boolean>;
+export type Expression = Array<string>;
+export type Hypothesis = Pair<Expression, boolean>;
 export declare class Assertion {
     hypotheses: Deque<string>;
     disjvars: Set<Pair<string, string>>;
