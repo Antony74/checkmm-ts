@@ -5,7 +5,8 @@
     "main": "dist/checkmm.js",
     "bin": "cli.js",
     "scripts": {
-        "cpp": "g++ cpp/checkmm.cpp -o checkmmc -O3 -funroll-loops -finline-functions -fomit-frame-pointer -Wall -pedantic",
+        "cpp-build": "g++ cpp/checkmm.cpp -o checkmmc -O3 -funroll-loops -finline-functions -fomit-frame-pointer -Wall -pedantic",
+        "cpp-run": "./checkmmc test/metamath-test/demo0.mm",
         "build": "tsc",
         "lint": "eslint .",
         "metamath-test": "ts-node test/metamath-test.ts",
