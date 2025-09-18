@@ -447,7 +447,7 @@ describe('checkmm', () => {
             };
 
             checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
-            expect(spy).toBeCalledTimes(9);
+            expect(spy).toHaveBeenCalledTimes(9);
         });
     });
 
