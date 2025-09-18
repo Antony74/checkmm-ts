@@ -114,18 +114,22 @@ public:
         m_pos = 0;
     }
 
+    const bool empty() const {
+        return m_pos >= m_data.size();
+    }
+
     const char * front() const {
-        return m_pos < m_data.size() ? &m_data[m_pos] : nullptr;
+        return !empty() ? &m_data[m_pos] : nullptr;
     }
 
     const char * pop() {
         const char * result = front();
 
-        while (m_pos < m_data.size() && m_data[m_pos] != '\0') {
+        while (!empty() && m_data[m_pos] != '\0') {
             ++m_pos;
         }
 
-        while (m_pos < m_data.size() && m_data[m_pos] == '\0') {
+        while (!empty() && m_data[m_pos] == '\0') {
             ++m_pos;
         }
 
