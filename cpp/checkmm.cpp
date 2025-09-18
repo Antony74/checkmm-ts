@@ -51,7 +51,7 @@ inline bool ismmws(char const ch)
     return ch == ' ' || ch == '\n' || ch == '\t' || ch == '\f' || ch == '\r';
 }
 
-class MMTokens {
+class MMTokensWithComments {
 private:
 
     std::vector<char> m_data;
@@ -59,7 +59,7 @@ private:
 
 public:
 
-    MMTokens() : m_pos(0) {}
+    MMTokensWithComments() : m_pos(0) {}
 
     const int getPosition() const {
         return m_pos;
@@ -125,12 +125,14 @@ public:
     const char * pop() {
         const char * result = front();
 
+        if (result != nullptr) {
         while (!empty() && m_data[m_pos] != '\0') {
             ++m_pos;
         }
 
         while (!empty() && m_data[m_pos] == '\0') {
             ++m_pos;
+            }
         }
 
         return result;
@@ -171,9 +173,63 @@ private:
     }
 };
 
-MMTokens mmData;
+class MMTokens {
+private:
+    MMTokensWithComments & m_tokens;
+    const char * m_front = nullptr;
 
-std::queue<std::string> tokens;
+public:
+    MMTokens(MMTokensWithComments & tokens): m_tokens(tokens) {
+    }
+
+    const bool empty() const {
+        return m_tokens.empty();
+    }
+
+    const char * front() {
+        if (!m_front) {
+            m_front = nextToken();
+        }
+
+        return m_front;
+    }
+
+    const char * pop() {
+        const char * result = front();
+        m_tokens.pop();
+        m_front = nullptr;
+        return result;
+    }
+
+private:
+
+    const char * nextToken() {
+        bool incomment = false;
+        while (!m_tokens.empty()) {
+            const char * token = m_tokens.front();
+
+            if (incomment) {
+                if (strcmp(token, "$)") == 0) {
+                    incomment = false;
+                }
+
+                m_tokens.pop();
+                continue;
+            } else if (strcmp(token, "$(") == 0) {
+                incomment = true;
+                m_tokens.pop();
+                continue;
+            }
+
+            return token;
+        }
+
+        return nullptr;
+    }
+};
+
+MMTokensWithComments tokensWithComments;
+MMTokens tokens(tokensWithComments);
 
 std::set<std::string> constants;
 
@@ -340,7 +396,7 @@ std::string nexttoken(std::istream & input)
     return token;
 }
 
-bool readtokens(std::string const filename)
+bool readtokens(std::string const filename, int inclusionStartPos, int inclusionEndPos)
 {
     static std::set<std::string> names;
 
@@ -348,28 +404,21 @@ bool readtokens(std::string const filename)
     if (alreadyencountered)
         return true;
 
-    std::ifstream in(filename.c_str());
-    if (!in)
+    const bool result = tokensWithComments.loadFile(filename, inclusionStartPos, inclusionEndPos);
+
+    if (!result)
     {
-        std::cerr << "Could not open " << filename << std::endl;
         return false;
     }
-
-    // mmData.loadFile(filename, 0, 0);
-
-    // while (const char * token = mmData.pop()) {
-    //     printf("%s\n", token);
-    // }
-
-    // mmData.saveFile(filename + '2');
 
     bool incomment(false);
     bool infileinclusion(false);
     std::string newfilename;
 
-    std::string token;
-    while (!(token = nexttoken(in)).empty())
+    while (!tokensWithComments.empty())
     {
+        std::string token = tokensWithComments.pop();
+
         if (incomment)
         {
             if (token == "$)")
@@ -419,7 +468,7 @@ bool readtokens(std::string const filename)
                     return false;
                 }
 
-                bool const okay(readtokens(newfilename));
+                bool const okay(readtokens(newfilename, inclusionStartPos, tokensWithComments.getPosition() + 2));
                 if (!okay)
                     return false;
                 infileinclusion = false;
@@ -431,17 +480,9 @@ bool readtokens(std::string const filename)
         if (token == "$[")
         {
             infileinclusion = true;
+            inclusionStartPos = tokensWithComments.getPosition();
             continue;
         }
-
-        tokens.push(token);
-    }
-
-    if (!in.eof())
-    {
-        if (in.fail())
-            std::cerr << "Error reading from " << filename << std::endl;
-        return false;
     }
 
     if (incomment)
@@ -456,6 +497,7 @@ bool readtokens(std::string const filename)
         return false;
     }
 
+    tokensWithComments.reset();
     return true;
 }
 
@@ -928,7 +970,7 @@ bool parsep(std::string label)
         return false;
     }
 
-    if (tokens.front() == "(")
+    if (strcmp(tokens.front(), "(") == 0)
     {
         // Compressed proof
         tokens.pop();
@@ -1160,7 +1202,7 @@ bool parsef(std::string label)
         return false;
     }
 
-    if (tokens.front() != "$.")
+    if (strcmp(tokens.front(), "$.") != 0)
     {
         std::cerr << "Expected end of $f statement " << label
                   << " but found " << tokens.front() << std::endl;
@@ -1411,7 +1453,7 @@ int main(int argc, char ** argv)
         return EXIT_FAILURE;
     }
 
-    bool const okay(readtokens(argv[1]));
+    bool const okay(readtokens(argv[1], 0, 0));
     if (!okay)
         return EXIT_FAILURE;
 
