@@ -86,8 +86,8 @@ public:
             std::cerr << "Error reading from " << filename << std::endl;
         }
 
-        zeroWhitespace(fileSize);
-        validateCharset(fileSize);
+        zeroWhitespace();
+        validateCharset();
 
         return result;
     }
@@ -103,7 +103,7 @@ public:
 
         file.write(m_data.data(), m_data.size());
         if (!file) {
-            std::cerr <<"Error writing to file"  << std::endl;
+            std::cerr << "Error writing to file"  << std::endl;
             return false;
         }
 
@@ -140,19 +140,19 @@ public:
 
 private:
 
-    void zeroWhitespace(const int length) {
-        for (int index = m_pos; index < m_pos + length; ++index) {
+    void zeroWhitespace() {
+        for (int index = 0; index < m_data.size(); ++index) {
             if (ismmws(m_data[index])) {
                 m_data[index] = '\0';
             }
         } 
     }
 
-    bool validateCharset(const int length) {
-        for (int index = m_pos; index < m_pos + length; ++index) {
-            const char ch = m_data[m_pos];
+    bool validateCharset() {
+        for (int index = 0; index < m_data.size(); ++index) {
+            const char ch = m_data[index];
 
-            if (ch < '!' || ch > '~')
+            if (ch != '\0' && (ch < '!' || ch > '~'))
             {
                 std::cerr << "Invalid character read with code 0x";
                 std::cerr << std::hex << (unsigned int)(unsigned char)ch
@@ -420,6 +420,7 @@ bool readtokens(std::string const filename, int inclusionStartPos, int inclusion
 
     while (!tokensWithComments.empty())
     {
+        const int tokenPosition = tokensWithComments.getPosition();
         std::string token = tokensWithComments.pop();
 
         if (incomment)
@@ -471,7 +472,8 @@ bool readtokens(std::string const filename, int inclusionStartPos, int inclusion
                     return false;
                 }
 
-                bool const okay(readtokens(newfilename, inclusionStartPos, tokensWithComments.getPosition() + 2));
+                bool const okay(readtokens(newfilename, inclusionStartPos, tokenPosition + 2));
+
                 if (!okay)
                     return false;
                 infileinclusion = false;
@@ -483,7 +485,7 @@ bool readtokens(std::string const filename, int inclusionStartPos, int inclusion
         if (token == "$[")
         {
             infileinclusion = true;
-            inclusionStartPos = tokensWithComments.getPosition();
+            inclusionStartPos = tokenPosition;
             continue;
         }
     }
