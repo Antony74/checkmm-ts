@@ -182,8 +182,11 @@ public:
     MMTokens(MMTokensWithComments & tokens): m_tokens(tokens) {
     }
 
-    const bool empty() const {
-        return m_tokens.empty();
+    const bool empty() {
+        if (m_front == nullptr) {
+            front();
+        }
+        return m_front == nullptr;
     }
 
     const char * front() {
