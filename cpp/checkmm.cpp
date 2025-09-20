@@ -409,8 +409,7 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
                   varsused.begin(), varsused.end(),
                   std::inserter(dset, dset.end()));
 
-            for (std::unordered_set<std::string>::const_iterator diter(dset.begin());
-                 diter != dset.end(); ++diter)
+            for (auto diter(dset.begin()); diter != dset.end(); ++diter)
             {
                 std::unordered_set<std::string>::const_iterator diter2(diter);
                 ++diter2;
@@ -627,9 +626,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
     stack->erase(stack->begin() + base, stack->end());
 
     // Verify disjoint variable conditions
-    for (std::unordered_set<std::pair<std::string, std::string> >::const_iterator
-         iter(assertion.disjvars.begin());
-         iter != assertion.disjvars.end(); ++iter)
+    for (auto iter(assertion.disjvars.begin()); iter != assertion.disjvars.end(); ++iter)
     {
         Expression const & exp1(substitutions.find(iter->first)->second);
         Expression const & exp2(substitutions.find(iter->second)->second);
@@ -650,11 +647,9 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
                 exp2vars.insert(*exp2iter);
         }
 
-        for (std::unordered_set<std::string>::const_iterator exp1iter
-            (exp1vars.begin()); exp1iter != exp1vars.end(); ++exp1iter)
+        for (auto exp1iter(exp1vars.begin()); exp1iter != exp1vars.end(); ++exp1iter)
         {
-            for (std::unordered_set<std::string>::const_iterator exp2iter
-                (exp2vars.begin()); exp2iter != exp2vars.end(); ++exp2iter)
+            for (auto exp2iter(exp2vars.begin()); exp2iter != exp2vars.end(); ++exp2iter)
             {
                 if (!isdvr(*exp1iter, *exp2iter))
                 {
