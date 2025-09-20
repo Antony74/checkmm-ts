@@ -1,5 +1,5 @@
 // Metamath database verifier
-// Eric Schmidt (eric41293@comcast.net)
+// Eric Schmidt (erics41293@gmail.com)
 //
 // I release this code to the public domain under the
 // Creative Commons "CC0 1.0 Universal" Public Domain Dedication:
@@ -44,195 +44,10 @@
 #include <vector>
 #include <utility>
 
-// Determine if a character is white space in Metamath.
-inline bool ismmws(char const ch)
+namespace
 {
-    // This doesn't include \v ("vertical tab"), as the spec omits it.
-    return ch == ' ' || ch == '\n' || ch == '\t' || ch == '\f' || ch == '\r';
-}
 
-class MMTokensWithComments {
-private:
-
-    std::vector<char> m_data;
-    int m_pos;
-
-public:
-
-    MMTokensWithComments() : m_pos(0) {}
-
-    const int getPosition() const {
-        return m_pos;
-    }
-
-    const bool loadFile(const std::string & filename, const int inclusionStartPos, const int inclusionEndPos) {
-        std::ifstream file(filename, std::ios::binary | std::ios::ate); // open at end
-        if (!file) {
-            std::cerr << "Error opening " << filename << std::endl;
-            return false;
-        }
-
-        std::streamsize fileSize = file.tellg();
-        file.seekg(0, std::ios::beg); // go back to start
-
-        const int existingSize = m_data.size();
-        m_data.resize(existingSize + fileSize + inclusionStartPos - inclusionEndPos);
-
-        std::copy(&m_data[inclusionEndPos], &m_data[existingSize], &m_data[inclusionStartPos + fileSize]);
-
-        const bool result = !!file.read(&m_data[inclusionStartPos], fileSize);
-
-        if (!result) {
-            std::cerr << "Error reading from " << filename << std::endl;
-        }
-
-        zeroWhitespace();
-        validateCharset();
-
-        return result;
-    }
-
-    const bool saveFile(const std::string & filename) { // For testing
-        whitespaceZeros();
-
-        std::ofstream file(filename);
-        if (!file) {
-            std::cerr << "Could not open file for writing" << std::endl;
-            return false;
-        }
-
-        file.write(m_data.data(), m_data.size());
-        if (!file) {
-            std::cerr << "Error writing to file"  << std::endl;
-            return false;
-        }
-
-        return true;
-    }
-
-    void reset() {
-        m_pos = 0;
-    }
-
-    const bool empty() const {
-        return m_pos >= m_data.size();
-    }
-
-    const char * front() const {
-        return !empty() ? &m_data[m_pos] : nullptr;
-    }
-
-    const char * pop() {
-        const char * result = front();
-
-        if (result != nullptr) {
-        while (!empty() && m_data[m_pos] != '\0') {
-            ++m_pos;
-        }
-
-        while (!empty() && m_data[m_pos] == '\0') {
-            ++m_pos;
-            }
-        }
-
-        return result;
-    }
-
-private:
-
-    void zeroWhitespace() {
-        for (int index = 0; index < m_data.size(); ++index) {
-            if (ismmws(m_data[index])) {
-                m_data[index] = '\0';
-            }
-        } 
-    }
-
-    bool validateCharset() {
-        for (int index = 0; index < m_data.size(); ++index) {
-            const char ch = m_data[index];
-
-            if (ch != '\0' && (ch < '!' || ch > '~'))
-            {
-                std::cerr << "Invalid character read with code 0x";
-                std::cerr << std::hex << (unsigned int)(unsigned char)ch
-                        << std::endl;
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    void whitespaceZeros() { // For testing
-        for (int index = 0; index < m_data.size(); ++index) {
-            if (m_data[index] == '\0') {
-                m_data[index] = ' ';
-            }
-        } 
-    }
-};
-
-class MMTokens {
-private:
-    MMTokensWithComments & m_tokens;
-    const char * m_front = nullptr;
-
-public:
-    MMTokens(MMTokensWithComments & tokens): m_tokens(tokens) {
-    }
-
-    const bool empty() {
-        if (m_front == nullptr) {
-            front();
-        }
-        return m_front == nullptr;
-    }
-
-    const char * front() {
-        if (!m_front) {
-            m_front = nextToken();
-        }
-
-        return m_front;
-    }
-
-    const char * pop() {
-        const char * result = front();
-        m_tokens.pop();
-        m_front = nullptr;
-        return result;
-    }
-
-private:
-
-    const char * nextToken() {
-        bool incomment = false;
-        while (!m_tokens.empty()) {
-            const char * token = m_tokens.front();
-
-            if (incomment) {
-                if (strcmp(token, "$)") == 0) {
-                    incomment = false;
-                }
-
-                m_tokens.pop();
-                continue;
-            } else if (strcmp(token, "$(") == 0) {
-                incomment = true;
-                m_tokens.pop();
-                continue;
-            }
-
-            return token;
-        }
-
-        return nullptr;
-    }
-};
-
-MMTokensWithComments tokensWithComments;
-MMTokens tokens(tokensWithComments);
+std::queue<std::string> tokens;
 
 std::set<std::string> constants;
 
@@ -338,6 +153,13 @@ bool isdvr(std::string var1, std::string var2)
     return false;
 }
 
+// Determine if a character is white space in Metamath.
+inline bool ismmws(char const ch)
+{
+    // This doesn't include \v ("vertical tab"), as the spec omits it.
+    return ch == ' ' || ch == '\n' || ch == '\t' || ch == '\f' || ch == '\r';
+}
+
 // Determine if a token is a label token.
 bool islabeltoken(std::string const token)
 {
@@ -399,7 +221,7 @@ std::string nexttoken(std::istream & input)
     return token;
 }
 
-bool readtokens(std::string const filename, int inclusionStartPos, int inclusionEndPos)
+bool readtokens(std::string const filename)
 {
     static std::set<std::string> names;
 
@@ -407,10 +229,10 @@ bool readtokens(std::string const filename, int inclusionStartPos, int inclusion
     if (alreadyencountered)
         return true;
 
-    const bool result = tokensWithComments.loadFile(filename, inclusionStartPos, inclusionEndPos);
-
-    if (!result)
+    std::ifstream in(filename.c_str());
+    if (!in)
     {
+        std::cerr << "Could not open " << filename << std::endl;
         return false;
     }
 
@@ -418,11 +240,9 @@ bool readtokens(std::string const filename, int inclusionStartPos, int inclusion
     bool infileinclusion(false);
     std::string newfilename;
 
-    while (!tokensWithComments.empty())
+    std::string token;
+    while (!(token = nexttoken(in)).empty())
     {
-        const int tokenPosition = tokensWithComments.getPosition();
-        std::string token = tokensWithComments.pop();
-
         if (incomment)
         {
             if (token == "$)")
@@ -472,8 +292,7 @@ bool readtokens(std::string const filename, int inclusionStartPos, int inclusion
                     return false;
                 }
 
-                bool const okay(readtokens(newfilename, inclusionStartPos, tokenPosition + 2));
-
+                bool const okay(readtokens(newfilename));
                 if (!okay)
                     return false;
                 infileinclusion = false;
@@ -485,9 +304,17 @@ bool readtokens(std::string const filename, int inclusionStartPos, int inclusion
         if (token == "$[")
         {
             infileinclusion = true;
-            inclusionStartPos = tokenPosition;
             continue;
         }
+
+        tokens.push(token);
+    }
+
+    if (!in.eof())
+    {
+        if (in.fail())
+            std::cerr << "Error reading from " << filename << std::endl;
+        return false;
     }
 
     if (incomment)
@@ -502,7 +329,6 @@ bool readtokens(std::string const filename, int inclusionStartPos, int inclusion
         return false;
     }
 
-    tokensWithComments.reset();
     return true;
 }
 
@@ -642,7 +468,7 @@ bool readexpression
 // Make a substitution of variables. The result is put in "destination",
 // which should be empty.
 void makesubstitution
-    (Expression const & original, std::map<std::string, Expression> substmap,
+    (Expression const & original, std::map<std::string, Expression> const & substmap,
      Expression * destination
     )
 {
@@ -975,7 +801,7 @@ bool parsep(std::string label)
         return false;
     }
 
-    if (strcmp(tokens.front(), "(") == 0)
+    if (tokens.front() == "(")
     {
         // Compressed proof
         tokens.pop();
@@ -1207,7 +1033,7 @@ bool parsef(std::string label)
         return false;
     }
 
-    if (strcmp(tokens.front(), "$.") != 0)
+    if (tokens.front() != "$.")
     {
         std::cerr << "Expected end of $f statement " << label
                   << " but found " << tokens.front() << std::endl;
@@ -1450,6 +1276,8 @@ bool parsev()
     return true;
 }
 
+}
+
 int main(int argc, char ** argv)
 {
     if (argc != 2)
@@ -1458,7 +1286,7 @@ int main(int argc, char ** argv)
         return EXIT_FAILURE;
     }
 
-    bool const okay(readtokens(argv[1], 0, 0));
+    bool const okay(readtokens(argv[1]));
     if (!okay)
         return EXIT_FAILURE;
 
