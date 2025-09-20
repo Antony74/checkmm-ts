@@ -42,6 +42,8 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace
@@ -49,7 +51,7 @@ namespace
 
 std::queue<std::string> tokens;
 
-std::set<std::string> constants;
+std::unordered_set<std::string> constants;
 
 typedef std::vector<std::string> Expression;
 
@@ -57,9 +59,9 @@ typedef std::vector<std::string> Expression;
 // true iff the hypothesis is floating.
 typedef std::pair<Expression, bool> Hypothesis;
 
-std::map<std::string, Hypothesis> hypotheses;
+std::unordered_map<std::string, Hypothesis> hypotheses;
 
-std::set<std::string> variables;
+std::unordered_set<std::string> variables;
 
 // An axiom or a theorem.
 struct Assertion
@@ -71,16 +73,16 @@ struct Assertion
     Expression expression;
 };
 
-std::map<std::string, Assertion> assertions;
+std::unordered_map<std::string, Assertion> assertions;
 
 struct Scope
 {
-    std::set<std::string> activevariables;
+    std::unordered_set<std::string> activevariables;
     // Labels of active hypotheses
     std::vector<std::string> activehyp;
     std::vector<std::set<std::string> > disjvars;
     // Map from variable to label of active floating hypothesis
-    std::map<std::string, std::string> floatinghyp;
+    std::unordered_map<std::string, std::string> floatinghyp;
 };
 
 std::vector<Scope> scopes;
@@ -99,7 +101,7 @@ std::string getfloatinghyp(std::string const var)
     for (std::vector<Scope>::const_iterator iter(scopes.begin());
          iter != scopes.end(); ++iter)
     {
-        std::map<std::string, std::string>::const_iterator const loc
+        std::unordered_map<std::string, std::string>::const_iterator const loc
             (iter->floatinghyp.find(var));
         if (loc != iter->floatinghyp.end())
             return loc->second;
@@ -673,7 +675,7 @@ bool verifyregularproof
          proofstep != proof.end(); ++proofstep)
     {
         // If step is a hypothesis, just push it onto the stack.
-        std::map<std::string, Hypothesis>::const_iterator hyp
+        std::unordered_map<std::string, Hypothesis>::const_iterator hyp
             (hypotheses.find(*proofstep));
         if (hyp != hypotheses.end())
         {
@@ -738,7 +740,7 @@ bool verifycompressedproof
 
             // If step is a (non-mandatory) hypothesis,
             // just push it onto the stack.
-            std::map<std::string, Hypothesis>::const_iterator hyp
+            std::unordered_map<std::string, Hypothesis>::const_iterator hyp
             (hypotheses.find(proofstep));
             if (hyp != hypotheses.end())
             {
