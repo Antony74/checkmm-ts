@@ -39,6 +39,7 @@
 #include <limits>
 #include <unordered_map>
 #include <queue>
+#include <set>
 #include <unordered_set>
 #include <string>
 #include <vector>
@@ -80,7 +81,7 @@ struct Assertion
 {
     // Hypotheses of this axiom or theorem.
     std::deque<std::string> hypotheses;
-    std::unordered_set<std::pair<std::string, std::string>, PairHash, PairEqual> disjvars;
+    std::set<std::pair<std::string, std::string>> disjvars;
     // Statement of axiom or theorem.
     Expression expression;
 };
@@ -627,12 +628,14 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
     stack->erase(stack->begin() + base, stack->end());
 
     // Verify disjoint variable conditions
-    for (auto iter(assertion.disjvars.begin()); iter != assertion.disjvars.end(); ++iter)
+    for (std::set<std::pair<std::string, std::string> >::const_iterator
+         iter(assertion.disjvars.begin());
+         iter != assertion.disjvars.end(); ++iter)
     {
         Expression const & exp1(substitutions.find(iter->first)->second);
         Expression const & exp2(substitutions.find(iter->second)->second);
 
-        std::unordered_set<std::string> exp1vars;
+        std::set<std::string> exp1vars;
         for (Expression::const_iterator exp1iter(exp1.begin());
              exp1iter != exp1.end(); ++exp1iter)
         {
@@ -640,7 +643,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
                 exp1vars.insert(*exp1iter);
         }
 
-        std::unordered_set<std::string> exp2vars;
+        std::set<std::string> exp2vars;
         for (Expression::const_iterator exp2iter(exp2.begin());
              exp2iter != exp2.end(); ++exp2iter)
         {
@@ -648,10 +651,10 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
                 exp2vars.insert(*exp2iter);
         }
 
-        for (std::unordered_set<std::string>::const_iterator exp1iter
+        for (std::set<std::string>::const_iterator exp1iter
             (exp1vars.begin()); exp1iter != exp1vars.end(); ++exp1iter)
         {
-            for (std::unordered_set<std::string>::const_iterator exp2iter
+            for (std::set<std::string>::const_iterator exp2iter
                 (exp2vars.begin()); exp2iter != exp2vars.end(); ++exp2iter)
             {
                 if (!isdvr(*exp1iter, *exp2iter))
