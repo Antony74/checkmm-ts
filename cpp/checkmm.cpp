@@ -93,7 +93,7 @@ struct Scope
     std::unordered_set<std::string> activevariables;
     // Labels of active hypotheses
     std::vector<std::string> activehyp;
-    std::vector<std::unordered_set<std::string> > disjvars;
+    std::vector<std::set<std::string> > disjvars;
     // Map from variable to label of active floating hypothesis
     std::unordered_map<std::string, std::string> floatinghyp;
 };
@@ -157,7 +157,7 @@ bool isdvr(std::string var1, std::string var2)
     for (std::vector<Scope>::const_iterator iter(scopes.begin());
          iter != scopes.end(); ++iter)
     {
-        for (std::vector<std::unordered_set<std::string> >::const_iterator iter2
+        for (std::vector<std::set<std::string> >::const_iterator iter2
             (iter->disjvars.begin()); iter2 != iter->disjvars.end(); ++iter2)
         {
             if (   iter2->find(var1) != iter2->end()
@@ -358,7 +358,7 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
 
     assertion.expression = exp;
 
-    std::unordered_set<std::string> varsused;
+    std::set<std::string> varsused;
 
     // Determine variables used and find mandatory hypotheses
 
@@ -400,20 +400,20 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
     for (std::vector<Scope>::const_iterator iter(scopes.begin());
          iter != scopes.end(); ++iter)
     {
-        std::vector<std::unordered_set<std::string> > const & disjvars(iter->disjvars);
-        for (std::vector<std::unordered_set<std::string> >::const_iterator iter2
+        std::vector<std::set<std::string> > const & disjvars(iter->disjvars);
+        for (std::vector<std::set<std::string> >::const_iterator iter2
             (disjvars.begin()); iter2 != disjvars.end(); ++iter2)
         {
-            std::unordered_set<std::string> dset;
+            std::set<std::string> dset;
             std::set_intersection
                  (iter2->begin(), iter2->end(),
                   varsused.begin(), varsused.end(),
                   std::inserter(dset, dset.end()));
 
-            for (std::unordered_set<std::string>::const_iterator diter(dset.begin());
+            for (std::set<std::string>::const_iterator diter(dset.begin());
                  diter != dset.end(); ++diter)
             {
-                std::unordered_set<std::string>::const_iterator diter2(diter);
+                std::set<std::string>::const_iterator diter2(diter);
                 ++diter2;
                 for (; diter2 != dset.end(); ++diter2)
                     assertion.disjvars.insert(std::make_pair(*diter, *diter2));
@@ -1130,7 +1130,7 @@ bool parselabel(std::string label)
 // Parse $d statement. Return true iff okay.
 bool parsed()
 {
-    std::unordered_set<std::string> dvars;
+    std::set<std::string> dvars;
 
     std::string token;    
 
