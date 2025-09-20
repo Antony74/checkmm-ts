@@ -37,9 +37,9 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
-#include <map>
+#include <unordered_map>
 #include <queue>
-#include <set>
+#include <unordered_set>
 #include <string>
 #include <vector>
 #include <utility>
@@ -47,9 +47,23 @@
 namespace
 {
 
+struct PairHash {
+    std::size_t operator()(const std::pair<std::string, std::string>& p) const noexcept {
+        std::hash<std::string> h;
+        return h(p.first) ^ (h(p.second) << 1);
+    }
+};
+
+struct PairEqual {
+    bool operator()(const std::pair<std::string, std::string>& a,
+                    const std::pair<std::string, std::string>& b) const noexcept {
+        return a.first == b.first && a.second == b.second;
+    }
+};
+
 std::queue<std::string> tokens;
 
-std::set<std::string> constants;
+std::unordered_set<std::string> constants;
 
 typedef std::vector<std::string> Expression;
 
@@ -57,30 +71,30 @@ typedef std::vector<std::string> Expression;
 // true iff the hypothesis is floating.
 typedef std::pair<Expression, bool> Hypothesis;
 
-std::map<std::string, Hypothesis> hypotheses;
+std::unordered_map<std::string, Hypothesis> hypotheses;
 
-std::set<std::string> variables;
+std::unordered_set<std::string> variables;
 
 // An axiom or a theorem.
 struct Assertion
 {
     // Hypotheses of this axiom or theorem.
     std::deque<std::string> hypotheses;
-    std::set<std::pair<std::string, std::string> > disjvars;
+    std::unordered_set<std::pair<std::string, std::string>, PairHash, PairEqual> disjvars;
     // Statement of axiom or theorem.
     Expression expression;
 };
 
-std::map<std::string, Assertion> assertions;
+std::unordered_map<std::string, Assertion> assertions;
 
 struct Scope
 {
-    std::set<std::string> activevariables;
+    std::unordered_set<std::string> activevariables;
     // Labels of active hypotheses
     std::vector<std::string> activehyp;
-    std::vector<std::set<std::string> > disjvars;
+    std::vector<std::unordered_set<std::string> > disjvars;
     // Map from variable to label of active floating hypothesis
-    std::map<std::string, std::string> floatinghyp;
+    std::unordered_map<std::string, std::string> floatinghyp;
 };
 
 std::vector<Scope> scopes;
@@ -99,7 +113,7 @@ std::string getfloatinghyp(std::string const var)
     for (std::vector<Scope>::const_iterator iter(scopes.begin());
          iter != scopes.end(); ++iter)
     {
-        std::map<std::string, std::string>::const_iterator const loc
+        std::unordered_map<std::string, std::string>::const_iterator const loc
             (iter->floatinghyp.find(var));
         if (loc != iter->floatinghyp.end())
             return loc->second;
@@ -142,7 +156,7 @@ bool isdvr(std::string var1, std::string var2)
     for (std::vector<Scope>::const_iterator iter(scopes.begin());
          iter != scopes.end(); ++iter)
     {
-        for (std::vector<std::set<std::string> >::const_iterator iter2
+        for (std::vector<std::unordered_set<std::string> >::const_iterator iter2
             (iter->disjvars.begin()); iter2 != iter->disjvars.end(); ++iter2)
         {
             if (   iter2->find(var1) != iter2->end()
@@ -223,7 +237,7 @@ std::string nexttoken(std::istream & input)
 
 bool readtokens(std::string const filename)
 {
-    static std::set<std::string> names;
+    static std::unordered_set<std::string> names;
 
     bool const alreadyencountered(!names.insert(filename).second);
     if (alreadyencountered)
@@ -343,7 +357,7 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
 
     assertion.expression = exp;
 
-    std::set<std::string> varsused;
+    std::unordered_set<std::string> varsused;
 
     // Determine variables used and find mandatory hypotheses
 
@@ -385,20 +399,20 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
     for (std::vector<Scope>::const_iterator iter(scopes.begin());
          iter != scopes.end(); ++iter)
     {
-        std::vector<std::set<std::string> > const & disjvars(iter->disjvars);
-        for (std::vector<std::set<std::string> >::const_iterator iter2
+        std::vector<std::unordered_set<std::string> > const & disjvars(iter->disjvars);
+        for (std::vector<std::unordered_set<std::string> >::const_iterator iter2
             (disjvars.begin()); iter2 != disjvars.end(); ++iter2)
         {
-            std::set<std::string> dset;
+            std::unordered_set<std::string> dset;
             std::set_intersection
                  (iter2->begin(), iter2->end(),
                   varsused.begin(), varsused.end(),
                   std::inserter(dset, dset.end()));
 
-            for (std::set<std::string>::const_iterator diter(dset.begin());
+            for (std::unordered_set<std::string>::const_iterator diter(dset.begin());
                  diter != dset.end(); ++diter)
             {
-                std::set<std::string>::const_iterator diter2(diter);
+                std::unordered_set<std::string>::const_iterator diter2(diter);
                 ++diter2;
                 for (; diter2 != dset.end(); ++diter2)
                     assertion.disjvars.insert(std::make_pair(*diter, *diter2));
@@ -468,14 +482,14 @@ bool readexpression
 // Make a substitution of variables. The result is put in "destination",
 // which should be empty.
 void makesubstitution
-    (Expression const & original, std::map<std::string, Expression> const & substmap,
+    (Expression const & original, std::unordered_map<std::string, Expression> const & substmap,
      Expression * destination
     )
 {
     for (Expression::const_iterator iter(original.begin());
          iter != original.end(); ++iter)
     {
-        std::map<std::string, Expression>::const_iterator const iter2
+        std::unordered_map<std::string, Expression>::const_iterator const iter2
             (substmap.find(*iter));
         if (iter2 == substmap.end())
         {
@@ -572,7 +586,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
     std::vector<Expression>::size_type const base
         (stack->size() - assertion.hypotheses.size());
 
-    std::map<std::string, Expression> substitutions;
+    std::unordered_map<std::string, Expression> substitutions;
 
     // Determine substitutions and check that we can unify
     for (std::deque<std::string>::size_type i(0);
@@ -613,14 +627,14 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
     stack->erase(stack->begin() + base, stack->end());
 
     // Verify disjoint variable conditions
-    for (std::set<std::pair<std::string, std::string> >::const_iterator
+    for (std::unordered_set<std::pair<std::string, std::string> >::const_iterator
          iter(assertion.disjvars.begin());
          iter != assertion.disjvars.end(); ++iter)
     {
         Expression const & exp1(substitutions.find(iter->first)->second);
         Expression const & exp2(substitutions.find(iter->second)->second);
 
-        std::set<std::string> exp1vars;
+        std::unordered_set<std::string> exp1vars;
         for (Expression::const_iterator exp1iter(exp1.begin());
              exp1iter != exp1.end(); ++exp1iter)
         {
@@ -628,7 +642,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
                 exp1vars.insert(*exp1iter);
         }
 
-        std::set<std::string> exp2vars;
+        std::unordered_set<std::string> exp2vars;
         for (Expression::const_iterator exp2iter(exp2.begin());
              exp2iter != exp2.end(); ++exp2iter)
         {
@@ -636,10 +650,10 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
                 exp2vars.insert(*exp2iter);
         }
 
-        for (std::set<std::string>::const_iterator exp1iter
+        for (std::unordered_set<std::string>::const_iterator exp1iter
             (exp1vars.begin()); exp1iter != exp1vars.end(); ++exp1iter)
         {
-            for (std::set<std::string>::const_iterator exp2iter
+            for (std::unordered_set<std::string>::const_iterator exp2iter
                 (exp2vars.begin()); exp2iter != exp2vars.end(); ++exp2iter)
             {
                 if (!isdvr(*exp1iter, *exp2iter))
@@ -673,7 +687,7 @@ bool verifyregularproof
          proofstep != proof.end(); ++proofstep)
     {
         // If step is a hypothesis, just push it onto the stack.
-        std::map<std::string, Hypothesis>::const_iterator hyp
+        std::unordered_map<std::string, Hypothesis>::const_iterator hyp
             (hypotheses.find(*proofstep));
         if (hyp != hypotheses.end())
         {
@@ -738,7 +752,7 @@ bool verifycompressedproof
 
             // If step is a (non-mandatory) hypothesis,
             // just push it onto the stack.
-            std::map<std::string, Hypothesis>::const_iterator hyp
+            std::unordered_map<std::string, Hypothesis>::const_iterator hyp
             (hypotheses.find(proofstep));
             if (hyp != hypotheses.end())
             {
@@ -1115,7 +1129,7 @@ bool parselabel(std::string label)
 // Parse $d statement. Return true iff okay.
 bool parsed()
 {
-    std::set<std::string> dvars;
+    std::unordered_set<std::string> dvars;
 
     std::string token;    
 
