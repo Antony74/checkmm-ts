@@ -470,14 +470,14 @@ bool readexpression
 // Make a substitution of variables. The result is put in "destination",
 // which should be empty.
 void makesubstitution
-    (Expression const & original, std::map<std::string, Expression> const & substmap,
+    (Expression const & original, std::unordered_map<std::string, Expression> const & substmap,
      Expression * destination
     )
 {
     for (Expression::const_iterator iter(original.begin());
          iter != original.end(); ++iter)
     {
-        std::map<std::string, Expression>::const_iterator const iter2
+        std::unordered_map<std::string, Expression>::const_iterator const iter2
             (substmap.find(*iter));
         if (iter2 == substmap.end())
         {
@@ -487,8 +487,8 @@ void makesubstitution
         else
         {
             // Variable
-            std::copy(iter2->second.begin(), iter2->second.end(),
-                      std::back_inserter(*destination));
+            const Expression& expression = iter2->second;
+            destination->insert(destination->end(), expression.begin(), expression.end());
         }
     }
 }
@@ -574,7 +574,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
     std::vector<Expression>::size_type const base
         (stack->size() - assertion.hypotheses.size());
 
-    std::map<std::string, Expression> substitutions;
+    std::unordered_map<std::string, Expression> substitutions;
 
     // Determine substitutions and check that we can unify
     for (std::deque<std::string>::size_type i(0);
