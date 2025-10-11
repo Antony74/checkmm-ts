@@ -225,7 +225,7 @@ std::string nexttoken(std::istream & input)
 
 bool readtokens(std::string const filename)
 {
-    static std::set<std::string> names;
+    static std::unordered_set<std::string> names;
 
     bool const alreadyencountered(!names.insert(filename).second);
     if (alreadyencountered)
@@ -345,7 +345,7 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
 
     assertion.expression = exp;
 
-    std::set<std::string> varsused;
+    std::unordered_set<std::string> varsused;
 
     // Determine variables used and find mandatory hypotheses
 
@@ -391,16 +391,16 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
         for (std::vector<std::set<std::string> >::const_iterator iter2
             (disjvars.begin()); iter2 != disjvars.end(); ++iter2)
         {
-            std::set<std::string> dset;
+            std::unordered_set<std::string> dset;
             std::set_intersection
                  (iter2->begin(), iter2->end(),
                   varsused.begin(), varsused.end(),
                   std::inserter(dset, dset.end()));
 
-            for (std::set<std::string>::const_iterator diter(dset.begin());
+            for (std::unordered_set<std::string>::const_iterator diter(dset.begin());
                  diter != dset.end(); ++diter)
             {
-                std::set<std::string>::const_iterator diter2(diter);
+                std::unordered_set<std::string>::const_iterator diter2(diter);
                 ++diter2;
                 for (; diter2 != dset.end(); ++diter2)
                     assertion.disjvars.insert(std::make_pair(*diter, *diter2));
@@ -623,7 +623,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
         Expression const & exp1(substitutions.find(iter->first)->second);
         Expression const & exp2(substitutions.find(iter->second)->second);
 
-        std::set<std::string> exp1vars;
+        std::unordered_set<std::string> exp1vars;
         for (Expression::const_iterator exp1iter(exp1.begin());
              exp1iter != exp1.end(); ++exp1iter)
         {
@@ -631,7 +631,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
                 exp1vars.insert(*exp1iter);
         }
 
-        std::set<std::string> exp2vars;
+        std::unordered_set<std::string> exp2vars;
         for (Expression::const_iterator exp2iter(exp2.begin());
              exp2iter != exp2.end(); ++exp2iter)
         {
@@ -639,10 +639,10 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
                 exp2vars.insert(*exp2iter);
         }
 
-        for (std::set<std::string>::const_iterator exp1iter
+        for (std::unordered_set<std::string>::const_iterator exp1iter
             (exp1vars.begin()); exp1iter != exp1vars.end(); ++exp1iter)
         {
-            for (std::set<std::string>::const_iterator exp2iter
+            for (std::unordered_set<std::string>::const_iterator exp2iter
                 (exp2vars.begin()); exp2iter != exp2vars.end(); ++exp2iter)
             {
                 if (!isdvr(*exp1iter, *exp2iter))
