@@ -594,8 +594,9 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
             Expression & subst(substitutions.insert
                 (std::make_pair(hypothesis.first[1],
                  Expression())).first->second);
-            std::copy((*stack)[base + i].begin() + 1, (*stack)[base + i].end(),
-                      std::back_inserter(subst));
+            Expression & substee = (*stack)[base + i];
+            subst.reserve(subst.size() + (substee.size() - 1));
+            subst.insert(subst.end(), substee.begin() + 1, substee.end());
         }
         else
         {
