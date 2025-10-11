@@ -1,5 +1,7 @@
-checkmmc
+.DS_Store
+checkmmc*
 dist
 node_modules
+profile.txt
 set.mm
 test/metamath-test
