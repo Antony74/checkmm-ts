@@ -178,7 +178,7 @@ describe('checkmm', () => {
         });
     });
 
-    it('can make substituions', () => {
+    it('can make substitutions', () => {
         const expression: Expression = checkmm.makesubstitution(
             ['weather', 'is', 'sunny'],
             new Map(

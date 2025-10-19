@@ -16,7 +16,7 @@ This single filename is the only parameter checkmm takes, so the following comma
 npx checkmm set.mm
 ```
 
-To do this more than a handful of times it is more efficent to install checkmm.
+To do this more than a handful of times it is more efficient to install checkmm.
 
 ```
 npm install --global checkmm
@@ -39,6 +39,6 @@ This is a port to TypeScript. The original C++ program was written by Eric Schmi
 
 http://us.metamath.org/other.html#checkmm
 
-# Licence
+# License
 
 This code is public domain ([Creative Commons "CC0 1.0 Universal"](http://creativecommons.org/publicdomain/zero/1.0/))

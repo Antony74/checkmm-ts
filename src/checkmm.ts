@@ -45,7 +45,7 @@ let std: Std = stdModuleImport;
 let createTokenArray = createTokenArrayImport;
 
 // Restrict ScopeArray to just the Array functionality we actually use.
-// This has no effect, but should make an alternative implmentation a little
+// This has no effect, but should make an alternative implementation a little
 // easier to write if we ever want to pass in something besides an array.
 export type ScopeArray = ArrayLike<Scope> &
     Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
