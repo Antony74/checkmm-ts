@@ -3,7 +3,7 @@ import checkmm, { Assertion, Expression, FileInclusion, Hypothesis, ScopeArray }
 import { Std, Stack } from './std';
 import { Tokens } from './tokens';
 
-interface CheckmmState {
+export interface CheckmmState {
     data: string;
     dataPosition: number;
     readtokenstofileinclusion: () => FileInclusion | undefined;

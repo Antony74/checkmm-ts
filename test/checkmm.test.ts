@@ -70,9 +70,8 @@ describe('checkmm', () => {
         it('can get the next token', () => {
             checkmm.data = 'hello world';
             checkmm.dataPosition = 0;
-            let token = '';
 
-            token = checkmm.nexttoken();
+            let token = checkmm.nexttoken();
             expect(token).toEqual('hello');
             token = checkmm.nexttoken();
             expect(token).toEqual('world');

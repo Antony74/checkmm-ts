@@ -204,7 +204,7 @@ let readcomment = (): string => {
 };
 
 let nexttokenskipcomments = (): string => {
-    let token = '';
+    let token;
     while ((token = nexttoken()).length && token === '$(') {
         readcomment();
     }
@@ -266,8 +266,8 @@ let readtokens = async (filename: string, lastFileInclusionStart = 0): Promise<v
     try {
         data = data.slice(0, lastFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
         dataPosition = lastFileInclusionStart;
-    } catch (_e) {
-        throw new Error('Could not open ' + filename);
+    } catch (e) {
+        throw new Error('Could not open ' + filename, { cause: e });
     }
 
     for (;;) {
