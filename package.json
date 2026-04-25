@@ -1,8 +1,8 @@
 {
     "name": "checkmm",
-    "version": "1.1.1",
+    "version": "1.2.1",
     "description": "",
-    "main": "dist/checkmm.js",
+    "main": "dist/index.js",
     "bin": "cli.js",
     "scripts": {
         "cpp-build": "g++ cpp/checkmm.cpp -o checkmmc -O3 -funroll-loops -finline-functions -fomit-frame-pointer -Wall -pedantic",
