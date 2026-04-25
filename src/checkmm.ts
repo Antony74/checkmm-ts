@@ -962,7 +962,7 @@ let main = async (argv: string[]): Promise<number> => {
 };
 
 // Are we being run as a cli program or a library?
-if (process) {
+if (typeof process !== 'undefined') {
     const executedScript = process.argv.length >= 2 ? process.argv[1] : '';
     const validCliSuffices = [
         __filename,
