@@ -1,4 +1,8 @@
-export type Tokens = Pick<Array<string>, 'pop' | 'push' | 'reverse'> & { front: () => string; empty: () => boolean };
+export type Tokens = Pick<Array<string>, 'pop' | 'push' | 'reverse'> & {
+    front: () => string;
+    empty: () => boolean;
+    clone: () => Tokens;
+};
 
 export class TokenArray extends Array<string> {
     constructor(...params: string[]) {
@@ -9,6 +13,9 @@ export class TokenArray extends Array<string> {
     }
     empty(): boolean {
         return !this.length;
+    }
+    clone(): TokenArray {
+        return new TokenArray(...this);
     }
 }
 
