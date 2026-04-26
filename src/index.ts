@@ -1,5 +1,6 @@
-import {default as _default} from './checkmm';
+import { default as _default } from './checkmm';
 
+export * from './checkText';
 export * from './state';
 export * from './std';
 export * from './tokens';

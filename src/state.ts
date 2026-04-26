@@ -100,3 +100,9 @@ export const setCheckmmState = (state: Partial<CheckmmState>) => {
         checkmm.mmfilenamesalreadyencountered = new Set(mmfilenamesalreadyencountered);
     }
 };
+
+const initialState = getCheckmmState();
+
+export const resetState = () => {
+    setCheckmmState(initialState);
+};

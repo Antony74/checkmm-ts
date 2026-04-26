@@ -1,10 +1,9 @@
-import { createDefaultPreset, type JestConfigWithTsJest } from 'ts-jest'
+import { createDefaultPreset, type JestConfigWithTsJest } from 'ts-jest';
 
-const presetConfig = createDefaultPreset({
-})
+const presetConfig = createDefaultPreset({});
 
 const jestConfig: JestConfigWithTsJest = {
-  ...presetConfig,
-}
+    ...presetConfig,
+};
 
-export default jestConfig
+export default jestConfig;
