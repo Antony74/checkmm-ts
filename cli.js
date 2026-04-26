@@ -11,8 +11,7 @@ try {
     // continue and handle error below
 }
 
-if (found) {
-    require(filename);
-} else {
-    require('checkmm');
-}
+const api = found ? require(filename) : require('checkmm');
+
+api.default.fsp = require('fs/promises');
+api.default.path = require('path');

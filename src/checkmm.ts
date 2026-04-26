@@ -33,19 +33,28 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-ts/issues
 
-import fs from 'fs/promises';
-import path from 'path';
 import stdModuleImport, { Deque, Pair, Stack, Std } from './std';
 
 import { createTokenArray as createTokenArrayImport, TokenArray, Tokens } from './tokens';
 
 export { Deque, Pair, Stack, TokenArray, Tokens };
 
+type Fsp = { readFile: (filename: string, options?: { encoding: 'utf-8' }) => string };
+
+type Path = {
+    normalize: (filename: string) => string;
+    join: (a: string, b: string) => string;
+    dirname: (filename: string) => string;
+};
+
+let _fsp: Fsp | undefined;
+let _path: Path | undefined;
+
 let std: Std = stdModuleImport;
 let createTokenArray = createTokenArrayImport;
 
 // Restrict ScopeArray to just the Array functionality we actually use.
-// This has no effect, but should make an alternative implmentation a little
+// This has no effect, but should make an alternative implementation a little
 // easier to write if we ever want to pass in something besides an array.
 export type ScopeArray = ArrayLike<Scope> &
     Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
@@ -204,7 +213,7 @@ let readcomment = (): string => {
 };
 
 let nexttokenskipcomments = (): string => {
-    let token = '';
+    let token;
     while ((token = nexttoken()).length && token === '$(') {
         readcomment();
     }
@@ -253,7 +262,15 @@ let readtokenstofileinclusion = (): FileInclusion | undefined => {
     }
 };
 
-let readFile = async (filename: string): Promise<string> => fs.readFile(filename, { encoding: 'utf-8' });
+let readFile = async (filename: string): Promise<string> => {
+    await new Promise(resolve => setTimeout(resolve, 1));
+
+    if (!_fsp) {
+        throw new Error(`readFile called but no filesystem is defined`);
+    }
+
+    return _fsp.readFile(filename, { encoding: 'utf-8' });
+};
 
 let mmfilenamesalreadyencountered = new Set<string>();
 
@@ -266,15 +283,15 @@ let readtokens = async (filename: string, lastFileInclusionStart = 0): Promise<v
     try {
         data = data.slice(0, lastFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
         dataPosition = lastFileInclusionStart;
-    } catch (_e) {
-        throw new Error('Could not open ' + filename);
+    } catch (e) {
+        throw new Error('Could not open ' + filename, { cause: e });
     }
 
     for (;;) {
         const fileInclusion = readtokenstofileinclusion();
         if (fileInclusion) {
-            if (path) {
-                fileInclusion.filename = path.normalize(path.join(path.dirname(filename), fileInclusion.filename));
+            if (_path) {
+                fileInclusion.filename = _path.normalize(_path.join(_path.dirname(filename), fileInclusion.filename));
             }
 
             await readtokens(fileInclusion.filename, fileInclusion.startPosition);
@@ -962,7 +979,7 @@ let main = async (argv: string[]): Promise<number> => {
 };
 
 // Are we being run as a cli program or a library?
-if (process) {
+if (typeof process !== 'undefined') {
     const executedScript = process.argv.length >= 2 ? process.argv[1] : '';
     const validCliSuffices = [
         __filename,
@@ -987,7 +1004,19 @@ if (process) {
     }
 }
 
-export default {
+const api = {
+    get fsp(): Fsp | undefined {
+        return _fsp;
+    },
+    set fsp(val: Fsp) {
+        _fsp = val;
+    },
+    get path(): Path | undefined {
+        return _path;
+    },
+    set path(val: Path) {
+        _path = val;
+    },
     get data() {
         return data;
     },
@@ -1257,3 +1286,5 @@ export default {
         main = _main;
     },
 };
+
+export default api;

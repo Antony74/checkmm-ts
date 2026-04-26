@@ -3,7 +3,7 @@ import checkmm, { Assertion, Expression, FileInclusion, Hypothesis, ScopeArray }
 import { Std, Stack } from './std';
 import { Tokens } from './tokens';
 
-interface CheckmmState {
+export interface CheckmmState {
     data: string;
     dataPosition: number;
     readtokenstofileinclusion: () => FileInclusion | undefined;
@@ -51,7 +51,16 @@ interface CheckmmState {
 }
 
 export const getCheckmmState = (): CheckmmState => {
-    return { ...checkmm };
+    return {
+        ...checkmm,
+        tokens: checkmm.tokens.clone(),
+        constants: new Set(checkmm.constants),
+        hypotheses: new Map(checkmm.hypotheses),
+        variables: new Set(checkmm.variables),
+        assertions: new Map(checkmm.assertions),
+        scopes: [...checkmm.scopes],
+        mmfilenamesalreadyencountered: new Set(checkmm.mmfilenamesalreadyencountered),
+    };
 };
 
 export const setCheckmmState = (state: Partial<CheckmmState>) => {
@@ -60,4 +69,40 @@ export const setCheckmmState = (state: Partial<CheckmmState>) => {
             (checkmm as any)[key] = (state as any)[key];
         }
     }
+
+    const { tokens, constants, hypotheses, variables, assertions, scopes, mmfilenamesalreadyencountered } = state;
+
+    if (tokens) {
+        checkmm.tokens = tokens.clone();
+    }
+
+    if (constants) {
+        checkmm.constants = new Set(constants);
+    }
+
+    if (hypotheses) {
+        checkmm.hypotheses = new Map(hypotheses);
+    }
+
+    if (variables) {
+        checkmm.variables = new Set(variables);
+    }
+
+    if (assertions) {
+        checkmm.assertions = new Map(assertions);
+    }
+
+    if (scopes) {
+        checkmm.scopes = [...scopes];
+    }
+
+    if (mmfilenamesalreadyencountered) {
+        checkmm.mmfilenamesalreadyencountered = new Set(mmfilenamesalreadyencountered);
+    }
+};
+
+const initialState = getCheckmmState();
+
+export const resetState = () => {
+    setCheckmmState(initialState);
 };
