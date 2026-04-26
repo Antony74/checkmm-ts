@@ -1,7 +1,7 @@
 import { Assertion, Expression, FileInclusion, Hypothesis, ScopeArray } from './checkmm';
 import { Std, Stack } from './std';
 import { Tokens } from './tokens';
-interface CheckmmState {
+export interface CheckmmState {
     data: string;
     dataPosition: number;
     readtokenstofileinclusion: () => FileInclusion | undefined;
@@ -49,4 +49,4 @@ interface CheckmmState {
 }
 export declare const getCheckmmState: () => CheckmmState;
 export declare const setCheckmmState: (state: Partial<CheckmmState>) => void;
-export {};
+export declare const resetState: () => void;

@@ -11,6 +11,9 @@ class TokenArray extends Array {
     empty() {
         return !this.length;
     }
+    clone() {
+        return new TokenArray(...this);
+    }
 }
 exports.TokenArray = TokenArray;
 const createTokenArray = (...params) => {

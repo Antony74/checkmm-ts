@@ -66,26 +66,14 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Scope = exports.Assertion = exports.TokenArray = exports.Deque = void 0;
-const promises_1 = __importDefault(require("fs/promises"));
-const path_1 = __importDefault(require("path"));
 const std_1 = __importStar(require("./std"));
 Object.defineProperty(exports, "Deque", { enumerable: true, get: function () { return std_1.Deque; } });
 const tokens_1 = require("./tokens");
 Object.defineProperty(exports, "TokenArray", { enumerable: true, get: function () { return tokens_1.TokenArray; } });
+let _fsp;
+let _path;
 let std = std_1.default;
 let createTokenArray = tokens_1.createTokenArray;
 let data = '';
@@ -96,25 +84,21 @@ let hypotheses = new Map();
 let variables = new Set();
 // An axiom or a theorem.
 class Assertion {
-    constructor() {
-        // Hypotheses of this axiom or theorem.
-        this.hypotheses = [];
-        this.disjvars = new Set();
-        // Statement of axiom or theorem.
-        this.expression = [];
-    }
+    // Hypotheses of this axiom or theorem.
+    hypotheses = [];
+    disjvars = new Set();
+    // Statement of axiom or theorem.
+    expression = [];
 }
 exports.Assertion = Assertion;
 let assertions = new Map();
 class Scope {
-    constructor() {
-        this.activevariables = new Set();
-        // Labels of active hypotheses
-        this.activehyp = [];
-        this.disjvars = [];
-        // Map from variable to label of active floating hypothesis
-        this.floatinghyp = new Map();
-    }
+    activevariables = new Set();
+    // Labels of active hypotheses
+    activehyp = [];
+    disjvars = [];
+    // Map from variable to label of active floating hypothesis
+    floatinghyp = new Map();
 }
 exports.Scope = Scope;
 let scopes = new Array();
@@ -220,7 +204,7 @@ let readcomment = () => {
     throw new Error('Unclosed comment');
 };
 let nexttokenskipcomments = () => {
-    let token = '';
+    let token;
     while ((token = nexttoken()).length && token === '$(') {
         readcomment();
     }
@@ -257,33 +241,39 @@ let readtokenstofileinclusion = () => {
         tokens.push(token);
     }
 };
-let readFile = (filename) => __awaiter(void 0, void 0, void 0, function* () { return promises_1.default.readFile(filename, { encoding: 'utf-8' }); });
+let readFile = async (filename) => {
+    await new Promise(resolve => setTimeout(resolve, 1));
+    if (!_fsp) {
+        throw new Error(`readFile called but no filesystem is defined`);
+    }
+    return _fsp.readFile(filename, { encoding: 'utf-8' });
+};
 let mmfilenamesalreadyencountered = new Set();
-let readtokens = (filename_1, ...args_1) => __awaiter(void 0, [filename_1, ...args_1], void 0, function* (filename, lastFileInclusionStart = 0) {
+let readtokens = async (filename, lastFileInclusionStart = 0) => {
     const alreadyencountered = mmfilenamesalreadyencountered.has(filename);
     if (alreadyencountered)
         return;
     mmfilenamesalreadyencountered.add(filename);
     try {
-        data = data.slice(0, lastFileInclusionStart) + (yield readFile(filename)) + data.slice(dataPosition);
+        data = data.slice(0, lastFileInclusionStart) + (await readFile(filename)) + data.slice(dataPosition);
         dataPosition = lastFileInclusionStart;
     }
-    catch (_e) {
-        throw new Error('Could not open ' + filename);
+    catch (e) {
+        throw new Error('Could not open ' + filename, { cause: e });
     }
     for (;;) {
         const fileInclusion = readtokenstofileinclusion();
         if (fileInclusion) {
-            if (path_1.default) {
-                fileInclusion.filename = path_1.default.normalize(path_1.default.join(path_1.default.dirname(filename), fileInclusion.filename));
+            if (_path) {
+                fileInclusion.filename = _path.normalize(_path.join(_path.dirname(filename), fileInclusion.filename));
             }
-            yield readtokens(fileInclusion.filename, fileInclusion.startPosition);
+            await readtokens(fileInclusion.filename, fileInclusion.startPosition);
         }
         else {
             break;
         }
     }
-});
+};
 // Construct an Assertion from an Expression. That is, determine the
 // mandatory hypotheses and disjoint variable restrictions.
 // The Assertion is inserted into the assertions collection,
@@ -826,13 +816,13 @@ let processtokens = () => {
     }
 };
 const EXIT_FAILURE = 1;
-let main = (argv) => __awaiter(void 0, void 0, void 0, function* () {
+let main = async (argv) => {
     try {
         if (argv.length !== 2) {
             console.error('Syntax: checkmm <filename>');
             return EXIT_FAILURE;
         }
-        yield readtokens(argv[1]);
+        await readtokens(argv[1]);
         processtokens();
         return 0;
     }
@@ -845,9 +835,9 @@ let main = (argv) => __awaiter(void 0, void 0, void 0, function* () {
         }
         return EXIT_FAILURE;
     }
-});
+};
 // Are we being run as a cli program or a library?
-if (process) {
+if (typeof process !== 'undefined') {
     const executedScript = process.argv.length >= 2 ? process.argv[1] : '';
     const validCliSuffices = [
         __filename,
@@ -866,7 +856,19 @@ if (process) {
         });
     }
 }
-exports.default = {
+const api = {
+    get fsp() {
+        return _fsp;
+    },
+    set fsp(val) {
+        _fsp = val;
+    },
+    get path() {
+        return _path;
+    },
+    set path(val) {
+        _path = val;
+    },
     get data() {
         return data;
     },
@@ -1132,4 +1134,5 @@ exports.default = {
         main = _main;
     },
 };
+exports.default = api;
 //# sourceMappingURL=checkmm.js.map

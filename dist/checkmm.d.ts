@@ -1,6 +1,16 @@
 import { Deque, Pair, Stack, Std } from './std';
 import { TokenArray, Tokens } from './tokens';
 export { Deque, Pair, Stack, TokenArray, Tokens };
+type Fsp = {
+    readFile: (filename: string, options?: {
+        encoding: 'utf-8';
+    }) => string;
+};
+type Path = {
+    normalize: (filename: string) => string;
+    join: (a: string, b: string) => string;
+    dirname: (filename: string) => string;
+};
 export type ScopeArray = ArrayLike<Scope> & Pick<Array<Scope>, 'pop' | 'push' | 'slice'> & {
     [Symbol.iterator](): IterableIterator<Scope>;
 };
@@ -21,7 +31,11 @@ export interface FileInclusion {
     startPosition: number;
     filename: string;
 }
-declare const _default: {
+declare const api: {
+    get fsp(): Fsp | undefined;
+    set fsp(val: Fsp);
+    get path(): Path | undefined;
+    set path(val: Path);
     data: string;
     dataPosition: number;
     readtokenstofileinclusion: () => FileInclusion | undefined;
@@ -67,4 +81,4 @@ declare const _default: {
     processtokens: () => void;
     main: (argv: string[]) => Promise<number>;
 };
-export default _default;
+export default api;

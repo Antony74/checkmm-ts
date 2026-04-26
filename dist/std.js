@@ -46,7 +46,7 @@ const arraysequal = (arr1, arr2) => {
     return true;
 };
 const createstack = (arr) => {
-    let container = arr !== null && arr !== void 0 ? arr : [];
+    let container = arr ?? [];
     return {
         push: (item) => {
             container.push(item);
