@@ -3,7 +3,9 @@
     "version": "1.2.1",
     "description": "",
     "main": "dist/index.js",
-    "bin": "cli.js",
+    "bin": {
+        "checkmm": "cli.js"
+    },
     "scripts": {
         "cpp-build": "g++ cpp/checkmm.cpp -o checkmmc -O3 -funroll-loops -finline-functions -fomit-frame-pointer -Wall -pedantic",
         "cpp-build-debug": "g++ cpp/checkmm.cpp -o checkmmc -g -O0 -Wall -pedantic",
