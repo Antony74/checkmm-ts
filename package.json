@@ -14,9 +14,9 @@
         "metamath-test": "tsx test/metamath-test.ts",
         "metamath-test-no-update": "tsx test/metamath-test.ts --no-update",
         "prettier": "prettier --write .",
-        "set.mm": "tsx src/checkmm.ts set.mm",
+        "set.mm": "npm run build && tsx cli.js set.mm",
         "get-set.mm": "curl -L https://github.com/metamath/set.mm/raw/refs/heads/develop/set.mm -O",
-        "start": "tsx src/checkmm.ts",
+        "start": "npm run build && tsx cli.js",
         "time": "npm run build && node cli.js set.mm | gnomon",
         "test": "jest"
     },
